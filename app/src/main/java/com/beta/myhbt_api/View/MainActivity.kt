@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity() {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
                     // Go to the main activity
-                    val intent = Intent(applicationContext, HBTGram::class.java)
+                    val intent = Intent(applicationContext, HBTGramPostDetail::class.java)
                     startActivity(intent)
                 }
             }
