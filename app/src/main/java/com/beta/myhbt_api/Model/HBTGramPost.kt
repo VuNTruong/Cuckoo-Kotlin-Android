@@ -1,8 +1,10 @@
 package com.beta.myhbt_api.Model
 
 import com.google.gson.annotations.SerializedName
+import java.io.Serializable
 
-class HBTGramPost (_id: String, content: String, writer: String, numOfImages: Int, orderInCollection: Int, dateCreated: String) {
+class HBTGramPost (_id: String, content: String, writer: String, numOfImages: Int, orderInCollection: Int, dateCreated: String) :
+    Serializable {
     // Attributes of the post
     @SerializedName("_id")
     private val _id: String = _id

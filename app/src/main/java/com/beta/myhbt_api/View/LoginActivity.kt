@@ -48,7 +48,7 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(applicationContext, "Password or email is not right", Toast.LENGTH_SHORT).show()
                 } else {
                     // Go to the mail page activity
-                    val intent = Intent(applicationContext, MainPage::class.java)
+                    val intent = Intent(applicationContext, MainMenu::class.java)
                     startActivity(intent)
                 }
             }

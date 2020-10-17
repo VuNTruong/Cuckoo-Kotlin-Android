@@ -1,8 +1,11 @@
-package com.beta.myhbt_api.View
+package com.beta.myhbt_api.View.Fragments
 
 import android.os.AsyncTask
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.GetAllHBTGramPostService
@@ -10,35 +13,39 @@ import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterHBTGramPost
-import kotlinx.android.synthetic.main.activity_hbtgram.*
+import kotlinx.android.synthetic.main.fragment_dashboard.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class HBTGram : AppCompatActivity() {
+class DashboardFragment : Fragment() {
     // Array of HBTGram posts
     private var hbtGramPosts = ArrayList<HBTGramPost>()
 
     // Adapter for the RecyclerView
     private var adapter: RecyclerViewAdapterHBTGramPost?= null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_hbtgram)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        return inflater.inflate(R.layout.fragment_dashboard, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         // Instantiate the recycler view
-        hbtGramPostsView.layoutManager = LinearLayoutManager(applicationContext)
-        hbtGramPostsView.itemAnimator = DefaultItemAnimator()
+        hbtGramView.layoutManager = LinearLayoutManager(this@DashboardFragment.context)
+        hbtGramView.itemAnimator = DefaultItemAnimator()
 
         // Execute the AsyncTask to get all HBTGram posts
-        //GetAllPostsTask().execute()
+        GetAllPostsTask().execute()
     }
-    /*
+
     // AsyncTask to get all posts from the database
     inner class GetAllPostsTask : AsyncTask<Void, Void, Void>() {
         override fun doInBackground(vararg params: Void?): Void? {
             // Create the get all posts service
-            val getAllPostService: GetAllHBTGramPostService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(GetAllHBTGramPostService::class.java)
+            val getAllPostService: GetAllHBTGramPostService = RetrofitClientInstance.getRetrofitInstance(this@DashboardFragment.context!!)!!.create(
+                GetAllHBTGramPostService::class.java)
 
             // Create the call object in order to perform the call
             val call: Call<Any> = getAllPostService.getAllPosts()
@@ -80,10 +87,10 @@ class HBTGram : AppCompatActivity() {
                          */
 
                         // Update the adapter
-                        adapter = RecyclerViewAdapterHBTGramPost(hbtGramPosts, this@HBTGram, this@HBTGram)
+                        adapter = RecyclerViewAdapterHBTGramPost(hbtGramPosts, this@DashboardFragment.requireActivity(), this@DashboardFragment)
 
                         // Add adapter to the RecyclerView
-                        hbtGramPostsView.adapter = adapter
+                        hbtGramView.adapter = adapter
                     } else {
                         print("Something is not right")
                     }
@@ -94,10 +101,8 @@ class HBTGram : AppCompatActivity() {
         }
     }
 
-     */
-
     // The function to reload the RecyclerView
     fun reloadRecyclerView () {
-        hbtGramPostsView.adapter!!.notifyDataSetChanged()
+        hbtGramView.adapter!!.notifyDataSetChanged()
     }
 }

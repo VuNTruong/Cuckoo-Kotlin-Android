@@ -17,11 +17,16 @@ class AddCookiesInterceptor(context: Context) : Interceptor {
         // Get the shared preference (memory) instance
         val preferences = PreferenceManager.getDefaultSharedPreferences(context)
 
+        /*
         // Loop through all data in the shared preference
         for (item in preferences.all) {
             // Add cookie to the request header
-            builder.addHeader("cookie", item.value as String)
+            builder.addHeader("Cookie", item.value as String)
         }
+
+         */
+
+        builder.addHeader("Cookie", preferences.getString("jwt", "") as String)
 
         // Return the request with cookies
         return chain.proceed(builder.build())

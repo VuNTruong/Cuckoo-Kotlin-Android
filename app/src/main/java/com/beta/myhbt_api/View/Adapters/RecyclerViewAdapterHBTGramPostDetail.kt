@@ -7,9 +7,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.GetUserInfoService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.Model.HBTGramPostComment
 import com.beta.myhbt_api.R
@@ -91,9 +91,30 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
         private val likeButton : ImageView = itemView.findViewById(R.id.likeButtonPostDetail)
 
         // The function to set up number of likes and comments for the post
-        fun setUpNumOfLikesAndComments () {
-            // Set up on click listener fot the like button
-            likeButton.setOnClickListener {  }
+        fun setUpNumOfLikesAndComments (postObject: HBTGramPost) {
+            // Set up on click listener for the like button
+            likeButton.setOnClickListener {
+                // Execute the AsyncTask to add new like to the post
+                GetCurrentUserInfoAndCreateLike().execute(hashMapOf(
+                    "postId" to postObject.getId()
+                ))
+            }
+
+            // Execute the AsyncTask to load number of comments
+            GetNumberOfCommentsTask().execute(
+                hashMapOf(
+                    "numOfCommentsTextView" to numOfComments,
+                    "postId" to postObject.getId()
+                )
+            )
+
+            // Execute the AsyncTask to load number of likes
+            GetNumberOfLikesTask().execute(
+                hashMapOf(
+                    "numOfLikesTextView" to numOfLikes,
+                    "postId" to postObject.getId()
+                )
+            )
         }
     }
 
@@ -127,7 +148,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
     }
 
     // AsyncTask to get info of the post writer
-    private inner class GetUserInfoTask: AsyncTask<HashMap<String, Any>, Void, Void>() {
+    inner class GetUserInfoTask: AsyncTask<HashMap<String, Any>, Void, Void>() {
         override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
             // Get email of the post writer
             val writerEmail = params[0]!!["writerEmail"] as String
@@ -180,6 +201,183 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
                             .into(avatarImageView)
                     } else {
                         print("Something is not right")
+                    }
+                }
+            })
+
+            return null
+        }
+    }
+
+    // AsyncTask to get number of comments of the post
+    inner class GetNumberOfCommentsTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
+        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
+            // Get the number of comments TextView
+            val numOfCommentsTextView = params[0]!!["numOfCommentsTextView"] as TextView
+
+            // Get id of the post
+            val postId = params[0]!!["postId"] as String
+
+            // Create the get post comments service
+            val getPostCommentsService: GetHBTGramPostCommentsService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+                GetHBTGramPostCommentsService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getPostCommentsService.getPostComments(postId)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        val body = response.body()
+                        print(body)
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get number of comments
+                        val numOfComments = (responseBody["results"] as Double).toInt()
+
+                        // Load the number of comments into the TextView
+                        numOfCommentsTextView.text = "$numOfComments comments"
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+
+            return null
+        }
+    }
+
+    // AsyncTask for getting number of likes of the post
+    inner class GetNumberOfLikesTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
+        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
+            // Get the number of likes TextView
+            val numOfLikesTextView = params[0]!!["numOfLikesTextView"] as TextView
+
+            // Get id of the post
+            val postId = params[0]!!["postId"] as String
+
+            // Create the get post likes service
+            val getPostLikesService: GetAllHBTGramPostLikesService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+                GetAllHBTGramPostLikesService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getPostLikesService.getPostLikes(postId)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        val body = response.body()
+                        print(body)
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get number of comments
+                        val numOfComments = (responseBody["results"] as Double).toInt()
+
+                        // Load the number of likes into the TextView
+                        numOfLikesTextView.text = "$numOfComments likes"
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+
+            return null
+        }
+    }
+
+    // AsyncTask which will get email of the currently logged in user and create new like based on it
+    inner class GetCurrentUserInfoAndCreateLike : AsyncTask<HashMap<String, Any>, Void, Void>() {
+        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
+            // Get the post id
+            val postId = params[0]!!["postId"] as String
+
+            // Create the get current user info service
+            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+                GetCurrentlyLoggedInUserInfoService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        val body = response.body()
+                        print(body)
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get email of the currently logged in user
+                        val userEmail = data["email"] as String
+
+                        // Execute the ASyncTask to add new like for the post
+                        CreateNewLikeTask().execute(hashMapOf(
+                            "likerEmail" to userEmail,
+                            "postId" to postId
+                        ))
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+
+            return null
+        }
+    }
+
+    // AsyncTask for adding new like for the post
+    inner class CreateNewLikeTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
+        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
+            // Get email of the liker (currently logged in user)
+            val likerEmail = params[0]!!["likerEmail"] as String
+
+            // Get post id
+            val postId = params[0]!!["postId"] as String
+
+            // Create the add like service
+            val addLikeService: CreateNewHBTGramPostLikeService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+                CreateNewHBTGramPostLikeService::class.java)
+
+            // The call object which will then be used to perform the API call
+            val call: Call<Any> = addLikeService.createNewHBTGramPostLike(likerEmail, postId)
+
+            // Perform the API call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    // Report the error if something is not right
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is null, it means that comment can't be posted
+                    if (response.body() == null) {
+                        // Show the error
+                        Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
+                    } else {
+                        // Done
+                        Toast.makeText(activity, "You've liked this post", Toast.LENGTH_SHORT).show()
                     }
                 }
             })
@@ -254,7 +452,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
             }
             // After that, show the number of comments and likes
             position == arrayOfImages.size + 2 -> {
-                (holder as ViewHolderNumOfLikesAndComments).setUpNumOfLikesAndComments()
+                (holder as ViewHolderNumOfLikesAndComments).setUpNumOfLikesAndComments(hbtGramPost)
             }
             // The rest will show the comments
             else -> {

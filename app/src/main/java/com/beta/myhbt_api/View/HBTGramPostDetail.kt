@@ -4,11 +4,10 @@ import android.os.AsyncTask
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.GetFirstImageURLOfPostService
-import com.beta.myhbt_api.Controller.GetHBTGramPostCommentsService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.Model.HBTGramPostComment
 import com.beta.myhbt_api.R
@@ -25,7 +24,7 @@ class HBTGramPostDetail : AppCompatActivity() {
     private var adapter: RecyclerViewAdapterHBTGramPostDetail?= null
 
     // Selected post object
-    private var selectedPostObject = HBTGramPost("5f7a47be2ddf6308e46a3700", "The first one ever. But let's make this thing longer to see how will the app deal with this", "truongnguyenanhvu1999@gmail.com", 1, 1601849278, "4/10/2020")
+    private var selectedPostObject = HBTGramPost("", "", "", 0, 0, "")
 
     // Array of image URL of the post
     private var arrayOfImages = ArrayList<String>()
@@ -36,6 +35,9 @@ class HBTGramPostDetail : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hbtgram_post_detail)
+
+        // Get the selected post object from previous activity
+        selectedPostObject = intent.getSerializableExtra("selectedPostObject") as HBTGramPost
 
         // Instantiate the recycler view
         hbtGramPostDetailView.layoutManager = LinearLayoutManager(applicationContext)
@@ -49,6 +51,20 @@ class HBTGramPostDetail : AppCompatActivity() {
 
         // Call the function to set up post detail
         setUpPostDetail(selectedPostObject.getId())
+
+        // Execute the AsyncTask to load avatar of the currently logged in user
+        LoadAvatarOfCurrentUserTask().execute(hashMapOf(
+            "userAvatarImageView" to userAvatarPostDetail
+        ))
+
+        // Set up event listener for the post comment button
+        postCommentButtonPostDetail.setOnClickListener {
+            // Execute the AsyncTask to create new comment for the post written by the currently logged in user
+            GetCurrentUserInfoAndCreateComment().execute(hashMapOf(
+                "postId" to selectedPostObject.getId(),
+                "commentContentToPost" to commentContentToPostPostDetail.text.toString()
+            ))
+        }
     }
 
     // The function to set up post detail
@@ -126,11 +142,11 @@ class HBTGramPostDetail : AppCompatActivity() {
             val postId = params[0]!!["postId"] as String
 
             // Create the get post comments service
-            val getPostCommentsSerivce: GetHBTGramPostCommentsService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            val getPostCommentsService: GetHBTGramPostCommentsService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
                 GetHBTGramPostCommentsService::class.java)
 
             // Create the call object in order to perform the call
-            val call: Call<Any> = getPostCommentsSerivce.getPostComments(postId)
+            val call: Call<Any> = getPostCommentsService.getPostComments(postId)
 
             // Perform the call
             call.enqueue(object: Callback<Any> {
@@ -172,6 +188,156 @@ class HBTGramPostDetail : AppCompatActivity() {
                         hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
                     } else {
                         print("Something is not right")
+                    }
+                }
+            })
+
+            return null
+        }
+    }
+
+    // AsyncTask to load avatar of the currently logged in user
+    inner class LoadAvatarOfCurrentUserTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
+        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
+            // Get the user avatar ImageView
+            val userAvatarImageView = params[0]!!["userAvatarImageView"] as ImageView
+
+            // Create the validate token service
+            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+                GetCurrentlyLoggedInUserInfoService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        val body = response.body()
+                        print(body)
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get avatar of the user
+                        val avatarURL = data["avatarURL"] as String
+
+                        // Load that avatar URL into the ImageView
+                        Glide.with(applicationContext)
+                            .load(avatarURL)
+                            .into(userAvatarImageView)
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+
+            return null
+        }
+    }
+
+    // AsyncTask to get email of the currently logged in user and create new comment base on it
+    inner class GetCurrentUserInfoAndCreateComment : AsyncTask<HashMap<String, Any>, Void, Void>() {
+        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
+            // Get post id
+            val postId = params[0]!!["postId"] as String
+
+            // Get the content of the comment to post
+            val commentContentToPost = params[0]!!["commentContentToPost"] as String
+
+            // Create the get current user info service
+            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+                GetCurrentlyLoggedInUserInfoService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        val body = response.body()
+                        print(body)
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get email of the currently logged in user
+                        val userEmail = data["email"] as String
+
+                        // Execute the AsyncTask to create new comment for the post
+                        CreateNewCommentTask().execute(hashMapOf(
+                            "commentContentToPost" to commentContentToPost,
+                            "commentWriterEmail" to userEmail,
+                            "postId" to postId
+                        ))
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+
+            return null
+        }
+    }
+
+    // AsyncTask to create new comment for the post
+    inner class CreateNewCommentTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
+        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
+            // Get the content of the comment to post
+            val commentContentToPost = params[0]!!["commentContentToPost"] as String
+
+            // Get email of the writer (currently logged in user)
+            val commentWriterEmail = params[0]!!["commentWriterEmail"] as String
+
+            // Get post id
+            val postId = params[0]!!["postId"] as String
+
+            // Create the create comment service
+            val postCommentService: CreateNewHBTGramPostCommentService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+                CreateNewHBTGramPostCommentService::class.java)
+
+            // The call object which will then be used to perform the API call
+            val call: Call<Any> = postCommentService.createNewHBTGramPostComment(commentContentToPost, commentWriterEmail, postId)
+
+            // Perform the API call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    // Report the error if something is not right
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is null, it means that comment can't be posted
+                    if (response.body() == null) {
+                        // Show the alert
+                        Toast.makeText(applicationContext, "Comment can't be posted", Toast.LENGTH_SHORT).show()
+                    } else {
+                        // Create the object for the new comment
+                        val commentObject = HBTGramPostComment(commentContentToPost, commentWriterEmail)
+
+                        // Add it to the array of comments
+                        arrayOfComments.add(commentObject)
+
+                        // Reload the RecyclerView
+                        hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
+
+                        // Empty content of the EditText
+                        commentContentToPostPostDetail.setText("")
                     }
                 }
             })

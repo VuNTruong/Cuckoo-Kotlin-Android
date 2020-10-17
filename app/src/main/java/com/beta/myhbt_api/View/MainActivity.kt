@@ -2,6 +2,7 @@ package com.beta.myhbt_api.View
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.User
@@ -22,6 +23,10 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(applicationContext, LoginActivity::class.java)
             startActivity(intent)
         }
+
+        // Show the loading layout at beginning and the main layout to be invisible
+        loadingLayoutWelcome.visibility = View.VISIBLE
+        welcomeLayout.visibility = View.INVISIBLE
 
         // Set on click listener for the sign up button
 
@@ -47,8 +52,15 @@ class MainActivity : AppCompatActivity() {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
                     // Go to the main activity
-                    val intent = Intent(applicationContext, HBTGramPostDetail::class.java)
+                    val intent = Intent(applicationContext, MainMenu::class.java)
                     startActivity(intent)
+
+                    // Finish this activity
+                    this@MainActivity.finish()
+                } else {
+                    // Show the welcome layout and the loading layout to be invisible
+                    loadingLayoutWelcome.visibility = View.INVISIBLE
+                    welcomeLayout.visibility = View.VISIBLE
                 }
             }
         })
