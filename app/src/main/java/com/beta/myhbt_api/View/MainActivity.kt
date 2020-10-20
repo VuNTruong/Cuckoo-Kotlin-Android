@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity() {
 
         // Set on click listener for the login button
         loginButton.setOnClickListener {
+            // Start the activity where the user can sign in
             val intent = Intent(applicationContext, LoginActivity::class.java)
             startActivity(intent)
         }
@@ -29,6 +30,11 @@ class MainActivity : AppCompatActivity() {
         welcomeLayout.visibility = View.INVISIBLE
 
         // Set on click listener for the sign up button
+        signUpButton.setOnClickListener {
+            // Start the activity where the user can start signing up
+            val intent = Intent(applicationContext, SignUpEnterStudentId::class.java)
+            startActivity(intent)
+        }
 
         // Call the function to validate the current token
         checkToken()

@@ -7,8 +7,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.MenuItem
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.core.view.GravityCompat
@@ -22,6 +20,7 @@ import com.beta.myhbt_api.View.Fragments.DashboardFragment
 import com.beta.myhbt_api.View.Fragments.ProfileFragment
 import com.bumptech.glide.Glide
 import com.google.android.material.navigation.NavigationView
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.android.synthetic.main.activity_main_menu.*
 import kotlinx.android.synthetic.main.nav_header.*
 import retrofit2.Call
@@ -29,6 +28,8 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+    // Instance of the FirebaseAuth
+    private val mAuth = FirebaseAuth.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -155,6 +156,9 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                         val memory : SharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
                         val cookie = memory.getStringSet("PREF_COOKIE", HashSet<String>())
                         print(cookie)
+
+                        // Sign the user out with FirebaseAuth
+                        mAuth.signOut()
 
                         // Go to the mail page activity
                         val intent = Intent(applicationContext, MainActivity::class.java)

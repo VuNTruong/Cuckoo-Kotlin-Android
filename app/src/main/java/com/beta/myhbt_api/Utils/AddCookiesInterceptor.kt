@@ -23,10 +23,10 @@ class AddCookiesInterceptor(context: Context) : Interceptor {
             // Add cookie to the request header
             builder.addHeader("Cookie", item.value as String)
         }
-
          */
 
         builder.addHeader("Cookie", preferences.getString("jwt", "") as String)
+        builder.addHeader("Cookie", preferences.getString("sign_up_jwt", "") as String)
 
         // Return the request with cookies
         return chain.proceed(builder.build())
