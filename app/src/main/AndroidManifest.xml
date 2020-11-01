@@ -11,7 +11,13 @@
         android:roundIcon="@drawable/hbtgram1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.SignUpCreateEmailAndPassword"></activity>
+        <activity android:name=".View.ChatSendImage"></activity>
+        <activity
+            android:name=".View.Chat"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".View.UpdateCoverPhoto" />
+        <activity android:name=".View.UpdateAvatar" />
+        <activity android:name=".View.SignUpCreateEmailAndPassword" />
         <activity android:name=".View.SignUpVerifyInfo" />
         <activity android:name=".View.SignUpEnterStudentId" />
         <activity

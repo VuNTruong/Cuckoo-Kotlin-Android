@@ -94,7 +94,7 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                     R.id.fragment_container,
                     DashboardFragment()
                 ).commit()
-                supportActionBar!!.title = "Bảng tin"
+                supportActionBar!!.title = "Dashboard"
             }
             R.id.nav_chat -> {
                 supportFragmentManager.beginTransaction().replace(
@@ -174,15 +174,6 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
     // AsyncTask to load full name and avatar of the currently logged in user
     inner class GetCurrentUserInfoTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
         override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get full name TextView
-            //val fullNameTextView = params[0]!!["fullNameTextView"] as TextView
-
-            // Get email TextView
-            //val emailTextView = params[0]!!["emailTextView"] as TextView
-
-            // Get avatar ImageView
-            //val avatarImageView = params[0]!!["avatarImageView"] as ImageView
-
             // Create the validate token service
             val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
                 GetCurrentlyLoggedInUserInfoService::class.java)
