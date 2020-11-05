@@ -24,10 +24,11 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <de.hdodenhof.circleimageview.CircleImageView
-            android:id="@+id/userAvatarPostDetail"
-            android:layout_width="35dp"
-            android:layout_height="35dp"
-            android:layout_marginStart="16dp"
+            android:id="@+id/selectPictureForCommentButton"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_camera_alt_black_24dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -51,7 +52,7 @@
             android:textSize="13dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/postCommentButtonPostDetail"
-            app:layout_constraintStart_toEndOf="@+id/userAvatarPostDetail"
+            app:layout_constraintStart_toEndOf="@+id/selectPictureForCommentButton"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView

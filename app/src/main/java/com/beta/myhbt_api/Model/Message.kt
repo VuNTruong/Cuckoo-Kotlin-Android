@@ -1,10 +1,19 @@
 package com.beta.myhbt_api.Model
 
-class Message (sender: String, receiver: String, content: String, messageId: String) {
+import com.google.gson.annotations.SerializedName
+
+class Message (sender: String, receiver: String, content: String, _id: String) {
     // Info of the message
-    private val messageId = messageId
+    @SerializedName("_id")
+    private val _id = _id
+
+    @SerializedName("sender")
     private val sender = sender
+
+    @SerializedName("receiver")
     private val receiver = receiver
+
+    @SerializedName("content")
     private val content = content
 
     // Getters
@@ -21,6 +30,6 @@ class Message (sender: String, receiver: String, content: String, messageId: Str
     }
 
     fun getMessageId(): String {
-        return messageId
+        return _id
     }
 }

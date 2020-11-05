@@ -59,11 +59,8 @@ class CreatePostFragment : Fragment() {
 
         // Set on click listener for the create post button
         createPostButton.setOnClickListener {
-            // Execute the AsyncTask to create new post
-            GetCurrentUserInfoAndCreatePost().execute(hashMapOf(
-                "content" to postContentToCreate.text.toString(),
-                "numOfImages" to selectedImages.size
-            ))
+            // Call the function to get info of the current user and create new post based on it
+            getUserInfoAndCreatePost(postContentToCreate.text.toString(), selectedImages.size)
         }
     }
 
@@ -93,114 +90,87 @@ class CreatePostFragment : Fragment() {
         photoOfPostToCreate.adapter!!.notifyDataSetChanged()
     }
 
-    // AsyncTask which will get email of the currently logged in user and create new post based on it
-    inner class GetCurrentUserInfoAndCreatePost : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get content of the post
-            val content = params[0]!!["content"] as String
+    // The function which will get user id of the currently logged in user and create new post based on it
+    private fun getUserInfoAndCreatePost (postContent: String, numOfImages: Int) {
+        // Create the get current user info service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(this@CreatePostFragment.requireActivity())!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
 
-            // Get number of images of the post
-            val numOfImages = params[0]!!["numOfImages"] as Int
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
 
-            // Create the get current user info service
-            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(this@CreatePostFragment.requireActivity())!!.create(
-                GetCurrentlyLoggedInUserInfoService::class.java)
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get user id of the current user
+                    val userId = data["_id"] as String
+
+                    // Call the function to create new post based on the obtained current user id
+                    createNewPost(userId, postContent, numOfImages)
+                } else {
+                    print("Something is not right")
                 }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Get email of the currently logged in user
-                        val userEmail = data["email"] as String
-
-                        // Execute the ASyncTask to add new like for the post
-                        CreateNewPostTask().execute(hashMapOf(
-                            "writerEmail" to userEmail,
-                            "content" to content,
-                            "numOfImages" to numOfImages
-                        ))
-                    } else {
-                        print("Something is not right")
-                    }
-                }
-            })
-
-            return null
-        }
+            }
+        })
     }
 
-    // AsyncTask for adding new post
-    inner class CreateNewPostTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get email of the post writer (currently logged in user)
-            val writer = params[0]!!["writerEmail"] as String
+    // The function to add new post to the database
+    fun createNewPost (writerUserId: String, postContent: String, numOfImages: Int) {
+        // Create the create post service
+        val createPostService: CreateNewHBTGramPostService = RetrofitClientInstance.getRetrofitInstance(this@CreatePostFragment.requireActivity())!!.create(
+            CreateNewHBTGramPostService::class.java)
 
-            // Get the post content
-            val content = params[0]!!["content"] as String
+        // The call object which will then be used to perform the API call
+        val call: Call<Any> = createPostService.createNewHBTGramPost(postContent, writerUserId, numOfImages)
 
-            // Get number of images
-            val numOfImages = params[0]!!["numOfImages"] as Int
+        // Perform the API call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                // Report the error if something is not right
+                print("Boom")
+            }
 
-            // Create the create post service
-            val createPostService: CreateNewHBTGramPostService = RetrofitClientInstance.getRetrofitInstance(this@CreatePostFragment.requireActivity())!!.create(
-                CreateNewHBTGramPostService::class.java)
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is null, it means that comment can't be posted
+                if (response.body() == null) {
+                    // Show the error
+                    Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Get id of the post that has just been created
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-            // The call object which will then be used to perform the API call
-            val call: Call<Any> = createPostService.createNewHBTGramPost(content, writer, numOfImages)
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
 
-            // Perform the API call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    // Report the error if something is not right
-                    print("Boom")
-                }
+                    // Get info of the post from the data
+                    val postInfo = data["tour"] as Map<String, Any>
 
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is null, it means that comment can't be posted
-                    if (response.body() == null) {
-                        // Show the error
-                        Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
-                    } else {
-                        // Get id of the post that has just been created
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
+                    // Get id of the post that has just been created
+                    val postId = postInfo["_id"] as String
 
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Get info of the post from the data
-                        val postInfo = data["tour"] as Map<String, Any>
-
-                        // Get id of the post that has just been created
-                        val postId = postInfo["_id"] as String
-
-                        // Loop through all photos and them all to the database
-                        for (image in selectedImages) {
-                            // Call the function to upload new photo to the storage as well as its URL to the database
-                            fileUploader(image, postId)
-                        }
+                    // Loop through all photos and them all to the database
+                    for (image in selectedImages) {
+                        // Call the function to upload new photo to the storage as well as its URL to the database
+                        fileUploader(image, postId)
                     }
                 }
-            })
-
-            return null
-        }
+            }
+        })
     }
 
     // The function to perform the file uploading procedure

@@ -50,144 +50,108 @@ class RecyclerViewAdapterMessageRoom (currentUserId: String, messageRoom : Array
             // Check to see if user1 is the current user or not
             // If user1 is the current user, based on id of user2 to get full name and avatar
             if (messageRoom.getUser1() == currentUserId) {
-                // Execute the AsyncTask to get info of user2
-                GetUserInfoBasedOnUserId().execute(hashMapOf(
-                    "userId" to messageRoom.getUser2(),
-                    "userAvatarImageView" to userAvatar,
-                    "userFullNameTextView" to userFullName
-                ))
+                // Call the function to get info of the user
+                getUserInfoBasedOnId(messageRoom.getUser2(), userAvatar, userFullName)
             } // Otherwise, based on id of user1 to get full name and avatar
             else {
-                // Execute the ASyncTask to get info of user1
-                GetUserInfoBasedOnUserId().execute(hashMapOf(
-                    "userId" to messageRoom.getUser1(),
-                    "userAvatarImageView" to userAvatar,
-                    "userFullNameTextView" to userFullName
-                ))
+                // Call the function to get info of the user
+                getUserInfoBasedOnId(messageRoom.getUser1(), userAvatar, userFullName)
             }
 
-            // Execute the AsyncTask to get latest message of the message room
-            GetLatestMessageOfMessageRoom().execute(hashMapOf(
-                "latestMessageContentTextView" to latestMessageContent,
-                "messageRoomId" to messageRoom.getMessageRoomId(),
-                "userAvatarImageView" to userAvatar,
-                "userFullNameTextView" to userFullName
-            ))
+            // Call the function to get latest message of the chat room
+            getLatestMessageOfMessageRoom(messageRoom.getMessageRoomId(), latestMessageContent)
         }
     }
 
-    // AsyncTask to get user info based on user id
-    inner class GetUserInfoBasedOnUserId : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get user id of the user
-            val userId = params[0]!!["userId"] as String
+    // The function to get user info based on user id
+    fun getUserInfoBasedOnId (userId: String, userAvatarImageView: ImageView, userFullNameTextView: TextView) {
+        // Create the get user info base on id service
+        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetUserInfoBasedOnIdService::class.java)
 
-            // The sender avatar image view
-            val userAvatarImageView = params[0]!!["userAvatarImageView"] as ImageView
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(userId)
 
-            // The sender full name text view
-            val userFullNameTextView = params[0]!!["userFullNameTextView"] as TextView
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-            // Create the get user info base on id service
-            val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetUserInfoBasedOnIdService::class.java)
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is no error
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(userId)
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
+                    // Get user info from the data
+                    val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
+
+                    // Get name of the sender
+                    val firstName = userInfo["firstName"] as String
+                    val middleName = userInfo["middleName"] as String
+                    val lastName = userInfo["lastName"] as String
+                    // Combine them all to get the full name
+                    val fullName = "$lastName $middleName $firstName"
+
+                    // Get avatar URL of the sender
+                    val senderAvatarURL = userInfo["avatarURL"] as String
+
+                    // Load avatar into the ImageView
+                    Glide.with(activity)
+                        .load(senderAvatarURL)
+                        .into(userAvatarImageView)
+
+                    // Load full name into the TextView
+                    userFullNameTextView.text = fullName
                 }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that there is no error
-                    if (response.body() != null) {
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Get user info from the data
-                        val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
-
-                        // Get name of the sender
-                        val firstName = userInfo["firstName"] as String
-                        val middleName = userInfo["middleName"] as String
-                        val lastName = userInfo["lastName"] as String
-                        // Combine them all to get the full name
-                        val fullName = "$lastName $middleName $firstName"
-
-                        // Get avatar URL of the sender
-                        val senderAvatarURL = userInfo["avatarURL"] as String
-
-                        // Load avatar into the ImageView
-                        Glide.with(activity)
-                            .load(senderAvatarURL)
-                            .into(userAvatarImageView)
-
-                        // Load full name into the TextView
-                        userFullNameTextView.text = fullName
-                    }
-                }
-            })
-
-            return null
-        }
+            }
+        })
     }
 
-    // AsyncTask to get latest message of the specified message room
-    inner class GetLatestMessageOfMessageRoom : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get message content TextView
-            val latestMessageContentTextView = params[0]!!["latestMessageContentTextView"] as TextView
+    // The function to get latest message of the message room
+    fun getLatestMessageOfMessageRoom (messageRoomId: String, latestMessageContentTextView: TextView) {
+        // Create the get latest message of message room service
+        val getLatestMessageOfMessageRoomService: GetLatestMessageOfMessageRoomService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetLatestMessageOfMessageRoomService::class.java)
 
-            // Get message room id
-            val messageRoomId = params[0]!!["messageRoomId"] as String
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getLatestMessageOfMessageRoomService.getLatestMessageOfMessageRoom(messageRoomId)
 
-            // Create the get latest message of message room service
-            val getLatestMessageOfMessageRoomService: GetLatestMessageOfMessageRoomService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetLatestMessageOfMessageRoomService::class.java)
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getLatestMessageOfMessageRoomService.getLatestMessageOfMessageRoom(messageRoomId)
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is no error
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
 
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that there is no error
-                    if (response.body() != null) {
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
+                    // Get content of the latest message
+                    val latestMessageContent = data["content"] as String
 
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
+                    // Get sender of the latest message
+                    val latestMessageSender = data["sender"] as String
 
-                        // Get content of the latest message
-                        val latestMessageContent = data["content"] as String
-
-                        // Get sender of the latest message
-                        val latestMessageSender = data["sender"] as String
-
-                        // Check to see if latest message is written by the current user or not
-                        if (latestMessageSender == currentUserId) {
-                            // Load content of the latest message into the TextView
-                            // Also let the user know that it is sent by the current user
-                            latestMessageContentTextView.text = "You: $latestMessageContent"
-                        } // Otherwise, just load the content in
-                        else {
-                            latestMessageContentTextView.text = latestMessageContent
-                        }
+                    // Check to see if latest message is written by the current user or not
+                    if (latestMessageSender == currentUserId) {
+                        // Load content of the latest message into the TextView
+                        // Also let the user know that it is sent by the current user
+                        latestMessageContentTextView.text = "You: $latestMessageContent"
+                    } // Otherwise, just load the content in
+                    else {
+                        latestMessageContentTextView.text = latestMessageContent
                     }
                 }
-            })
-
-            return null
-        }
+            }
+        })
     }
 
     // The function to take user to the activity where the user can chat with the selected user

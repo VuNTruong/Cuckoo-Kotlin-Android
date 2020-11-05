@@ -2,7 +2,6 @@ package com.beta.myhbt_api.View.Adapters
 
 import android.app.Activity
 import android.content.Intent
-import android.os.AsyncTask
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
@@ -13,13 +12,11 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.HBTGramPost
-import com.beta.myhbt_api.Model.HBTGramPostComment
-import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Fragments.DashboardFragment
-import com.beta.myhbt_api.View.HBTGram
 import com.beta.myhbt_api.View.HBTGramPostDetail
 import com.bumptech.glide.Glide
+import com.google.gson.Gson
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -53,39 +50,20 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
 
         // The function to set up post info
         fun setUpPostInfo (postObject: HBTGramPost) {
-            // Execute the AsyncTask to load avatar and full name of the post writer
-            GetUserInfoTask().execute(hashMapOf(
-                "writerEmail" to postObject.getWriter(),
-                "fullNameTextView" to writerFullName,
-                "avatarImageView" to postWriterAvatar
-            ))
+            // Call the function to get info of the post writer
+            getInfoOfPostWriter(postObject.getWriter(), writerFullName, postWriterAvatar)
 
-            // Execute the AsyncTask to load first image of the post into the ImageView
-            GetFirstPhotoTask().execute(hashMapOf(
-                "postId" to postObject.getId(),
-                "postPhotoImageView" to postPhoto
-            ))
+            // Call the function to get first photo of the post
+            getFirstPhoto(postObject.getId(), postPhoto)
 
-            // Execute the AsyncTask to load avatar of the currently logged in user
-            LoadAvatarOfCurrentUserTask().execute(hashMapOf(
-                "userAvatarImageView" to userAvatar
-            ))
+            // Call the function to get avatar of the currently logged in user
+            getCurrentUserInfo(userAvatar)
 
-            // Execute the AsyncTask to load number of comments
-            GetNumberOfCommentsTask().execute(
-                hashMapOf(
-                    "numOfCommentsTextView" to numOfComments,
-                    "postId" to postObject.getId()
-                )
-            )
+            // Call the function to get number of likes for the post
+            getNumOfLikes(postObject.getId(), numOfLikes)
 
-            // Execute the AsyncTask to load number of likes
-            GetNumberOfLikesTask().execute(
-                hashMapOf(
-                    "numOfLikesTextView" to numOfLikes,
-                    "postId" to postObject.getId()
-                )
-            )
+            // Call the function to get number of comments for the post
+            getNumOfComments(postObject.getId(), numOfComments)
 
             // Set on click listener for the comment button so that it will take user to the activity where the
             // user can see post detail
@@ -96,20 +74,14 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
 
             // Set on click listener for the like button
             likeButton.setOnClickListener {
-                // Execute the AsyncTask and add like to the post
-                GetCurrentUserInfoAndCreateLike().execute(hashMapOf(
-                    "postId" to postObject.getId()
-                ))
+                // Call the function to create new like for the post which is liked by the current user
+                getUserInfoAndCreateNewLike(postObject.getId())
             }
 
             // Set on click listener for the post comment button
             postCommentButton.setOnClickListener {
-                // Execute the AsyncTask to create new comment for the post
-                GetCurrentUserInfoAndCreateComment().execute(hashMapOf(
-                    "postId" to postObject.getId(),
-                    "commentContentToPost" to commentToPostContent.text.toString(),
-                    "commentToPostEditText" to commentToPostContent
-                ))
+                // Call the function to get info of the current user and create new comment of that user
+                getUserInfoAndCreateComment(commentToPostContent, postObject.getId())
             }
 
             // Load other info
@@ -118,454 +90,362 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
         }
     }
 
-    // AsyncTask to get info of the post writer
-    private inner class GetUserInfoTask: AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get email of the post writer
-            val writerEmail = params[0]!!["writerEmail"] as String
+    //*************************** GET INFO OF POST WRITER ***************************
+    // The function to get info of the post writer
+    fun getInfoOfPostWriter (userId: String, fullNameTextView: TextView, avatarImageView: ImageView) {
+        // Create the get user info based on id service
+        val getUserInfoBasedOnIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetUserInfoBasedOnIdService::class.java)
 
-            // Get the full name TextView
-            val fullNameTextView = params[0]!!["fullNameTextView"] as TextView
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getUserInfoBasedOnIdService.getUserInfoBasedOnId(userId)
 
-            // Get the post writer avatar ImageView
-            val avatarImageView = params[0]!!["avatarImageView"] as ImageView
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-            // Create the get user info service
-            val getUserInfoService: GetUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetUserInfoService::class.java)
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getUserInfoService.getUserInfo(writerEmail)
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
+                    // Get user info from the received data
+                    val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
+
+                    // Get full name of the user
+                    val fullName = userInfo["fullName"] as String
+
+                    // Get avatar of the user
+                    val userAvatar = userInfo["avatarURL"] as String
+
+                    // Load full name into the TextView
+                    fullNameTextView.text = fullName
+
+                    // Load avatar info the ImageView
+                    Glide.with(activity)
+                        .load(userAvatar)
+                        .into(avatarImageView)
+                } else {
+                    print("Something is not right")
                 }
+            }
+        })
+    }
+    //*************************** END GET INFO OF POST WRITER ***************************
 
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
+    //*************************** GET FIRST PHOTO OF THE POST ***************************
+    // The function to get first photo of the post
+    fun getFirstPhoto (postId: String, postPhotoImageView: ImageView) {
+        // Create the get first image URL service
+        val getFirstImageURLService: GetFirstImageURLOfPostService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetFirstImageURLOfPostService::class.java)
 
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getFirstImageURLService.getFirstPhotoURL(postId)
 
-                        // Get user info from the received data
-                        val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-                        // Combine them all to get the full name
-                        val fullName = "${userInfo["firstName"] as String} ${userInfo["middleName"] as String} ${userInfo["lastName"] as String}"
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-                        // Get avatar of the user
-                        val userAvatar = userInfo["avatarURL"] as String
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
 
-                        // Load full name into the TextView
-                        fullNameTextView.text = fullName
+                    // Get the array of images
+                    val arrayOfImages = data["documents"] as List<Map<String, Any>>
 
-                        // Load avatar info the ImageView
+                    if (arrayOfImages.isNotEmpty()) {
+                        // Get image info from the received data
+                        val firstImageInfo = (data["documents"] as List<Map<String, Any>>)[0]
+
+                        // Get URL of the image
+                        val firstImageURL = firstImageInfo["imageURL"] as String
+
+                        // Load that URL into the ImageView
                         Glide.with(activity)
-                            .load(userAvatar)
-                            .into(avatarImageView)
-                    } else {
-                        print("Something is not right")
+                            .load(firstImageURL)
+                            .into(postPhotoImageView)
                     }
+                } else {
+                    print("Something is not right")
                 }
-            })
+            }
+        })
+    }
+    //*************************** END GET FIRST PHOTO OF THE POST ***************************
 
-            return null
-        }
+    //************************************* GET INFO OF CURRENT USER *************************************
+    // The function to get info of the currently logged in user
+    fun getCurrentUserInfo (userAvatar: ImageView) {
+        // Create the validate token service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get avatar URL of the user
+                    val avatarURL = data["avatarURL"] as String
+
+                    // Load that avatar URL into the ImageView
+                    Glide.with(activity)
+                        .load(avatarURL)
+                        .into(userAvatar)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+    //************************************* END GET INFO OF CURRENT USER *************************************
+
+    //************************************* GET NUMBER OF LIKES AND COMMENTS *************************************
+    // The function to get number of comments of the post
+    fun getNumOfComments (postId: String, numOfCommentsTextView: TextView) {
+        // Create the get post comments service
+        val getPostCommentsService: GetHBTGramPostCommentsService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetHBTGramPostCommentsService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getPostCommentsService.getPostComments(postId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get number of comments
+                    val numOfComments = (responseBody["results"] as Double).toInt()
+
+                    // Load the number of comments into the TextView
+                    numOfCommentsTextView.text = "$numOfComments comments"
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
     }
 
-    // AsyncTask to get URL of first photo of the post
-    inner class GetFirstPhotoTask: AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get id of the post
-            val postId = params[0]!!["postId"] as String
+    // The function to get number of comments of the post
+    fun getNumOfLikes (postId: String, numOfLikesTextView: TextView) {
+        // Create the get post likes service
+        val getPostLikesService: GetAllHBTGramPostLikesService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetAllHBTGramPostLikesService::class.java)
 
-            // Get the post photo ImageView
-            val postPhotoImageView = params[0]!!["postPhotoImageView"] as ImageView
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getPostLikesService.getPostLikes(postId)
 
-            // Create the get first image URL service
-            val getFirstImageURLService: GetFirstImageURLOfPostService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetFirstImageURLOfPostService::class.java)
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getFirstImageURLService.getFirstPhotoURL(postId)
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
+                    // Get number of comments
+                    val numOfComments = (responseBody["results"] as Double).toInt()
+
+                    // Load the number of likes into the TextView
+                    numOfLikesTextView.text = "$numOfComments likes"
+                } else {
+                    print("Something is not right")
                 }
+            }
+        })
+    }
+    //************************************* END GET NUMBER OF LIKES AND COMMENTS *************************************
 
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
+    //*********************************** CREATE NEW LIKE SEQUENCE ***********************************
+    // The function which will get info of the current user and create new like based on that info
+    fun getUserInfoAndCreateNewLike (postId: String) {
+        // Create the get current user info service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
 
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
 
-                        // Get the array of images
-                        val arrayOfImages = data["documents"] as List<Map<String, Any>>
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-                        if (arrayOfImages.isNotEmpty()) {
-                            // Get image info from the received data
-                            val firstImageInfo = (data["documents"] as List<Map<String, Any>>)[0]
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-                            // Get URL of the image
-                            val firstImageURL = firstImageInfo["imageURL"] as String
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
 
-                            // Load that URL into the ImageView
-                            Glide.with(activity)
-                                .load(firstImageURL)
-                                .into(postPhotoImageView)
-                        }
-                    } else {
-                        print("Something is not right")
-                    }
+                    // Get user id of the current user
+                    val userId = data["_id"] as String
+
+                    // Call the function to add new like based on user id of the current user
+                    createNewLike(userId, postId)
+                } else {
+                    print("Something is not right")
                 }
-            })
-
-            return null
-        }
+            }
+        })
     }
 
-    // AsyncTask to load avatar of the currently logged in user
-    inner class LoadAvatarOfCurrentUserTask: AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get user avatar image view
-            val userAvatarImageView = params[0]!!["userAvatarImageView"] as ImageView
+    // The function to create new like based on the specified user id (in this case, it gonna be id of the current user)
+    fun createNewLike (likerEmail: String, postId: String) {
+        // Create the add like service
+        val addLikeService: CreateNewHBTGramPostLikeService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            CreateNewHBTGramPostLikeService::class.java)
 
-            // Create the validate token service
-            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-                GetCurrentlyLoggedInUserInfoService::class.java)
+        // The call object which will then be used to perform the API call
+        val call: Call<Any> = addLikeService.createNewHBTGramPostLike(likerEmail, postId)
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+        // Perform the API call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                // Report the error if something is not right
+                print("Boom")
+            }
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is null, it means that comment can't be posted
+                if (response.body() == null) {
+                    // Show the error
+                    Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Done
+                    Toast.makeText(activity, "You've liked this post", Toast.LENGTH_SHORT).show()
+
+                    // Reload the RecyclerView
+                    hbtGram.reloadRecyclerView()
                 }
+            }
+        })
+    }
+    //*********************************** END CREATE NEW LIKE SEQUENCE ***********************************
 
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
+    //*********************************** CREATE NEW COMMENT SEQUENCE ***********************************
+    // The function to get user id of the current user and create comment based on that
+    fun getUserInfoAndCreateComment (commentToPostContentEditText: EditText, postId: String) {
+        // Create the get current user info service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
 
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
 
-                        // Get avatar URL of the user
-                        val avatarURL = data["avatarURL"] as String
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-                        // Load that avatar URL into the ImageView
-                        Glide.with(activity)
-                            .load(avatarURL)
-                            .into(userAvatarImageView)
-                    } else {
-                        print("Something is not right")
-                    }
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get user id in the database of the currently logged in user
+                    val userId = data["_id"] as String
+
+                    // Call the function to create new comment sent to the post by the current user
+                    createNewComment(commentToPostContentEditText, userId, postId)
+                } else {
+                    print("Something is not right")
                 }
-            })
-
-            return null
-        }
+            }
+        })
     }
 
-    // AsyncTask to get number of comments of the post
-    inner class GetNumberOfCommentsTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get the number of comments TextView
-            val numOfCommentsTextView = params[0]!!["numOfCommentsTextView"] as TextView
+    // The function to create new comment for the post
+    fun createNewComment (commentContentToPostEditText: EditText, commentWriterUserId: String, postId: String) {
+        // Create the create comment service
+        val postCommentService: CreateNewHBTGramPostCommentService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            CreateNewHBTGramPostCommentService::class.java)
 
-            // Get id of the post
-            val postId = params[0]!!["postId"] as String
+        // The call object which will then be used to perform the API call
+        val call: Call<Any> = postCommentService.createNewHBTGramPostComment(commentContentToPostEditText.text.toString(), commentWriterUserId, postId)
 
-            // Create the get post comments service
-            val getPostCommentsService: GetHBTGramPostCommentsService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-                GetHBTGramPostCommentsService::class.java)
+        // Perform the API call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                // Report the error if something is not right
+                print("Boom")
+            }
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getPostCommentsService.getPostComments(postId)
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is null, it means that comment can't be posted
+                if (response.body() == null) {
+                    // Show the alert
+                    Toast.makeText(activity, "Comment can't be posted", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Empty content of the EditText
+                    commentContentToPostEditText.setText("")
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
+                    // Reload the RecyclerView
+                    hbtGram.reloadRecyclerView()
                 }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get number of comments
-                        val numOfComments = (responseBody["results"] as Double).toInt()
-
-                        // Load the number of comments into the TextView
-                        numOfCommentsTextView.text = "$numOfComments comments"
-                    } else {
-                        print("Something is not right")
-                    }
-                }
-            })
-
-            return null
-        }
+            }
+        })
     }
-
-    // AsyncTask for getting number of likes of the post
-    inner class GetNumberOfLikesTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get the number of likes TextView
-            val numOfLikesTextView = params[0]!!["numOfLikesTextView"] as TextView
-
-            // Get id of the post
-            val postId = params[0]!!["postId"] as String
-
-            // Create the get post likes service
-            val getPostLikesService: GetAllHBTGramPostLikesService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-                GetAllHBTGramPostLikesService::class.java)
-
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getPostLikesService.getPostLikes(postId)
-
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get number of comments
-                        val numOfComments = (responseBody["results"] as Double).toInt()
-
-                        // Load the number of likes into the TextView
-                        numOfLikesTextView.text = "$numOfComments likes"
-                    } else {
-                        print("Something is not right")
-                    }
-                }
-            })
-
-            return null
-        }
-    }
-
-    // AsyncTask which will get email of the currently logged in user and create new like based on it
-    inner class GetCurrentUserInfoAndCreateLike : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get the post id
-            val postId = params[0]!!["postId"] as String
-
-            // Create the get current user info service
-            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-                GetCurrentlyLoggedInUserInfoService::class.java)
-
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Get email of the currently logged in user
-                        val userEmail = data["email"] as String
-
-                        // Execute the ASyncTask to add new like for the post
-                        CreateNewLikeTask().execute(hashMapOf(
-                            "likerEmail" to userEmail,
-                            "postId" to postId
-                        ))
-                    } else {
-                        print("Something is not right")
-                    }
-                }
-            })
-
-            return null
-        }
-    }
-
-    // AsyncTask for adding new like for the post
-    inner class CreateNewLikeTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get email of the liker (currently logged in user)
-            val likerEmail = params[0]!!["likerEmail"] as String
-
-            // Get post id
-            val postId = params[0]!!["postId"] as String
-
-            // Create the add like service
-            val addLikeService: CreateNewHBTGramPostLikeService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-                CreateNewHBTGramPostLikeService::class.java)
-
-            // The call object which will then be used to perform the API call
-            val call: Call<Any> = addLikeService.createNewHBTGramPostLike(likerEmail, postId)
-
-            // Perform the API call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    // Report the error if something is not right
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is null, it means that comment can't be posted
-                    if (response.body() == null) {
-                        // Show the error
-                        Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
-                    } else {
-                        // Done
-                        Toast.makeText(activity, "You've liked this post", Toast.LENGTH_SHORT).show()
-
-                        // Reload the RecyclerView
-                        hbtGram.reloadRecyclerView()
-                    }
-                }
-            })
-
-            return null
-        }
-    }
-
-    // AsyncTask to get email of the currently logged in user and create new comment base on it
-    inner class GetCurrentUserInfoAndCreateComment : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get post id
-            val postId = params[0]!!["postId"] as String
-
-            // Get the content of the comment to post
-            val commentContentToPost = params[0]!!["commentContentToPost"] as String
-
-            // Get the comment content to post edit text
-            val commentToPostEditText = params[0]!!["commentToPostEditText"] as EditText
-
-            // Create the get current user info service
-            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-                GetCurrentlyLoggedInUserInfoService::class.java)
-
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Get email of the currently logged in user
-                        val userEmail = data["email"] as String
-
-                        // Execute the AsyncTask to create new comment for the post
-                        CreateNewCommentTask().execute(hashMapOf(
-                            "commentContentToPost" to commentContentToPost,
-                            "commentWriterEmail" to userEmail,
-                            "commentToPostEditText" to commentToPostEditText,
-                            "postId" to postId
-                        ))
-                    } else {
-                        print("Something is not right")
-                    }
-                }
-            })
-
-            return null
-        }
-    }
-
-    // AsyncTask to create new comment for the post
-    inner class CreateNewCommentTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get the comment content to post edit text
-            val commentToPostEditText = params[0]!!["commentToPostEditText"] as EditText
-
-            // Get the comment content to post
-            val commentContentToPost = params[0]!!["commentContentToPost"] as String
-
-            // Get email of the writer (currently logged in user)
-            val commentWriterEmail = params[0]!!["commentWriterEmail"] as String
-
-            // Get post id
-            val postId = params[0]!!["postId"] as String
-
-            // Create the create comment service
-            val postCommentService: CreateNewHBTGramPostCommentService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-                CreateNewHBTGramPostCommentService::class.java)
-
-            // The call object which will then be used to perform the API call
-            val call: Call<Any> = postCommentService.createNewHBTGramPostComment(commentContentToPost, commentWriterEmail, postId)
-
-            // Perform the API call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    // Report the error if something is not right
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is null, it means that comment can't be posted
-                    if (response.body() == null) {
-                        // Show the alert
-                        Toast.makeText(activity, "Comment can't be posted", Toast.LENGTH_SHORT).show()
-                    } else {
-                        // Empty content of the EditText
-                        commentToPostEditText.setText("")
-
-                        // Reload the RecyclerView
-                        hbtGram.reloadRecyclerView()
-                    }
-                }
-            })
-
-            return null
-        }
-    }
+    //*********************************** END CREATE NEW COMMENT SEQUENCE ***********************************
 
     // The function to take user to the activity where the user can see post detail
     fun gotoPostDetail (postObject: HBTGramPost) {
@@ -593,7 +473,17 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        // In order to prevent us from encountering the class cast exception, we need to do the following
+        // Create the GSON object
+        val gs = Gson()
+
+        // Convert the hbtGramPostObjects[position] object which is currently a linked tree map into a JSON string
+        val js = gs.toJson(hbtGramPostObjects[position])
+
+        // Convert the JSOn string back into HBTGramPost class
+        val hbtGramPostModel = gs.fromJson<HBTGramPost>(js, HBTGramPost::class.java)
+
         // Call the function to set up the post
-        (holder as ViewHolderHBTGramPost).setUpPostInfo(hbtGramPostObjects[position])
+        (holder as ViewHolderHBTGramPost).setUpPostInfo(hbtGramPostModel)
     }
 }

@@ -12,6 +12,9 @@ import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.R
 import com.google.firebase.storage.FirebaseStorage
+import com.google.gson.Gson
+import io.socket.client.IO
+import io.socket.client.Socket
 import kotlinx.android.synthetic.main.activity_chat_send_image.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -19,11 +22,18 @@ import retrofit2.Response
 import kotlin.math.floor
 
 class ChatSendImage : AppCompatActivity() {
+    // These objects are used for socket.io
+    private lateinit var mSocket: Socket
+    private val gson = Gson()
+
     // Image Uri of the selected image
     private var imageURI: Uri? = null
 
     // User id of the message receiver
     private var messageReceiverUserId = ""
+
+    // Chat room id between the currently logged in user and user currently chatting with
+    private var chatRoomId = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +41,22 @@ class ChatSendImage : AppCompatActivity() {
 
         // Get user id of the message receiver from previous activity
         messageReceiverUserId = intent.getStringExtra("messageReceiverUserId")!!
+
+        // Get chat room id from the previous activity
+        chatRoomId = intent.getStringExtra("chatRoomId")!!
+
+        //************************ DO THINGS WITH THE SOCKET.IO ************************
+        // Try connecting
+        //This address is the way you can connect to localhost with AVD(Android Virtual Device)
+        mSocket = IO.socket("http://10.0.2.2:3000")
+        mSocket.connect()
+
+        // Bring user into the chat room between this user and the selected user
+        mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
+            "chatRoomId" to chatRoomId
+        )))
+
+        //************************ END WORKING WITH SOCKET.IO ************************
 
         // Open file chooser at beginning
         fileChooser()
@@ -138,7 +164,7 @@ class ChatSendImage : AppCompatActivity() {
                     val sentMessageId = data["_id"] as String
 
                     // Call the function to upload image for the message
-                    fileUploader(imageURI!!, sentMessageId)
+                    fileUploader(imageURI!!, sentMessageId, userId)
                 } else {
                     print("Something is not right")
                 }
@@ -147,7 +173,7 @@ class ChatSendImage : AppCompatActivity() {
     }
 
     // The function to perform the file uploading procedure
-    private fun fileUploader(imageURI: Uri, messageId: String) {
+    private fun fileUploader(imageURI: Uri, messageId: String, currentUserId: String) {
         // Generate name for the image
         val imageName = generateRandomString(20)
 
@@ -166,13 +192,13 @@ class ChatSendImage : AppCompatActivity() {
             // Get URL of the image that has just been uploaded to the storage
             reference.downloadUrl.addOnSuccessListener { uri ->
                 // Call the function to add new message photo URL to the database
-                createNewImageURL(uri.toString(), messageId)
+                createNewImageURL(uri.toString(), messageId, currentUserId)
             }
         }
     }
 
     // The function to create new chat image URL in the database
-    private fun createNewImageURL (imageURL: String, messageId: String) {
+    private fun createNewImageURL (imageURL: String, messageId: String, currentUserId: String) {
         // Create the create chat message photo service
         val createMessagePhotoService: CreateNewChatMessagePhotoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
             CreateNewChatMessagePhotoService::class.java)
@@ -188,7 +214,18 @@ class ChatSendImage : AppCompatActivity() {
             }
 
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
+                // the server know that this user has sent an image as message
+                mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
+                    "sender" to currentUserId,
+                    "receiver" to messageReceiverUserId,
+                    "content" to "image",
+                    "messageId" to messageId,
+                    "chatRoomId" to chatRoomId
+                )))
 
+                // After that, finish this activity
+                this@ChatSendImage.finish()
             }
         })
     }

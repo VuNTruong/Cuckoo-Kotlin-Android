@@ -11,7 +11,8 @@
         android:roundIcon="@drawable/hbtgram1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.ChatSendImage"></activity>
+        <activity android:name=".View.SearchUserToChatWith"></activity>
+        <activity android:name=".View.ChatSendImage" />
         <activity
             android:name=".View.Chat"
             android:theme="@style/AppTheme.NoActionBar" />

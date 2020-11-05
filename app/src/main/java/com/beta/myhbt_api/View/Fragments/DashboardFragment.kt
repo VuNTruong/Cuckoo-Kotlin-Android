@@ -1,6 +1,5 @@
 package com.beta.myhbt_api.View.Fragments
 
-import android.os.AsyncTask
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -36,69 +35,64 @@ class DashboardFragment : Fragment() {
         hbtGramView.layoutManager = LinearLayoutManager(this@DashboardFragment.context)
         hbtGramView.itemAnimator = DefaultItemAnimator()
 
-        // Execute the AsyncTask to get all HBTGram posts
-        GetAllPostsTask().execute()
+        // Call the function to load all posts
+        getAllPost()
     }
 
-    // AsyncTask to get all posts from the database
-    inner class GetAllPostsTask : AsyncTask<Void, Void, Void>() {
-        override fun doInBackground(vararg params: Void?): Void? {
-            // Create the get all posts service
-            val getAllPostService: GetAllHBTGramPostService = RetrofitClientInstance.getRetrofitInstance(this@DashboardFragment.context!!)!!.create(
-                GetAllHBTGramPostService::class.java)
+    // The function to get all posts from the database
+    private fun getAllPost () {
+        // Create the get all posts service
+        val getAllPostService: GetAllHBTGramPostService = RetrofitClientInstance.getRetrofitInstance(this@DashboardFragment.context!!)!!.create(
+            GetAllHBTGramPostService::class.java)
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getAllPostService.getAllPosts()
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getAllPostService.getAllPosts()
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
 
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
+                    // Get data from the response body (array of posts)
+                    val hbtGramPostsArray = ((responseBody["data"] as Map<String, Any>)["documents"]) as ArrayList<HBTGramPost>
 
-                        for (post in data["documents"] as ArrayList<Map<String, Any>>) {
-                            val postId = post["_id"] as String
-                            val content = post["content"] as String
-                            val writer = post["writer"] as String
-                            val numOfImages = (post["numOfImages"] as Double).toInt()
-                            val orderInCollection = (post["orderInCollection"] as Double).toInt()
-                            val dateCreated = post["dateCreated"] as String
+                    // Update the array list of posts
+                    hbtGramPosts = hbtGramPostsArray
 
-                            val postObject = HBTGramPost(postId, content, writer, numOfImages, orderInCollection, dateCreated)
+                    /*
+                    for (post in data["documents"] as ArrayList<Map<String, Any>>) {
+                        val postId = post["_id"] as String
+                        val content = post["content"] as String
+                        val writer = post["writer"] as String
+                        val numOfImages = (post["numOfImages"] as Double).toInt()
+                        val orderInCollection = (post["orderInCollection"] as Double).toInt()
+                        val dateCreated = post["dateCreated"] as String
 
-                            hbtGramPosts.add(postObject)
-                        }
-                        /*
-                        // Get the array of posts
-                        hbtGramPosts = data["documents"] as ArrayList<HBTGramPost>
+                        val postObject = HBTGramPost(postId, content, writer, numOfImages, orderInCollection, dateCreated)
 
-                        print(hbtGramPosts)
-                         */
-
-                        // Update the adapter
-                        adapter = RecyclerViewAdapterHBTGramPost(hbtGramPosts, this@DashboardFragment.requireActivity(), this@DashboardFragment)
-
-                        // Add adapter to the RecyclerView
-                        hbtGramView.adapter = adapter
-                    } else {
-                        print("Something is not right")
+                        hbtGramPosts.add(postObject)
                     }
-                }
-            })
+                     */
 
-            return null
-        }
+                    // Update the adapter
+                    adapter = RecyclerViewAdapterHBTGramPost(hbtGramPosts, this@DashboardFragment.requireActivity(), this@DashboardFragment)
+
+                    // Add adapter to the RecyclerView
+                    hbtGramView.adapter = adapter
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
     }
 
     // The function to reload the RecyclerView

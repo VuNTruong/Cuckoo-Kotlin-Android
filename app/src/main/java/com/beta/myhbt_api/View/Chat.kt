@@ -27,6 +27,7 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class Chat : AppCompatActivity() {
+    // These objects are used for socket.io
     private lateinit var mSocket: Socket
     private val gson = Gson()
 
@@ -52,39 +53,15 @@ class Chat : AppCompatActivity() {
         // Get receiver user id from previous activity
         receiverUserId = intent.getStringExtra("receiverUserId")!!
 
-        // Execute the AsyncTask to get info of the message receiver
-        GetUserInfoBasedOnUserId().execute(hashMapOf(
-            "userId" to receiverUserId,
-            "userAvatarImageView" to receiverAvatarChat,
-            "userFullNameTextView" to receiverFullNameChat
-        ))
+        // Call the function to get info of the message receiver
+        getUserInfoBasedOnId(receiverUserId)
 
-        //************************ DO THINGS WITH THE SOCKET.IO ************************
-        // Try connecting
-        try {
-            //This address is the way you can connect to localhost with AVD(Android Virtual Device)
-            mSocket = IO.socket("http://10.0.2.2:3000")
-            Log.d("success", mSocket.id())
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Log.d("fail", "Failed to connect")
+        // CALL THE FUNCTION TO DO THINGS WITH THE SOCKET.IO
+        // If there are messages between these 2 users already, chat room id won't be empty. Tt means that there are already chat room between them
+        // and we just need to call the function to set up socket.io
+        if (chatRoomId != "") {
+            setUpSocketIO()
         }
-        mSocket.connect()
-
-        // Bring user into the chat room between this user and the selected user
-        mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
-            "chatRoomId" to chatRoomId
-        )))
-
-        // Listen to event of when new message is sent
-        mSocket.on("updateMessage", onUpdateChat)
-
-        // Listen to event of when other user in the chat room is typing
-        mSocket.on("typing", onIsTyping)
-
-        // Listen to event of when other user in the chat room is done typing
-        mSocket.on("doneTyping", onIsDoneTyping)
-        //************************ END WORKING WITH SOCKET.IO ************************
 
         // Set on click listener for the send image button
         sendImageButtonChatActivity.setOnClickListener {
@@ -93,6 +70,9 @@ class Chat : AppCompatActivity() {
 
             // Pass user id of the message receiver to the next activity as well
             intent.putExtra("messageReceiverUserId", receiverUserId)
+
+            // Pass chat room id of the chat room between current user and other user to the next activity
+            intent.putExtra("chatRoomId", chatRoomId)
 
             // Start the activity
             startActivity(intent)
@@ -108,19 +88,41 @@ class Chat : AppCompatActivity() {
         messageView.layoutManager = LinearLayoutManager(applicationContext)
         messageView.itemAnimator = DefaultItemAnimator()
 
-        // Execute the AsyncTask to get all messages of the user
-        GetAllMessagesTask().execute(hashMapOf(
-            "chatRoomId" to chatRoomId
-        ))
+        // Call the function to get all messages of the chat room in which current user and the selected user are in
+        getAllMessages()
 
         // Set on click listener for the send message button
         sendMessageButton.setOnClickListener {
-            // Execute the AsyncTask to create new message
-            GetCurrentUserInfoAndMessage().execute(hashMapOf(
-                "messageToSendContentTextView" to messageContentToSend,
-                "messageContentToSend" to messageContentToSend.text.toString()
-            ))
+            // Call the function to get info of the currently logged in user and send message
+            getCurrentUserInfoAndMessage()
         }
+    }
+
+    // The function to do set up things with the socket.io
+    fun setUpSocketIO () {
+        //************************ DO THINGS WITH THE SOCKET.IO ************************
+        //This address is the way you can connect to localhost with AVD(Android Virtual Device)
+        mSocket = IO.socket("http://10.0.2.2:3000")
+        mSocket.connect()
+
+        // Bring user into the chat room between this user and the selected user
+        mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
+            "chatRoomId" to chatRoomId
+        )))
+
+        // Listen to event of when new message is sent
+        mSocket.on("updateMessage", onUpdateChat)
+
+        // Listen to event of when one of the user sent photo to the server
+        mSocket.on("updateMessageWithPhoto", onUpdateMessageWithPhoto)
+
+        // Listen to event of when other user in the chat room is typing
+        mSocket.on("typing", onIsTyping)
+
+        // Listen to event of when other user in the chat room is done typing
+        mSocket.on("doneTyping", onIsDoneTyping)
+
+        //************************ END WORKING WITH SOCKET.IO ************************v
     }
 
     // The text watcher which will take action of when there is change in content of the message to send content text field
@@ -152,6 +154,7 @@ class Chat : AppCompatActivity() {
         }
     }
 
+    //************************* CALL BACK FUNCTIONS FOR SOCKET.IO *************************
     // Call back function for socket.io which will update the chat based on signal from the server
     private var onUpdateChat = Emitter.Listener {
         val chat: Message = gson.fromJson(it[0].toString(), Message::class.java)
@@ -197,260 +200,234 @@ class Chat : AppCompatActivity() {
         }
     }
 
-    // AsyncTask for getting info of the message receiver
-    inner class GetUserInfoBasedOnUserId : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get user id of the user
-            val userId = params[0]!!["userId"] as String
+    // Call back function which will respond to event of when one of the user send photo
+    private var onUpdateMessageWithPhoto = Emitter.Listener {
+        val chat: Message = gson.fromJson(it[0].toString(), Message::class.java)
 
-            // The sender avatar image view
-            val userAvatarImageView = params[0]!!["userAvatarImageView"] as ImageView
+        // Since this will update the view, it MUST run on the UI thread
+        runOnUiThread{
+            // Get sender of the message
+            val sender = chat.getSender()
 
-            // The sender full name text view
-            val userFullNameTextView = params[0]!!["userFullNameTextView"] as TextView
+            // Get receiver of the message
+            val receiver = chat.getReceiver()
 
-            // Create the get user info base on id service
-            val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(GetUserInfoBasedOnIdService::class.java)
+            // Get content of the message
+            val content = chat.getContent()
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(userId)
+            // Get id of the message
+            val messageId = chat.getMessageId()
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
+            // Crete message object out of those info
+            val messageObject = Message(sender, receiver, content, messageId)
 
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that there is no error
-                    if (response.body() != null) {
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
+            // Add the received message object to the array of messages
+            chatMessages.add(messageObject)
 
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Get user info from the data
-                        val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
-
-                        // Get name of the sender
-                        val firstName = userInfo["firstName"] as String
-                        val middleName = userInfo["middleName"] as String
-                        val lastName = userInfo["lastName"] as String
-                        // Combine them all to get the full name
-                        val fullName = "$lastName $middleName $firstName"
-
-                        // Get avatar URL of the sender
-                        val senderAvatarURL = userInfo["avatarURL"] as String
-
-                        // Load avatar into the ImageView
-                        Glide.with(applicationContext)
-                            .load(senderAvatarURL)
-                            .into(userAvatarImageView)
-
-                        // Load full name into the TextView
-                        userFullNameTextView.text = fullName
-                    }
-                }
-            })
-
-            return null
+            // Update the RecyclerView
+            messageView.adapter!!.notifyDataSetChanged()
         }
     }
 
-    // AsyncTask for getting info of the currently logged in user and get all messages where the user is involved
-    inner class GetCurrentUserInfoAndMessage : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Text view which holds content of the message to send. If what to do next is to send the message
-            val messageToSendContentTextView = params[0]!!["messageToSendContentTextView"] as TextView
+    //************************* END CALL BACK FUNCTIONS FOR SOCKET.IO *************************
 
-            // Content of the the message to send
-            val messageToSendContent = params[0]!!["messageContentToSend"] as String
+    // The function to get info of the message receiver
+    private fun getUserInfoBasedOnId (messageReceiverUserId: String) {
+        // Create the get user info base on id service
+        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(GetUserInfoBasedOnIdService::class.java)
 
-            // Create the get current user info service
-            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-                GetCurrentlyLoggedInUserInfoService::class.java)
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(messageReceiverUserId)
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is no error
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get user info from the data
+                    val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
+
+                    // Get name of the sender
+                    val fullName = userInfo["fullName"] as String
+
+                    // Get avatar URL of the sender
+                    val senderAvatarURL = userInfo["avatarURL"] as String
+
+                    // Load avatar into the ImageView
+                    Glide.with(applicationContext)
+                        .load(senderAvatarURL)
+                        .into(receiverAvatarChat)
+
+                    // Load full name into the TextView
+                    receiverFullNameChat.text = fullName
                 }
+            }
+        })
+    }
 
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
+    // The function to get all messages of the chat room in which current user and the selected user are in
+    private fun getAllMessages () {
+        // Create the get messages service
+        val getAllMessagesService: GetAllMessagesOfChatRoomService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            GetAllMessagesOfChatRoomService::class.java)
 
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getAllMessagesService.getAllMessagesOfChatRoom(chatRoomId)
 
-                        // Get user id of the currently logged in user
-                        val userId = data["_id"] as String
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
 
-                        // Execute the AsyncTask to create new message
-                        CreateNewMessageTask().execute(
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the response
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get all messages from the data
+                    val messages = data["documents"] as ArrayList<Message>
+
+                    // Set the array of messages of this class to be the array of messages obtained from the database
+                    chatMessages = messages
+
+                    // Update the adapter
+                    adapter = RecyclerViewAdapterChat(chatMessages, this@Chat)
+
+                    // Add adapter to the RecyclerView
+                    messageView.adapter = adapter
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    //************************* SEND MESSAGE SEQUENCE *************************
+    // The function to get info of the currently logged in user and create new message sent by the current user
+    private fun getCurrentUserInfoAndMessage() {
+        // Create the get current user info service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get user id of the currently logged in user
+                    val userId = data["_id"] as String
+
+                    // Call the function to create new message and send it to the database
+                    createNewMessage(userId)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to create new message and send it to the database
+    private fun createNewMessage (currentUserId: String) {
+        // Create the create new messages service
+        val createNewMessageService: CreateNewMessageService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            CreateNewMessageService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = createNewMessageService.createNewMessage(currentUserId, receiverUserId, messageContentToSend.text.toString())
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that message is created
+                if (response.body() != null) {
+                    // Body of the response
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // If message is sent for the first time, call the function to set up socket.io for realtime update
+                    // if this happens, chat room id of this activity will be empty. We need to check it
+                    if (chatRoomId == "") {
+                        // Set the current chat room to be the one that contain the message that just been sent
+                        // This is very important especially when message is sent at the first time
+                        chatRoomId = data["chatRoomId"] as String
+
+                        // Call the function
+                        setUpSocketIO()
+                    }
+
+                    // Create the new message object
+                    val newMessageObject = Message(currentUserId, receiverUserId, messageContentToSend.text.toString(), data["_id"] as String)
+
+                    // Add new message object to the array of messages
+                    chatMessages.add(newMessageObject)
+
+                    // Update the RecyclerView
+                    messageView.adapter!!.notifyDataSetChanged()
+
+                    // Emit event to the server so that the server will let the selected user know that new message has been sent
+                    mSocket.emit("newMessage", gson.toJson(hashMapOf(
+                        "sender" to currentUserId,
+                        "receiver" to receiverUserId,
+                        "content" to messageContentToSend.text.toString(),
+                        "messageId" to data["_id"] as String,
+                        "chatRoomId" to chatRoomId
+                    )))
+
+                    // Clear content of the message to send content edit text
+                    messageContentToSend.setText("")
+
+                    // Emit event to the server so that the server will let other user in the chat room know that
+                    // current user is done typing
+                    mSocket.emit(
+                        "isDoneTyping", gson.toJson(
                             hashMapOf(
-                                "userId" to userId,
-                                "messageToSendContentTextView" to messageToSendContentTextView,
-                                "messageContentToSend" to messageToSendContent
+                                "chatRoomId" to chatRoomId
                             )
                         )
-                    } else {
-                        print("Something is not right")
-                    }
+                    )
+                } else {
+                    print("Something is not right")
                 }
-            })
+            }
+        })
 
-            return null
-        }
     }
 
-    // AsyncTask to get all messages where the user with specified user id is involved in
-    inner class GetAllMessagesTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get chat room id
-            val chatRoomId = params[0]!!["chatRoomId"] as String
-
-            // Create the get messages service
-            val getAllMessagesService: GetAllMessagesOfChatRoomService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-                GetAllMessagesOfChatRoomService::class.java)
-
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getAllMessagesService.getAllMessagesOfChatRoom(chatRoomId)
-
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the response
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Get all messages from the data
-                        val messages = data["documents"] as List<Map<String, Any>>
-
-                        // Loop through all messages, create objects out of them and add them all to the array of messages
-                        for (message in messages) {
-                            // Get user id of the sender
-                            val senderUserId = message["sender"] as String
-
-                            // Get user if of the receiver
-                            val receiverUserId = message["receiver"] as String
-
-                            // Get content of the message
-                            val content = message["content"] as String
-
-                            // Get id of the message
-                            val messageId = message["_id"] as String
-
-                            // Create object out of those info
-                            val messageObject = Message(senderUserId, receiverUserId, content, messageId)
-
-                            // Add the newly created message object into the array of messages
-                            chatMessages.add(messageObject)
-
-                            // Update the adapter
-                            adapter = RecyclerViewAdapterChat(chatMessages, this@Chat)
-
-                            // Add adapter to the RecyclerView
-                            messageView.adapter = adapter
-                        }
-                    } else {
-                        print("Something is not right")
-                    }
-                }
-            })
-
-            return null
-        }
-    }
-
-    // AsyncTask to create new message
-    inner class CreateNewMessageTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Get user id of the currently logged in user
-            val userId = params[0]!!["userId"] as String
-
-            // Text view which holds content of the message to send
-            val messageToSendContentTextView = params[0]!!["messageToSendContentTextView"] as TextView
-
-            // Content of the message to send
-            val messageToSendContent = params[0]!!["messageContentToSend"] as String
-
-            // Create the create new messages service
-            val createNewMessageService: CreateNewMessageService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-                CreateNewMessageService::class.java)
-
-            // Create the call object in order to perform the call
-            val call: Call<Any> = createNewMessageService.createNewMessage(userId, receiverUserId, messageToSendContent)
-
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that message is created
-                    if (response.body() != null) {
-                        // Body of the response
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Create the new message object
-                        val newMessageObject = Message(userId, receiverUserId, messageToSendContentTextView.text.toString(), data["_id"] as String)
-
-                        // Add new message object to the array of messages
-                        chatMessages.add(newMessageObject)
-
-                        // Update the RecyclerView
-                        messageView.adapter!!.notifyDataSetChanged()
-
-                        // Emit event to the server so that the server will let the selected user know that new message has been sent
-                        mSocket.emit("newMessage", gson.toJson(hashMapOf(
-                            "sender" to userId,
-                            "receiver" to receiverUserId,
-                            "content" to messageToSendContentTextView.text.toString(),
-                            "chatRoomId" to chatRoomId
-                        )))
-
-                        // Clear content of the message to send content edit text
-                        messageToSendContentTextView.text = ""
-
-                        // Emit event to the server so that the server will let other user in the chat room know that
-                        // current user is done typing
-                        mSocket.emit(
-                            "isDoneTyping", gson.toJson(
-                                hashMapOf(
-                                    "chatRoomId" to chatRoomId
-                                )
-                            )
-                        )
-                    } else {
-                        print("Something is not right")
-                    }
-                }
-            })
-
-            return null
-        }
-    }
+    //************************* END SEND MESSAGE SEQUENCE *************************
 }
