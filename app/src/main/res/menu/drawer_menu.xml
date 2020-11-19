@@ -4,7 +4,7 @@
         <menu>
             <item android:id="@+id/nav_dashboard"
                 android:icon="@drawable/ic_dashboard_black_24dp"
-                android:title="Bảng tin"/>
+                android:title="Home page"/>
 
             <item android:id="@+id/nav_chat"
                 android:icon="@drawable/ic_chat_black_24dp"
@@ -15,12 +15,24 @@
                 android:title="Create"/>
 
             <item android:id="@+id/nav_profile"
-                android:icon="@drawable/ic_person_pin_black_24dp"
-                android:title="Profile"/>
+                android:icon="@drawable/ic_settings_black_24dp"
+                android:title="Profile settings"/>
 
             <item android:id="@+id/nav_signout"
                 android:icon="@drawable/ic_close_black_24dp"
                 android:title="Sign out"/>
+        </menu>
+    </item>
+
+    <item android:title="Make friends">
+        <menu>
+            <item android:id="@+id/nav_search_friend"
+                android:icon="@drawable/ic_search_black_24dp"
+                android:title="Search friends"/>
+
+            <item android:id="@+id/nav_personal_profile_page"
+                android:icon="@drawable/ic_person_pin_black_24dp"
+                android:title="My personal profile page"/>
         </menu>
     </item>
 </menu>

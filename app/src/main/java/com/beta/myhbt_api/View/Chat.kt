@@ -102,7 +102,8 @@ class Chat : AppCompatActivity() {
     fun setUpSocketIO () {
         //************************ DO THINGS WITH THE SOCKET.IO ************************
         //This address is the way you can connect to localhost with AVD(Android Virtual Device)
-        mSocket = IO.socket("http://10.0.2.2:3000")
+        //mSocket = IO.socket("http://10.0.2.2:3000")
+        mSocket = IO.socket("https://myhbt-api.herokuapp.com")
         mSocket.connect()
 
         // Bring user into the chat room between this user and the selected user
@@ -181,6 +182,9 @@ class Chat : AppCompatActivity() {
 
             // Update the RecyclerView
             messageView.adapter!!.notifyDataSetChanged()
+
+            // Call the function to scroll the end of the message view
+            gotoEnd()
         }
     }
 
@@ -226,6 +230,9 @@ class Chat : AppCompatActivity() {
 
             // Update the RecyclerView
             messageView.adapter!!.notifyDataSetChanged()
+
+            // Call the function to scroll the end of the message view
+            gotoEnd()
         }
     }
 
@@ -312,6 +319,9 @@ class Chat : AppCompatActivity() {
 
                     // Add adapter to the RecyclerView
                     messageView.adapter = adapter
+
+                    // Call the function to scroll to the end of the message view
+                    gotoEnd()
                 } else {
                     print("Something is not right")
                 }
@@ -400,6 +410,9 @@ class Chat : AppCompatActivity() {
                     // Update the RecyclerView
                     messageView.adapter!!.notifyDataSetChanged()
 
+                    // Call the function to scroll to the end of the message view
+                    gotoEnd()
+
                     // Emit event to the server so that the server will let the selected user know that new message has been sent
                     mSocket.emit("newMessage", gson.toJson(hashMapOf(
                         "sender" to currentUserId,
@@ -430,4 +443,10 @@ class Chat : AppCompatActivity() {
     }
 
     //************************* END SEND MESSAGE SEQUENCE *************************
+
+    //************************* SUPPLEMENTAL FUNCTIONS *************************
+    fun gotoEnd () {
+        // The function to roll to the end of the message view
+        messageView.scrollToPosition(chatMessages.size - 1)
+    }
 }

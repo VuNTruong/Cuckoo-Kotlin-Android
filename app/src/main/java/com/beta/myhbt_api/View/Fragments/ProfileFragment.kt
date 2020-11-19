@@ -121,7 +121,7 @@ class ProfileFragment : Fragment() {
                         val coverURL = data["coverURL"] as String
 
                         // Get student id of the user
-                        val studentId = data["studendId"] as String
+                        val studentId = data["studentId"] as String
 
                         // Update the user object out of those info
                         currentUserObject = User(userId, firstName, middleName, lastName, email, phoneNumber, facebook, instagram, twitter, zalo, role, classCode, avatarURL, coverURL, studentId)

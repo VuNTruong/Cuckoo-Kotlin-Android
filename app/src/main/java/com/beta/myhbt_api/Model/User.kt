@@ -1,9 +1,10 @@
 package com.beta.myhbt_api.Model
 
 import com.google.gson.annotations.SerializedName
+import java.io.Serializable
 
 class User (_id: String, firstName: String, middleName: String, lastName: String, email: String, phoneNumber: String, facebook: String,
-            instagram: String, twitter: String, zalo: String, role: String, classCode: String, avatarURL: String, coverURL: String, studentId: String){
+            instagram: String, twitter: String, zalo: String, role: String, classCode: String, avatarURL: String, coverURL: String, studentId: String) : Serializable{
     // Attribute of the user as saved in the database
     @SerializedName("_id")
     private val _id: String = _id

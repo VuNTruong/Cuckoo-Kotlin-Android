@@ -14,10 +14,7 @@ import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.LogoutPostDataService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.R
-import com.beta.myhbt_api.View.Fragments.ChatFragment
-import com.beta.myhbt_api.View.Fragments.CreatePostFragment
-import com.beta.myhbt_api.View.Fragments.DashboardFragment
-import com.beta.myhbt_api.View.Fragments.ProfileFragment
+import com.beta.myhbt_api.View.Fragments.*
 import com.bumptech.glide.Glide
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
@@ -53,14 +50,32 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
         supportActionBar!!.setHomeAsUpIndicator(R.drawable.ic_menu_black_24dp)// set drawable icon
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
 
-        // Set the first fragment to display to be the dashboard
-        if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction().replace(
-                R.id.fragment_container,
-                DashboardFragment()
-            ).commit()
-            nav_view.setCheckedItem(R.id.nav_dashboard)
-            supportActionBar!!.title = "Bảng tin"
+        // Check the previous activity to see what it is. If the previous activity is the profile detail page,
+        // load the profile page instead of the dashboard
+        if (intent.getStringExtra("previousActivityName") == "profileDetailPage") {
+            // Hide the action bar
+            supportActionBar!!.hide()
+
+            // Load the profile page
+            if (savedInstanceState == null) {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    ProfileFragment()
+                ).commit()
+                nav_view.setCheckedItem(R.id.nav_dashboard)
+                supportActionBar!!.title = "Profile Settings"
+            }
+        } // Otherwise, load the dashboard
+        else {
+            // Set the first fragment to display to be the dashboard
+            if (savedInstanceState == null) {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    DashboardFragment()
+                ).commit()
+                nav_view.setCheckedItem(R.id.nav_dashboard)
+                supportActionBar!!.title = "Home page"
+            }
         }
 
         // Call the function to do initial set up
@@ -108,14 +123,28 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                     R.id.fragment_container,
                     CreatePostFragment()
                 ).commit()
-                supportActionBar!!.title = "Chat"
+                supportActionBar!!.title = "Create new post"
             }
             R.id.nav_profile -> {
                 supportFragmentManager.beginTransaction().replace(
                     R.id.fragment_container,
                     ProfileFragment()
                 ).commit()
-                supportActionBar!!.title = "Chat"
+                supportActionBar!!.title = "Profile Settings"
+            }
+            R.id.nav_search_friend -> {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    SearchFriendFragment()
+                ).commit()
+                supportActionBar!!.title = "Search friends"
+            }
+            R.id.nav_personal_profile_page -> {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    PersonalProfilePageFragment()
+                ).commit()
+                supportActionBar!!.title = "My personal profile"
             }
             R.id.nav_signout -> {
                 // Execute the AsyncTask to sign the user out

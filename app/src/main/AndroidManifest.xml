@@ -11,11 +11,13 @@
         android:roundIcon="@drawable/hbtgram1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.SearchUserToChatWith"></activity>
+        <activity android:name=".View.ProfileDetail"></activity>
+        <activity android:name=".View.SearchUserToChatWith" />
         <activity android:name=".View.ChatSendImage" />
         <activity
             android:name=".View.Chat"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:theme="@style/AppTheme.NoActionBar"
+            android:windowSoftInputMode="adjustPan" />
         <activity android:name=".View.UpdateCoverPhoto" />
         <activity android:name=".View.UpdateAvatar" />
         <activity android:name=".View.SignUpCreateEmailAndPassword" />

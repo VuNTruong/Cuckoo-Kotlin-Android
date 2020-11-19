@@ -37,7 +37,7 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
     private val mapOfFields = mapOfFields
 
     // ViewHolder for the profile setting page header
-    inner class ViewHolderProfileSettingPageHeader internal constructor(itemView: View) :
+        inner class ViewHolderProfileSettingPageHeader internal constructor(itemView: View) :
         RecyclerView.ViewHolder(itemView) {
         // Components from the layout
         private val userAvatar : ImageView = itemView.findViewById(R.id.userAvatarProfileSetting)

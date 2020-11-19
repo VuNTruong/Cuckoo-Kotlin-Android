@@ -61,6 +61,9 @@ class MainActivity : AppCompatActivity() {
                     val intent = Intent(applicationContext, MainMenu::class.java)
                     startActivity(intent)
 
+                    // Pass name of this activity to the main menu so that it will know to load the dashboard
+                    intent.putExtra("previousActivityName", "mainActivity")
+
                     // Finish this activity
                     this@MainActivity.finish()
                 } else {
@@ -68,26 +71,6 @@ class MainActivity : AppCompatActivity() {
                     loadingLayoutWelcome.visibility = View.INVISIBLE
                     welcomeLayout.visibility = View.VISIBLE
                 }
-            }
-        })
-    }
-
-    // The function to perform the get request
-    private fun performGetRequest () {
-        // Create the get service
-        val service: GetDataService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(GetDataService::class.java)
-
-        // Perform the get request
-        val call1: Call<Any> = service.getAllUsersMap()
-        call1.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                val responseBody = response.body() as Map<String, Any>
-                val arrayOfUsers = responseBody["documents"] as List<User>
-                print(arrayOfUsers)
             }
         })
     }
