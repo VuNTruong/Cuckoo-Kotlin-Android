@@ -93,4 +93,9 @@ class SearchFriendFragment : Fragment() {
             }
         })
     }
+
+    // The function to reload the RecyclerView
+    fun reloadView () {
+        searchFriendsView.adapter!!.notifyDataSetChanged()
+    }
 }

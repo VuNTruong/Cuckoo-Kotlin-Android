@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
                     // Go to the main activity
-                    val intent = Intent(applicationContext, MainMenu::class.java)
+                    val intent = Intent(applicationContext, ExploreLocation::class.java)
                     startActivity(intent)
 
                     // Pass name of this activity to the main menu so that it will know to load the dashboard

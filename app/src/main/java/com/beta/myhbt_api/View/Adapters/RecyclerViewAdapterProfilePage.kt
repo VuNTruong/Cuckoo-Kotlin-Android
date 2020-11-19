@@ -180,31 +180,31 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
             }
             1 -> {
                 // Second row will show the full name
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Full name: ${userObject.getFullName()}", R.drawable.nametagico, "fullName")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getFullName(), R.drawable.nametagico, "fullName")
             }
             2 -> {
                 // Third row will show the email
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Email: ${userObject.getEmail()}", R.drawable.ic_email_black_24dp, "email")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getEmail(), R.drawable.ic_email_black_24dp, "email")
             }
             3 -> {
                 // Fourth row will show the phone number
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Phone number: ${userObject.getPhoneNumber()}", R.drawable.ic_phone_iphone_black_24dp, "phoneNumber")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getPhoneNumber(), R.drawable.ic_phone_iphone_black_24dp, "phoneNumber")
             }
             4 -> {
                 // Fifth row will show the facebook id
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Facebook: ${userObject.getFacebook()}", R.drawable.facebooklogo, "facebook")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getFacebook(), R.drawable.facebooklogo, "facebook")
             }
             5  -> {
                 // Sixth row will show the instagram id
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Instagram: ${userObject.getInstagram()}", R.drawable.instalogo, "instagram")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getInstagram(), R.drawable.instalogo, "instagram")
             }
             6 -> {
                 // Seventh row will show show the twitter id
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Twitter: ${userObject.getTwitter()}", R.drawable.twitterlogo, "twitter")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getTwitter(), R.drawable.twitterlogo, "twitter")
             }
             else -> {
                 // Last row will show the zalo id
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Zalo: ${userObject.getZalo()}", R.drawable.zalologo, "zalo")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getZalo(), R.drawable.zalologo, "zalo")
             }
         }
     }

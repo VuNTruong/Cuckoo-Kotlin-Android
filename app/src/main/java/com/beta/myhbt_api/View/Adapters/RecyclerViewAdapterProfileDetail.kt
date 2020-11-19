@@ -15,6 +15,7 @@ import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Chat
+import com.beta.myhbt_api.View.Fragments.SearchFriendFragment
 import com.beta.myhbt_api.View.HBTGramPostDetail
 import com.beta.myhbt_api.View.MainMenu
 import com.bumptech.glide.Glide
@@ -109,10 +110,18 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
         private val messageButton : Button = itemView.findViewById(R.id.sendMessageButtonProfileDetail)
 
         // The function to set up the follow/message button
-        fun setUpFollowMessageButton () {
+        fun setUpFollowMessageButton (userObject: User) {
             // Set on click listener for the follow/unfollow button
             followUnfollowButton.setOnClickListener {
-                // Call the function to create follow for the user
+                // Check content of the button
+                // If content of the button is "Follow", create a new follow object between the 2 users
+                if (followUnfollowButton.text == "Follow") {
+                    // Call the function to create follow for the user
+                    getInfoOfCurrentUserAndCreateFollow(userObject.getId(), followUnfollowButton)
+                } // Otherwise, remove a follow object between the 2 users
+                else {
+                    getInfoOfCurrentUserAndRemoveFollow(userObject.getId(), followUnfollowButton)
+                }
             }
 
             // Set on click listener for the message button
@@ -120,6 +129,9 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                 // Call the function to take user to the activity where the user can start chatting
                 getInfoOfCurrentUserAndGotoChat()
             }
+
+            // Call the function to load follow status between the 2 users and set right content for the follow button
+            getInfoOfCurrentUserAndCheckFollowStatus(userObject.getId(), followUnfollowButton)
         }
     }
 
@@ -253,8 +265,8 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
     // The function to get number of following
     fun getNumOfFollowings (userId: String, numOfFollowingTextView: TextView) {
         // Create the service for getting number of followings
-        val getArrayOfFollowingService: GeteFollowingService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GeteFollowingService::class.java)
+        val getArrayOfFollowingService: GetFollowingService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetFollowingService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getArrayOfFollowingService.getFollowings(userId)
@@ -484,6 +496,229 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
     }
     //*********************************** END GO TO POST DETAIL SEQUENCE ***********************************
 
+    //*********************************** CREATE NEW FOLLOW SEQUENCE ***********************************
+    /*
+    In this sequence, we will do 2 things
+    1. Get info of the current user
+    2. Create new follow object between current user and selected user at this activity
+    */
+
+    // The function to get info of the current user
+    fun getInfoOfCurrentUserAndCreateFollow (otherUserId: String, followButton: Button) {
+        // Create the get current user info service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get user id in the database of the currently logged in user
+                    val userId = data["_id"] as String
+
+                    // Call the function to create new follow object between the 2 users
+                    createNewFollowBetween2Users(userId, otherUserId, followButton)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to create a new follow object between 2 users
+    fun createNewFollowBetween2Users (currentUserId: String, otherUserId: String, followButton: Button) {
+        // Create the create follow object service
+        val createNewFollowObjectService: CreateNewFollowService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            CreateNewFollowService::class.java)
+
+        // Create the call object to perform the call
+        val call: Call<Any> = createNewFollowObjectService.createNewFollow(currentUserId, otherUserId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that new follow was created
+                if (response.body() != null) {
+                    // Change content of the follow button to "Unfollow"
+                    followButton.text = "Unfollow"
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+    //*********************************** END CREATE NEW FOLLOW SEQUENCE ***********************************
+
+    //*********************************** REMOVE FOLLOW SEQUENCE ***********************************
+    /*
+    In this sequence, we will do 2 things
+    1. Get info of the current user
+    2. Delete the follow between the 2 users
+    */
+
+    // The function to get info of the current user
+    fun getInfoOfCurrentUserAndRemoveFollow (otherUserId: String, followButton: Button) {
+        // Create the get current user info service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get user id in the database of the currently logged in user
+                    val userId = data["_id"] as String
+
+                    // Call the function to remove a follow object between the 2 users
+                    removeAFollowBetween2Users(userId, otherUserId, followButton)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to remove a follow between the 2 users
+    fun removeAFollowBetween2Users (currentUserId: String, otherUserId: String, followButton: Button) {
+        // Create the delete follow service
+        val deleteFollowService: DeleteFollowService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            DeleteFollowService::class.java)
+
+        // Create the call object to perform the call
+        val call: Call<Any> = deleteFollowService.deleteFollow(currentUserId, otherUserId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // Check the response code
+                // If it is 204. It means that a follow has been removed
+                if (response.code() == 204) {
+                    // Set content of the follow button to be "Follow"
+                    followButton.text = "Follow"
+                }
+            }
+        })
+    }
+    //*********************************** END REMOVE FOLLOW SEQUENCE ***********************************
+
+    //*********************************** CHECK FOLLOW STATUS ***********************************
+    /*
+    In this sequence, we will do 2 things
+    1. Get info of the currently logged in user
+    2. Get follow status between the 2 users, then set content of the follow button to be the right one
+    */
+
+    // The function to get info of the current user
+    fun getInfoOfCurrentUserAndCheckFollowStatus (otherUserId: String, followButton: Button) {
+        // Create the get current user info service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get user id in the database of the currently logged in user
+                    val userId = data["_id"] as String
+
+                    // Call the function to check follow status between the 2 users
+                    getFollowStatusBetween2Users(userId, otherUserId, followButton)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to check follow status between the 2 users
+    fun getFollowStatusBetween2Users (currentUserId: String, otherUserId: String, followButton: Button) {
+        // Create the get follow status service
+        val getFollowStatusService: GetFollowStatusService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetFollowStatusService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getFollowStatusService.getFollowStatus(currentUserId, otherUserId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("There seem to be an error ${t.stackTrace}")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body (follow status)
+                    val data = responseBody["data"] as String
+
+                    // Check the follow status. If it is "Yes", set content of the follow button to be "Unfollow"
+                    if (data == "Yes") {
+                        followButton.text = "Unfollow"
+                    } // Otherwise, set content of the follow button to be "Follow"
+                    else {
+                        followButton.text = "Follow"
+                    }
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+    //*********************************** END CHECK FOLLOW STATUS ***********************************
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         // The view object
         val view : View
@@ -559,7 +794,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                 (holder as ViewHolderEditProfileButton).setUpEditProfileButton()
             } // Otherwise, it is other user, show the follow, message button
             else {
-                (holder as ViewHolderFollowMessageButton).setUpFollowMessageButton()
+                (holder as ViewHolderFollowMessageButton).setUpFollowMessageButton(userObject)
             }
         }
         // The rest will show the user album
