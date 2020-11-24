@@ -35,4 +35,16 @@
                 android:title="My personal profile page"/>
         </menu>
     </item>
+
+    <item android:title="Locations">
+        <menu>
+            <item android:id="@+id/nav_update_location"
+                android:icon="@drawable/ic_edit_location_black_24dp"
+                android:title="Search friends"/>
+
+            <item android:id="@+id/nav_friends_location"
+                android:icon="@drawable/ic_location_searching_black_24dp"
+                android:title="Friends location"/>
+        </menu>
+    </item>
 </menu>

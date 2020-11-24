@@ -39,6 +39,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth:16.0.5'
     implementation 'com.google.android.gms:play-services-maps:17.0.0'
     testImplementation 'junit:junit:4.12'
+    implementation 'com.google.android.gms:play-services-location:15+'
+    implementation 'com.google.android.libraries.places:places:2.4.0'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.8.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'

@@ -146,6 +146,13 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                 ).commit()
                 supportActionBar!!.title = "My personal profile"
             }
+            R.id.nav_update_location -> {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    UpdateLocationFragment()
+                ).commit()
+                supportActionBar!!.title = "Update location"
+            }
             R.id.nav_signout -> {
                 // Execute the AsyncTask to sign the user out
                 SignOutTask().execute()
