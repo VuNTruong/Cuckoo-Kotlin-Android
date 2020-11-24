@@ -41,7 +41,7 @@ class SeeFriendsLocation : AppCompatActivity() {
      */
 
     // The function to get info of the current user
-    fun getInfoOfCurrentUserAndFriendsLocation (googleMap: GoogleMap) {
+    private fun getInfoOfCurrentUserAndFriendsLocation (googleMap: GoogleMap) {
         // Create the get current user info service
         val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
             GetCurrentlyLoggedInUserInfoService::class.java)
