@@ -151,7 +151,7 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                     R.id.fragment_container,
                     UpdateLocationFragment()
                 ).commit()
-                supportActionBar!!.title = "Update location"
+                supportActionBar!!.title = "Locations"
             }
             R.id.nav_signout -> {
                 // Execute the AsyncTask to sign the user out

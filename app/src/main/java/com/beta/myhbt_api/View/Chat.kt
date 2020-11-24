@@ -83,7 +83,7 @@ class Chat : AppCompatActivity() {
 
         // Add text watcher to the message to send content text field so that it will know when text is changing
         messageContentToSend.addTextChangedListener(textWatcher)
-
+ 
         // Instantiate the recycler view
         messageView.layoutManager = LinearLayoutManager(applicationContext)
         messageView.itemAnimator = DefaultItemAnimator()
