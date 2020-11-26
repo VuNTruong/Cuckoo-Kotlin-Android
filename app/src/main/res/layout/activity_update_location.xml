@@ -6,29 +6,26 @@
     android:layout_height="match_parent"
     tools:context=".View.UpdateLocation">
 
-    <fragment
-        android:id="@+id/mapViewUpdateLocationLastKnownLocation"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
+    <com.mapbox.mapboxsdk.maps.MapView
+        android:id="@+id/mapViewLastUpdatedLocation"
         android:layout_width="0dp"
         android:layout_height="180dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView19" />
+        app:layout_constraintTop_toBottomOf="@+id/textView19">
+    </com.mapbox.mapboxsdk.maps.MapView>
 
-    <fragment
+    <com.mapbox.mapboxsdk.maps.MapView
         android:id="@+id/mapViewUpdateLocation"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="0dp"
         android:layout_height="180dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView20" />
 
@@ -115,11 +112,11 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:text="Your current location"
         android:fontFamily="sans-serif-light"
+        android:text="Your current location"
         android:textSize="13dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/mapViewUpdateLocationLastKnownLocation" />
+        app:layout_constraintTop_toBottomOf="@+id/mapViewLastUpdatedLocation" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

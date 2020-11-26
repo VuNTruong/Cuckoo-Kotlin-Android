@@ -1,33 +1,49 @@
 package com.beta.myhbt_api.View
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.GetFollowingService
 import com.beta.myhbt_api.Controller.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.R
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
+import com.mapbox.android.core.permissions.PermissionsListener
+import com.mapbox.android.core.permissions.PermissionsManager
+import com.mapbox.mapboxsdk.Mapbox
+import com.mapbox.mapboxsdk.annotations.MarkerOptions
+import com.mapbox.mapboxsdk.geometry.LatLng
+import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions
+import com.mapbox.mapboxsdk.location.LocationComponentOptions
+import com.mapbox.mapboxsdk.location.modes.CameraMode
+import com.mapbox.mapboxsdk.location.modes.RenderMode
+import com.mapbox.mapboxsdk.maps.MapboxMap
+import com.mapbox.mapboxsdk.maps.Style
+import kotlinx.android.synthetic.main.activity_see_friends_location.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class SeeFriendsLocation : AppCompatActivity() {
+class SeeFriendsLocation : AppCompatActivity(), PermissionsListener {
+    private lateinit var style: Style
+    private lateinit var mapbox: MapboxMap
+    private var permissionsManager: PermissionsManager = PermissionsManager(this)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Mapbox.getInstance(this, getString(R.string.mapbox_access_token))
         setContentView(R.layout.activity_see_friends_location)
 
-        // Get the SupportMapFragment and request notification when the map is ready to be used.
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.mapViewSeeFriendsLocation) as? SupportMapFragment
-        mapFragment!!.getMapAsync{googleMap ->
-            // Call the function to load list of friends, then show locations
-            getInfoOfCurrentUserAndFriendsLocation(googleMap)
+        findFriendsMapView?.onCreate(savedInstanceState)
+        findFriendsMapView?.getMapAsync { mapboxMap ->
+            mapboxMap.setStyle(Style.MAPBOX_STREETS) {
+                // Map is set up and the style has loaded. Now you can add data or make other map adjustments
+                getInfoOfCurrentUserAndFriendsLocation(mapboxMap)
+
+                enableLocationComponent(it, mapboxMap)
+                style = it
+                mapbox = mapboxMap
+            }
         }
     }
 
@@ -41,7 +57,7 @@ class SeeFriendsLocation : AppCompatActivity() {
      */
 
     // The function to get info of the current user
-    private fun getInfoOfCurrentUserAndFriendsLocation (googleMap: GoogleMap) {
+    private fun getInfoOfCurrentUserAndFriendsLocation (mapbox: MapboxMap) {
         // Create the get current user info service
         val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
             GetCurrentlyLoggedInUserInfoService::class.java)
@@ -68,7 +84,7 @@ class SeeFriendsLocation : AppCompatActivity() {
                     val currentUserId = data["_id"] as String
 
                     // Call the function to load list of friends of the current user
-                    getListOfFollowingOfUserAndLocation(currentUserId, googleMap)
+                    getListOfFollowingOfUserAndLocation(currentUserId, mapbox)
                 } else {
                     print("Something is not right")
                 }
@@ -77,7 +93,7 @@ class SeeFriendsLocation : AppCompatActivity() {
     }
 
     // The function to load list of following for the current user
-    fun getListOfFollowingOfUserAndLocation (userId: String, googleMap: GoogleMap) {
+    fun getListOfFollowingOfUserAndLocation (userId: String, mapbox: MapboxMap) {
         // Create the service for getting number of followings
         val getArrayOfFollowingService: GetFollowingService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
             GetFollowingService::class.java)
@@ -109,7 +125,7 @@ class SeeFriendsLocation : AppCompatActivity() {
                         val followingUserId = following["following"] as String
 
                         // Call the function to pin users to whom the current user is following on the map
-                        loadUserInfoBasedOnId(followingUserId, googleMap)
+                        loadUserInfoBasedOnId(followingUserId, mapbox)
                     }
                 }
             }
@@ -117,7 +133,7 @@ class SeeFriendsLocation : AppCompatActivity() {
     }
 
     // The function to get info of a user based on id
-    fun loadUserInfoBasedOnId (userId: String, googleMap: GoogleMap) {
+    fun loadUserInfoBasedOnId (userId: String, mapbox: MapboxMap) {
         // Create the get user info base on id service
         val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(GetUserInfoBasedOnIdService::class.java)
 
@@ -164,31 +180,91 @@ class SeeFriendsLocation : AppCompatActivity() {
                     //------------- End get location of the user -------------
 
                     // Call the function to pin the user on the map
-                    addMarker(center, "${userFullName}: $locationDescription", googleMap)
+                    pinUser(center, "${userFullName}: $locationDescription", mapbox)
                 }
             }
         })
     }
 
-    // The function to pin a user on a map
-    private fun addMarker(latlng: LatLng, title: String, gMap: GoogleMap) {
-        val cameraPosition = CameraPosition.Builder().target(latlng).zoom(DEFAULT_ZOOM.toFloat()).build()
-        gMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-
-        val markerOptions = MarkerOptions()
-
-        markerOptions.position(latlng)
-        markerOptions.title(title)
-        gMap.addMarker(markerOptions)
-        gMap.setOnInfoWindowClickListener { marker ->
-            Toast.makeText(this, marker.title, Toast.LENGTH_SHORT)
-                .show()
-        }
+    // The function to pin the users
+    private fun pinUser (location: LatLng, title: String, mapbox: MapboxMap) {
+        // Add pin at the user location
+        mapbox.addMarker(
+            MarkerOptions()
+                .position(location)
+                .title(title))
     }
     //**************************************** END LOAD LIST OF FRIENDS AND LOCATION SEQUENCE ****************************************
+
+    //**************************************** LOAD USER CURRENT LOCATION SEQUENCE ****************************************
+    /*
+    In this sequence, we will do 3 things
+    1. Ask for location permission of the user
+    2. Reference the database and get current location of the user
+    3. Pin the user location on the map
+     */
+
+    // The function to ask for user permission to use the location
+    override fun onExplanationNeeded(permissionsToExplain: List<String>) {
+        // Do something here later :))
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    override fun onPermissionResult(granted: Boolean) {
+        if (granted) {
+            // User grant permission to use the location, call the function to get user location and pin it on the map
+            enableLocationComponent(style, mapbox)
+        } else {
+            // Don't do anything here
+            return
+        }
+    }
+
+    // The function to get user's current location
+    private fun enableLocationComponent(loadedMapStyle: Style, mapboxMap: MapboxMap) {
+        // Check if permissions are enabled and if not request
+        if (PermissionsManager.areLocationPermissionsGranted(this)) {
+            // Create and customize the LocationComponent's options
+            val customLocationComponentOptions = LocationComponentOptions.builder(this)
+                .trackingGesturesManagement(true)
+                .accuracyColor(ContextCompat.getColor(this, R.color.colorPrimary))
+                .build()
+
+            val locationComponentActivationOptions = LocationComponentActivationOptions.builder(this, loadedMapStyle)
+                .locationComponentOptions(customLocationComponentOptions)
+                .build()
+
+            // Get an instance of the LocationComponent and then adjust its settings
+            mapboxMap.locationComponent.apply {
+                // Activate the LocationComponent with options
+                activateLocationComponent(locationComponentActivationOptions)
+
+                // Enable to make the LocationComponent visible
+                isLocationComponentEnabled = true
+
+                // Set the LocationComponent's camera mode
+                cameraMode = CameraMode.TRACKING
+
+                // Set the LocationComponent's render mode
+                renderMode = RenderMode.COMPASS
+
+                zoomWhileTracking(20.0, 2)
+            }
+        } else {
+            permissionsManager = PermissionsManager(this)
+            permissionsManager.requestLocationPermissions(this)
+        }
+    }
+    //**************************************** END LOAD USER CURRENT LOCATION SEQUENCE ****************************************
 
     // Several objects to be used by the map
     companion object {
         private const val DEFAULT_ZOOM = 15
+        private const val millisecondSpeed = 2
+        private const val DEFAULT_INTERVAL_IN_MILLISECONDS = 1000L
+        private const val DEFAULT_MAX_WAIT_TIME = DEFAULT_INTERVAL_IN_MILLISECONDS * 5
     }
 }
