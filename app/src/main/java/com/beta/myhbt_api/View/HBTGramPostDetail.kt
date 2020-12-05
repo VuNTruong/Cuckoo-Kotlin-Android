@@ -1,5 +1,6 @@
 package com.beta.myhbt_api.View
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.EditText
@@ -12,12 +13,20 @@ import com.beta.myhbt_api.Model.HBTGramPostComment
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterHBTGramPostDetail
+import com.google.gson.Gson
+import io.socket.client.IO
+import io.socket.client.Socket
+import io.socket.emitter.Emitter
 import kotlinx.android.synthetic.main.activity_hbtgram_post_detail.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
 class HBTGramPostDetail : AppCompatActivity() {
+    // These objects are used for socket.io
+    private lateinit var mSocket: Socket
+    private val gson = Gson()
+
     // Adapter for the RecyclerView
     private var adapter: RecyclerViewAdapterHBTGramPostDetail?= null
 
@@ -47,9 +56,79 @@ class HBTGramPostDetail : AppCompatActivity() {
             getUserInfoAndCreateComment(commentContentToPostPostDetail, selectedPostObject.getId())
         }
 
+        // Set up on click listener for the send image as comment button
+        selectPictureForCommentButton.setOnClickListener {
+            // Start the activity where the user can choose image to send
+            // The intent object
+            val intent = Intent(applicationContext, HBTGramPostDetailCommentSendImage::class.java)
+
+            // Put post id into the intent so that next activity will know which post to work with
+            intent.putExtra("postId", selectedPostObject.getId())
+
+            // Start the activity
+            startActivity(intent)
+        }
+
         // Call the function to get post detail
         getPostDetail(selectedPostObject.getId())
+
+        // Call the function to set up socket.io and make everything real time
+        setUpSocketIO()
     }
+
+
+    // THe function to set up socket.IO
+    private fun setUpSocketIO () {
+        //************************ DO THINGS WITH THE SOCKET.IO ************************
+        //This address is the way you can connect to localhost with AVD(Android Virtual Device)
+        //mSocket = IO.socket("http://10.0.2.2:3000")
+        mSocket = IO.socket("https://myhbt-api.herokuapp.com")
+        mSocket.connect()
+
+        // Bring user into the post detail room
+        mSocket.emit("jumpInPostDetailRoom", gson.toJson(hashMapOf(
+            "postId" to selectedPostObject.getId()
+        )))
+
+        // Listen to event of when new comment is added to the post
+        mSocket.on("updateComment", onUpdateComment)
+
+        // Listen to event of when new comment with photo is added to the post
+        mSocket.on("updateCommentWithPhoto", onUpdateCommentWithPhoto)
+        //************************ END WORKING WITH SOCKET.IO ************************v
+    }
+
+    //************************* CALL BACK FUNCTIONS FOR SOCKET.IO *************************
+    // The callback function to update comment when the new one is added to the post
+    private var onUpdateComment = Emitter.Listener {
+        // New comment object from the server
+        val commentObject: HBTGramPostComment = gson.fromJson(it[0].toString(), HBTGramPostComment::class.java)
+
+        // Since this will update the view, it MUST run on the UI thread
+        runOnUiThread{
+            // Add new comment to the array of comments
+            arrayOfComments.add(commentObject)
+
+            // Update the RecyclerView
+            hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
+        }
+    }
+
+    // The callback function to update comment when new one with photo is added to the post
+    private var onUpdateCommentWithPhoto = Emitter.Listener {
+        // New comment object from the server
+        val commentObject: HBTGramPostComment = gson.fromJson(it[0].toString(), HBTGramPostComment::class.java)
+
+        // Since this will update the view, it MUST run on the UI thread
+        runOnUiThread{
+            // Add new comment to the array of comments
+            arrayOfComments.add(commentObject)
+
+            // Update the RecyclerView
+            hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
+        }
+    }
+    //************************* END CALL BACK FUNCTIONS FOR SOCKET.IO *************************
 
     //*********************************** CREATE NEW COMMENT SEQUENCE ***********************************
     // The function to get user id of the current user and create comment based on that
@@ -112,8 +191,25 @@ class HBTGramPostDetail : AppCompatActivity() {
                     // Show the alert
                     Toast.makeText(applicationContext, "Comment can't be posted", Toast.LENGTH_SHORT).show()
                 } else {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data of the response from response body
+                    val data = (responseBody["data"] as Map<String, Any>)["tour"] as Map<String, Any>
+
+                    // Get id of the newly created comment
+                    val newCommentId = data["_id"] as String
+
+                    // Emit event to the server and let the server know that new comment has been added
+                    mSocket.emit("newComment", gson.toJson(hashMapOf(
+                        "commentId" to newCommentId,
+                        "writer" to commentWriterUserId,
+                        "content" to commentContentToPostEditText.text.toString(),
+                        "postId" to selectedPostObject.getId()
+                    )))
+
                     // Create new comment object based on info of the newly created comment
-                    val newCommentObject = HBTGramPostComment(commentContentToPostEditText.text.toString(), commentWriterUserId)
+                    val newCommentObject = HBTGramPostComment(commentContentToPostEditText.text.toString(), commentWriterUserId, newCommentId)
 
                     // Add the newly created comment object to the array
                     arrayOfComments.add(newCommentObject)

@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.HBTGramPost
@@ -49,11 +50,43 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
         private val numOfPosts : TextView = itemView.findViewById(R.id.numOfPosts)
         private val numOfFollowers : TextView = itemView.findViewById(R.id.numOfFollowers)
         private val numOfFollowing : TextView = itemView.findViewById(R.id.numOfFollowing)
+        private val numOfFollowersView : ConstraintLayout = itemView.findViewById(R.id.numOfFollowersView)
+        private val numOfFollowingsView : ConstraintLayout = itemView.findViewById(R.id.numOfFollowingsView)
 
         // The function to set up header row for the profile detail page
         fun setUpProfileDetailHeaderPage (userObject: User) {
             // Load full name into the TextView
             userFullName.text = userObject.getFullName()
+
+            // Set on click listener for the num of followers view
+            numOfFollowersView.setOnClickListener {
+                // Take user to the activity where the user can see list of followers of the user
+                // The intent object
+                val intent = Intent(activity, UserShow::class.java)
+
+                // Set post id to that activity and tell it to show list of likes of the post
+                intent.putExtra("whatToDo", "getListOfFollowers")
+                intent.putExtra("postId", "")
+                intent.putExtra("userId", userObject.getId())
+
+                // Start the activity
+                activity.startActivity(intent)
+            }
+
+            // Set on click listener for the num of followings view
+            numOfFollowingsView.setOnClickListener {
+                // Take user to the activity where the user can see list of followings of the user
+                // The intent object
+                val intent = Intent(activity, UserShow::class.java)
+
+                // Set post id to that activity and tell it to show list of likes of the post
+                intent.putExtra("whatToDo", "getListOfFollowings")
+                intent.putExtra("postId", "")
+                intent.putExtra("userId", userObject.getId())
+
+                // Start the activity
+                activity.startActivity(intent)
+            }
 
             // Load avatar of the user into the ImageView
             Glide.with(activity)

@@ -106,7 +106,7 @@ class UpdateAvatar : AppCompatActivity() {
                         val userId = data["_id"] as String
 
                         // Get student id of the user
-                        val studentId = data["studendId"] as String
+                        val studentId = data["studentId"] as String
 
                         // Get avatar URL of the user
                         val avatarURL = data["avatarURL"] as String

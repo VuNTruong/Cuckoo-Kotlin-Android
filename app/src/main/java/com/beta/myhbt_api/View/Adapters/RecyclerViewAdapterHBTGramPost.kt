@@ -1,14 +1,13 @@
 package com.beta.myhbt_api.View.Adapters
 
+import android.animation.StateListAnimator
 import android.app.Activity
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
+import android.view.animation.AnimationUtils
+import android.widget.*
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.HBTGramPost
@@ -42,7 +41,7 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
         private val postPhoto: ImageView = itemView.findViewById(R.id.postPhoto)
         private val numOfLikes: TextView = itemView.findViewById(R.id.numOfLikes)
         private val numOfComments: TextView = itemView.findViewById(R.id.numOfComments)
-        private val likeButton: ImageView = itemView.findViewById(R.id.likeButton)
+        private val likeButton: CheckBox = itemView.findViewById(R.id.likeButton)
         private val commentButton: ImageView = itemView.findViewById(R.id.commentButton)
         private val userAvatar: ImageView = itemView.findViewById(R.id.userAvatar)
         private val commentToPostContent: EditText = itemView.findViewById(R.id.commentToPostContent)
@@ -64,6 +63,9 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
 
             // Call the function to get number of comments for the post
             getNumOfComments(postObject.getId(), numOfComments)
+
+            // Call the function to set up like status for the like button
+            getUserInfoAndGetLikeStatus(postObject.getId(), likeButton)
 
             // Set on click listener for the comment button so that it will take user to the activity where the
             // user can see post detail
@@ -359,17 +361,8 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             }
 
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is null, it means that comment can't be posted
-                if (response.body() == null) {
-                    // Show the error
-                    Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
-                } else {
-                    // Done
-                    Toast.makeText(activity, "You've liked this post", Toast.LENGTH_SHORT).show()
-
-                    // Reload the RecyclerView
-                    hbtGram.reloadRecyclerView()
-                }
+                // Reload number of likes
+                this@RecyclerViewAdapterHBTGramPost.notifyDataSetChanged()
             }
         })
     }
@@ -446,6 +439,88 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
         })
     }
     //*********************************** END CREATE NEW COMMENT SEQUENCE ***********************************
+
+    //*********************************** CHECK LIKE STATUS SEQUENCE ***********************************
+    /*
+    In this sequence, we will do 2 things
+    1. Get info of the current user
+    2. Get like status between the current user and post at this row
+     */
+
+    // The function to get info of the current user
+    fun getUserInfoAndGetLikeStatus (postId: String, likeButton: CheckBox) {
+        // Create the get current user info service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    val body = response.body()
+                    print(body)
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get user id in the database of the currently logged in user
+                    val userId = data["_id"] as String
+
+                    // Call the function to get like status between current user and post at this row
+                    getLikeStatus(userId, postId, likeButton)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to get like status
+    fun getLikeStatus (whoLike: String, postId: String, likeButton: CheckBox) {
+        // Create the check like status service
+        val checkHBTGramListStatusService: CheckHBTGramPostLikeStatusService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            CheckHBTGramPostLikeStatusService::class.java)
+
+        // The call object which will then be used to perform the API call
+        val call: Call<Any> = checkHBTGramListStatusService.checkHBTGramPostLikeStatus(whoLike, postId)
+
+        // Perform the API call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                // Report the error if something is not right
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is null, it means that comment can't be posted
+                if (response.body() == null) {
+                    // Show the error
+                    Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get like status from body of the response
+                    val likeStatus = responseBody["status"] as String
+
+                    // If like status is "Done. User has liked post", the user has liked the post and set like button to be the red heart
+                    // Otherwise, let it be the blank heart
+                    likeButton.isChecked = likeStatus == "Done. User has liked post"
+                }
+            }
+        })
+    }
+    //*********************************** END CHECK LIKE STATUS SEQUENCE ***********************************
 
     // The function to take user to the activity where the user can see post detail
     fun gotoPostDetail (postObject: HBTGramPost) {

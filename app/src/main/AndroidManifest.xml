@@ -16,7 +16,9 @@
         android:roundIcon="@drawable/hbtgram1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.SeeFriendsLocation"></activity>
+        <activity android:name=".View.Adapters.UserShow"></activity>
+        <activity android:name=".View.HBTGramPostDetailCommentSendImage" />
+        <activity android:name=".View.SeeFriendsLocation" />
         <activity android:name=".View.UpdateLocation" />
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
@@ -29,7 +31,6 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
-
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
