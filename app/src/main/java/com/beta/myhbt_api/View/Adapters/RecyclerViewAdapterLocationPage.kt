@@ -60,26 +60,28 @@ class RecyclerViewAdapterLocationPage (locationPageOptions: ArrayList<String>, l
 
         // Base on view type to return the right view holder
         // View type 0 is for the header
-        return if (viewType == 0) {
-            view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.location_page_header, parent, false)
+        return when (viewType) {
+            0 -> {
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.location_page_header, parent, false)
 
-            // Return the view holder
-            ViewHolderLocationPageHeader(view)
-        } // View type 1 is for the options
-        else if (viewType == 1) {
-            view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.location_page_options, parent, false)
+                // Return the view holder
+                ViewHolderLocationPageHeader(view)
+            } // View type 1 is for the options
+            1 -> {
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.location_page_options, parent, false)
 
-            // Return the view holder
-            ViewHolderOptionRow(view)
-        } // View type 2 is for the footer
-        else {
-            view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.location_page_footer, parent, false)
+                // Return the view holder
+                ViewHolderOptionRow(view)
+            } // View type 2 is for the footer
+            else -> {
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.location_page_footer, parent, false)
 
-            // Return the view holder
-            ViewHolderLocationPageFooter(view)
+                // Return the view holder
+                ViewHolderLocationPageFooter(view)
+            }
         }
     }
 

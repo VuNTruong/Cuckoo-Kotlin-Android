@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.*
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.HBTGramPost
@@ -89,6 +90,22 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             // Load other info
             dateCreated.text = postObject.getDateCreated()
             postContent.text = postObject.getContent()
+        }
+    }
+
+    // ViewHolder for the load more post row
+    inner class ViewHolderHBTGramLoadMorePost internal constructor(itemView: View) :
+        RecyclerView.ViewHolder(itemView) {
+        // Component from the layout
+        private val loadMorePostLayout: ConstraintLayout = itemView.findViewById(R.id.loadMorePostLayout)
+
+        // The function to set up the load more posts row
+        fun setUpLoadMorePostRow () {
+            // Set on click listener for the load more post layout
+            loadMorePostLayout.setOnClickListener {
+                // Call the function in the fragment to load more posts
+                hbtGram.loadMorePost()
+            }
         }
     }
 
@@ -536,10 +553,23 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         // The view object
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_item, parent, false)
+        val view: View
 
-        // Return the ViewHolder
-        return ViewHolderHBTGramPost(view)
+        // If view type is 0, show the post
+        return if (viewType == 0) {
+            view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.hbt_gram_post_item, parent, false)
+
+            // Return the ViewHolder
+            ViewHolderHBTGramPost(view)
+        } // If it is 1, show the load more row
+        else {
+            view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.hbt_gram_post_item_load_more, parent, false)
+
+            // Return the ViewHolder
+            ViewHolderHBTGramLoadMorePost(view)
+        }
     }
 
     override fun getItemCount(): Int {
@@ -548,17 +578,37 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        // In order to prevent us from encountering the class cast exception, we need to do the following
-        // Create the GSON object
-        val gs = Gson()
+        // From first row to number of elements in the array of post, show the post
+        if (position in 0 until hbtGramPostObjects.size - 1) {
+            // In order to prevent us from encountering the class cast exception, we need to do the following
+            // Create the GSON object
+            val gs = Gson()
 
-        // Convert the hbtGramPostObjects[position] object which is currently a linked tree map into a JSON string
-        val js = gs.toJson(hbtGramPostObjects[position])
+            // Convert the hbtGramPostObjects[position] object which is currently a linked tree map into a JSON string
+            val js = gs.toJson(hbtGramPostObjects[position])
 
-        // Convert the JSOn string back into HBTGramPost class
-        val hbtGramPostModel = gs.fromJson<HBTGramPost>(js, HBTGramPost::class.java)
+            // Convert the JSOn string back into HBTGramPost class
+            val hbtGramPostModel = gs.fromJson<HBTGramPost>(js, HBTGramPost::class.java)
 
-        // Call the function to set up the post
-        (holder as ViewHolderHBTGramPost).setUpPostInfo(hbtGramPostModel)
+            // Call the function to set up the post
+            (holder as ViewHolderHBTGramPost).setUpPostInfo(hbtGramPostModel)
+        } // Last row will show the load more button
+        else {
+            // Call the function to set up the load more button
+            (holder as ViewHolderHBTGramLoadMorePost).setUpLoadMorePostRow()
+        }
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return when (position) {
+            in 0 until hbtGramPostObjects.size - 1 -> {
+                // From first row to number of elements in the array of post, show the post
+                0
+            }
+            else -> {
+                // Last row will show the load more button
+                1
+            }
+        }
     }
 }

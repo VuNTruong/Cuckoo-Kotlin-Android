@@ -18,7 +18,6 @@ import kotlinx.android.synthetic.main.activity_update_avatar.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import kotlin.math.floor
 
 class UpdateAvatar : AppCompatActivity() {
     // Image Uri of the selected image

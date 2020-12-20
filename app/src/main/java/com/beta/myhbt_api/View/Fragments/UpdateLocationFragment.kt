@@ -34,27 +34,6 @@ class UpdateLocationFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        /*
-        // Handle on click listener for the update location button
-        shareYourLocationButton.setOnClickListener{
-            // Go to the activity where the user can update location
-            val intent = Intent(this.requireActivity(), UpdateLocation::class.java)
-
-            // Start the update location activity
-            this.requireActivity().startActivity(intent)
-        }
-
-        // Handle on click listener for the see friends location button
-        seeFriendsLocationButton.setOnClickListener {
-            // Go to the activity where the user can see friends location
-            val intent = Intent(this.requireActivity(), SeeFriendsLocation::class.java)
-
-            // Start the see friends location activity
-            this.requireActivity().startActivity(intent)
-        }
-
-         */
-
         // Instantiate the recycler view
         locationPageOptionView.layoutManager = LinearLayoutManager(this.requireActivity())
         locationPageOptionView.itemAnimator = DefaultItemAnimator()
