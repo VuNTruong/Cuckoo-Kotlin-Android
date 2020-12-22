@@ -139,7 +139,7 @@ class DashboardFragment : Fragment() {
 
                     // Get data from the response body (order in collection of the latest post)
                     // We also add 1 to it so that latest post maybe included as well (if it is for the user)
-                    val latestPostOrderInCollection = (responseBody["data"] as Double).toInt() + 1
+                    val latestPostOrderInCollection = (responseBody["data"] as Double).toInt()
 
                     // Call the function to get posts for user
                     getAllPost(userIdOfCurrentUser, latestPostOrderInCollection)
@@ -180,7 +180,7 @@ class DashboardFragment : Fragment() {
 
                     // Update new current location in list (location in list for next load)
                     // If order in collection to load next series of post is null, let it be 0
-                    locationInListForNextLoad = newCurrentLocationInList + 1
+                    locationInListForNextLoad = newCurrentLocationInList
 
                     // Update the array list of posts
                     hbtGramPosts = hbtGramPostsArray
@@ -238,7 +238,7 @@ class DashboardFragment : Fragment() {
                     val newCurrentLocationInList = (((responseBody["data"] as Map<String, Any>)["newCurrentLocationInList"]) as Double).toInt()
 
                     // Update new current location in list (location in list for next load)
-                    locationInListForNextLoad = newCurrentLocationInList + 1
+                    locationInListForNextLoad = newCurrentLocationInList
 
                     // Update the array list of posts
                     hbtGramPosts.addAll(hbtGramPostsArray)

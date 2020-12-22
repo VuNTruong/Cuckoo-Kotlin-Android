@@ -1,4 +1,4 @@
-package com.beta.myhbt_api.View.Adapters
+package com.beta.myhbt_api.View
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterUserShow
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_user_show.*
 import retrofit2.Call
@@ -47,7 +48,10 @@ class UserShow : AppCompatActivity() {
         userShowView.itemAnimator = DefaultItemAnimator()
 
         // Update the adapter
-        adapter = RecyclerViewAdapterUserShow(arrayOfUsers, this)
+        adapter = RecyclerViewAdapterUserShow(
+            arrayOfUsers,
+            this
+        )
 
         // Add adapter to the recycler view
         userShowView.adapter = adapter

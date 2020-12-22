@@ -153,6 +153,13 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                 ).commit()
                 supportActionBar!!.title = "Locations"
             }
+            R.id.nav_user_stats -> {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    UserStatsFragment()
+                ).commit()
+                supportActionBar!!.title = "Activity summary"
+            }
             R.id.nav_signout -> {
                 // Execute the AsyncTask to sign the user out
                 SignOutTask().execute()

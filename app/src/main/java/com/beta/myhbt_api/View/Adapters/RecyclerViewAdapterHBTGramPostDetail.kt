@@ -2,7 +2,6 @@ package com.beta.myhbt_api.View.Adapters
 
 import android.app.Activity
 import android.content.Intent
-import android.os.AsyncTask
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,9 +15,9 @@ import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.Model.HBTGramPostComment
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.View.UserShow
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
-import org.jetbrains.anko.find
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

@@ -227,8 +227,6 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -482,8 +480,6 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -539,6 +535,7 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
     }
     //*********************************** END CHECK LIKE STATUS SEQUENCE ***********************************
 
+    //*********************************** END UPDATE USER LIKE INTERACTION STATUS SEQUENCE ***********************************
     // The function to take user to the activity where the user can see post detail
     fun gotoPostDetail (postObject: HBTGramPost) {
         // Create the intent object
@@ -574,12 +571,13 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
 
     override fun getItemCount(): Int {
         // Return the number posts
-        return hbtGramPostObjects.size
+        // Also add 1 because there is a load more button at the end
+        return hbtGramPostObjects.size + 1
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         // From first row to number of elements in the array of post, show the post
-        if (position in 0 until hbtGramPostObjects.size - 1) {
+        if (position in 0 until hbtGramPostObjects.size) {
             // In order to prevent us from encountering the class cast exception, we need to do the following
             // Create the GSON object
             val gs = Gson()
@@ -601,7 +599,7 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
 
     override fun getItemViewType(position: Int): Int {
         return when (position) {
-            in 0 until hbtGramPostObjects.size - 1 -> {
+            in 0 until hbtGramPostObjects.size -> {
                 // From first row to number of elements in the array of post, show the post
                 0
             }

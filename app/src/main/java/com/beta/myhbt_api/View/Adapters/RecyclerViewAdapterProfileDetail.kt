@@ -16,9 +16,9 @@ import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Chat
-import com.beta.myhbt_api.View.Fragments.SearchFriendFragment
 import com.beta.myhbt_api.View.HBTGramPostDetail
 import com.beta.myhbt_api.View.MainMenu
+import com.beta.myhbt_api.View.UserShow
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import retrofit2.Call

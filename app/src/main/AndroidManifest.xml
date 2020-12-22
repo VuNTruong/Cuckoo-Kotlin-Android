@@ -16,7 +16,7 @@
         android:roundIcon="@drawable/hbtgram1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.Adapters.UserShow" />
+        <activity android:name=".View.UserShow" />
         <activity android:name=".View.HBTGramPostDetailCommentSendImage" />
         <activity android:name=".View.SeeFriendsLocation" />
         <activity android:name=".View.UpdateLocation" />

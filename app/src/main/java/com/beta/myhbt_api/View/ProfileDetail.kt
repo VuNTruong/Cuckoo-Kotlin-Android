@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.GetPhotosOfUserService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Controller.UpdateUserProfileVisitService
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
@@ -20,6 +21,9 @@ import java.lang.reflect.Array
 class ProfileDetail : AppCompatActivity() {
     // Adapter for the RecyclerView
     private lateinit var adapter: RecyclerViewAdapterProfileDetail
+
+    // User id of the currently logged in user
+    private lateinit var currentUserId: String
 
     // User object of the user
     private var userObject = User("", "", "", "", "", "", "", "","", "", "", "", "", "", "")
@@ -72,6 +76,12 @@ class ProfileDetail : AppCompatActivity() {
                     // Get user id in the database of the currently logged in user
                     val userId = data["_id"] as String
 
+                    // Update current user id property of this activity
+                    currentUserId = userId
+
+                    // Call the function to update user profile visit
+                    updateUserProfileVisit()
+
                     // Check to see if user object at this activity is the current user or not, then call
                     // the function to set up rest of the view
                     if (userId == userObject.getId()) {
@@ -106,8 +116,6 @@ class ProfileDetail : AppCompatActivity() {
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -128,6 +136,45 @@ class ProfileDetail : AppCompatActivity() {
             }
         })
     }
-
     //******************************************* END LOAD INFO OF USER SEQUENCE *******************************************
+
+    //******************************************* UPDATE PROFILE VISIT SEQUENCE *******************************************
+    /*
+    In this sequence, we will check and see if user shown at this activity is the currently logged in user or not
+    If not, update number of time profile is visited by the currently logged in user
+    If it is, don't update anything
+     */
+
+    // The function to update user profile visit
+    private fun updateUserProfileVisit () {
+        // Check to see if user shown at this activity is the currently logged in user or not
+        if (currentUserId == userObject.getId()) {
+            // If it is, don't update anything
+            return
+        }
+
+        // Create the update user profile visit service
+        val updateUserProfileVisitService: UpdateUserProfileVisitService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            UpdateUserProfileVisitService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = updateUserProfileVisitService.updateProfileVisit(currentUserId, userObject.getId())
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    print("Done")
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+    //******************************************* END UPDATE PROFILE VISIT SEQUENCE *******************************************
 }
