@@ -32,7 +32,7 @@
             android:layout_weight="1"
             android:paddingEnd="5dp"
             android:scaleType="centerCrop"
-            app:srcCompat="@color/color1" />
+            app:srcCompat="@color/design_default_color_background" />
 
         <ImageView
             android:id="@+id/image3ProfileDetail"

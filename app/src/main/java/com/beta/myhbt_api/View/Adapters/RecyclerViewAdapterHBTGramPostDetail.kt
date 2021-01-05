@@ -14,7 +14,10 @@ import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.Model.HBTGramPostComment
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
+import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.View.HBTGramPostDetail
+import com.beta.myhbt_api.View.ProfileDetail
 import com.beta.myhbt_api.View.UserShow
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
@@ -23,12 +26,12 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfImages: ArrayList<HBTGramPostPhoto>, numOfComments: Int, numOfLikes: Int,
-                                           arrayOfComments: ArrayList<HBTGramPostComment>, activity: Activity) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+                                           arrayOfComments: ArrayList<HBTGramPostComment>, hbtGramPostDetail: HBTGramPostDetail) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // The selected HBTGram post object
     private val hbtGramPost = hbtGramPost
 
     // Activity of the parent activity
-    private val activity = activity
+    private val hbtGramPostDetailActivity = hbtGramPostDetail
 
     // Array of images of the post
     private val arrayOfImages = arrayOfImages
@@ -59,6 +62,18 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
 
             // Load date created into the TextView
             dateCreated.text = hbtGramPost.getDateCreated()
+
+            // Set on click listener for the full name text view and avatar image view
+            // of the post writer so that it will take user to the activity where the user
+            // can see profile detail of the post writer
+            postWriterAvatar.setOnClickListener{
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPost.getWriter())
+            }
+            postWriterFullName.setOnClickListener {
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPost.getWriter())
+            }
         }
     }
 
@@ -84,7 +99,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
         // The function to set up post photo
         fun setUpPostPhoto (imageURL: String) {
             // Load that image into the ImageView
-            Glide.with(activity)
+            Glide.with(hbtGramPostDetailActivity)
                 .load(imageURL)
                 .into(postPhoto)
         }
@@ -114,7 +129,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
             numOfLikesTextView.setOnClickListener {
                 // Take user to the activity where the user can see list of users who liked the post
                 // The intent object
-                val intent = Intent(activity, UserShow::class.java)
+                val intent = Intent(hbtGramPostDetailActivity, UserShow::class.java)
 
                 // Set post id to that activity and tell it to show list of likes of the post
                 intent.putExtra("whatToDo", "getListOfLikes")
@@ -122,7 +137,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
                 intent.putExtra("userId", "")
 
                 // Start the activity
-                activity.startActivity(intent)
+                hbtGramPostDetailActivity.startActivity(intent)
             }
 
             // Load number of comments and likes into text view
@@ -146,6 +161,18 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
 
             // Load content of the comment into the TextView
             commentContent.text = hbtGramPostComment.getCommentContent()
+
+            // Set on click listener for the full name text view and avatar image view of the post writer
+            // so that it will take user to the activity where the user can see profile detail of the comment
+            // writer
+            writerAvatar.setOnClickListener {
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPostComment.getCommentWriter())
+            }
+            writerFullName.setOnClickListener {
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPostComment.getCommentWriter())
+            }
         }
     }
 
@@ -164,6 +191,18 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
 
             // Call the function to get photo of the comment
             getPhotoOfComment(hbtGramPostComment.getIdComment(), commentPhoto)
+
+            // Set on click listener for the full name text view and avatar image view of the post writer
+            // so that it will take user to the activity where the user can see profile detail of the comment
+            // writer
+            writerAvatar.setOnClickListener {
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPostComment.getCommentWriter())
+            }
+            writerFullName.setOnClickListener {
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPostComment.getCommentWriter())
+            }
         }
     }
 
@@ -179,7 +218,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
     // The function to get user info based on user id
     fun getUserInfo (userId: String, fullNameTextView: TextView, avatarImageView: ImageView) {
         // Create the get user info based on id service
-        val getUserInfoBasedOnIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetUserInfoBasedOnIdService::class.java)
+        val getUserInfoBasedOnIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(hbtGramPostDetailActivity)!!.create(GetUserInfoBasedOnIdService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getUserInfoBasedOnIdService.getUserInfoBasedOnId(userId)
@@ -193,8 +232,6 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -214,7 +251,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
                     fullNameTextView.text = userFullName
 
                     // Load avatar into the image view
-                    Glide.with(activity)
+                    Glide.with(hbtGramPostDetailActivity)
                         .load(avatarURL)
                         .into(avatarImageView)
                 } else {
@@ -229,7 +266,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
     // The function to get photo of the comment based on comment id
     fun getPhotoOfComment (commentId: String, commentPhotoImageView: ImageView) {
         // Create the get photo of comment service
-        val getHBTGramPostCommentPhotoService: GetHBTGramPostCommentPhotoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetHBTGramPostCommentPhotoService::class.java)
+        val getHBTGramPostCommentPhotoService: GetHBTGramPostCommentPhotoService = RetrofitClientInstance.getRetrofitInstance(hbtGramPostDetailActivity)!!.create(GetHBTGramPostCommentPhotoService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getHBTGramPostCommentPhotoService.getPostCommentPhoto(commentId)
@@ -258,7 +295,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
                     val commentPhotoImageURL = photoInfo["imageURL"] as String
 
                     // Load photo of comment into the image view
-                    Glide.with(activity)
+                    Glide.with(hbtGramPostDetailActivity)
                         .load(commentPhotoImageURL)
                         .into(commentPhotoImageView)
                 } else {
@@ -273,7 +310,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
     // The function which will get info of the current user and create new like based on that info
     fun getUserInfoAndCreateNewLike (postId: String) {
         // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(hbtGramPostDetailActivity)!!.create(
             GetCurrentlyLoggedInUserInfoService::class.java)
 
         // Create the call object in order to perform the call
@@ -288,8 +325,6 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -309,13 +344,17 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
     }
 
     // The function to create new like based on the specified user id (in this case, it gonna be id of the current user)
-    fun createNewLike (likerEmail: String, postId: String) {
+    fun createNewLike (likerId: String, postId: String) {
+        // In order to prevent us from encountering the class cast exception, we need to do the following
+        // Create the GSON object
+        val gs = Gson()
+
         // Create the add like service
-        val addLikeService: CreateNewHBTGramPostLikeService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+        val addLikeService: CreateNewHBTGramPostLikeService = RetrofitClientInstance.getRetrofitInstance(hbtGramPostDetailActivity)!!.create(
             CreateNewHBTGramPostLikeService::class.java)
 
         // The call object which will then be used to perform the API call
-        val call: Call<Any> = addLikeService.createNewHBTGramPostLike(likerEmail, postId)
+        val call: Call<Any> = addLikeService.createNewHBTGramPostLike(likerId, postId)
 
         // Perform the API call
         call.enqueue(object: Callback<Any> {
@@ -327,6 +366,15 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // Reload number of likes
                 this@RecyclerViewAdapterHBTGramPostDetail.notifyDataSetChanged()
+
+                // Convert photo object which is currently a linked tree map into a JSON string
+                val jsPhoto = gs.toJson(arrayOfImages[0])
+
+                // Convert the JSOn string back into PostPhoto class
+                val photoObject = gs.fromJson<HBTGramPostPhoto>(jsPhoto, HBTGramPostPhoto::class.java)
+
+                // Call the function to send notification
+                hbtGramPostDetailActivity.createNotification("liked", hbtGramPost.getWriter(), likerId, photoObject.getImageURL(), hbtGramPost.getId())
             }
         })
     }
@@ -342,7 +390,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
     // The function to get info of the current user
     fun getUserInfoAndGetLikeStatus (postId: String, likeButton: CheckBox) {
         // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(hbtGramPostDetailActivity)!!.create(
             GetCurrentlyLoggedInUserInfoService::class.java)
 
         // Create the call object in order to perform the call
@@ -357,8 +405,6 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -380,7 +426,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
     // The function to get like status
     fun getLikeStatus (whoLike: String, postId: String, likeButton: CheckBox) {
         // Create the check like status service
-        val checkHBTGramListStatusService: CheckHBTGramPostLikeStatusService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+        val checkHBTGramListStatusService: CheckHBTGramPostLikeStatusService = RetrofitClientInstance.getRetrofitInstance(hbtGramPostDetailActivity)!!.create(
             CheckHBTGramPostLikeStatusService::class.java)
 
         // The call object which will then be used to perform the API call
@@ -397,7 +443,7 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
                 // If the response body is null, it means that comment can't be posted
                 if (response.body() == null) {
                     // Show the error
-                    Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(hbtGramPostDetailActivity, "Something is not right", Toast.LENGTH_SHORT).show()
                 } else {
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
@@ -413,6 +459,65 @@ class RecyclerViewAdapterHBTGramPostDetail (hbtGramPost: HBTGramPost, arrayOfIma
         })
     }
     //*********************************** END CHECK LIKE STATUS SEQUENCE ***********************************
+
+    //******************************** GET INFO OF USER BASED ON ID AND GO TO PROFILE DETAIL SEQUENCE ********************************
+    // The function to get user info based on id
+    fun getUserInfoBasedOnIdAndGotoProfileDetail(userId: String) {
+        // In order to prevent us from encountering the class cast exception, we need to do the following
+        // Create the GSON object
+        val gs = Gson()
+
+        // Create the get user info service
+        val getUserInfoService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(hbtGramPostDetailActivity)!!.create(
+            GetUserInfoBasedOnIdService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getUserInfoService.getUserInfoBasedOnId(userId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is data
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get obtain user data from that
+                    val data = (((responseBody["data"] as Map<String, Any>)["documents"]) as List<Map<String, Any>>)[0]
+
+                    // Convert user object which is currently a linked tree map into a JSON string
+                    val jsUser = gs.toJson(data)
+
+                    // Convert the JSOn string back into User class
+                    val userObject = gs.fromJson<User>(jsUser, User::class.java)
+
+                    // Call the function to take user to the activity where user can see profile detail of the user
+                    gotoProfileDetail(userObject)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to take user to the activity where the user can see profile detail of user with specified id
+    fun gotoProfileDetail (userObject: User) {
+        // The intent object
+        val intent = Intent(hbtGramPostDetailActivity, ProfileDetail::class.java)
+
+        // Update user object property of the profile detail activity
+        intent.putExtra("selectedUserObject", userObject)
+
+        // Start the activity
+        hbtGramPostDetailActivity.startActivity(intent)
+    }
+    //******************************** END GET INFO OF USER BASED ON ID AND GO TO PROFILE DETAIL SEQUENCE ********************************
+
+
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         // The view object

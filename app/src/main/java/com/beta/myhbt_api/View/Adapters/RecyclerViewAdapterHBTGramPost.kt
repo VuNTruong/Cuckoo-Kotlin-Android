@@ -11,17 +11,21 @@ import android.widget.*
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Interfaces.LoadMorePostsInterface
+import com.beta.myhbt_api.Interfaces.PostShowingInterface
 import com.beta.myhbt_api.Model.HBTGramPost
+import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Fragments.DashboardFragment
 import com.beta.myhbt_api.View.HBTGramPostDetail
+import com.beta.myhbt_api.View.ProfileDetail
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>, activity: Activity, hbtGram: DashboardFragment) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>, activity: Activity, postsInterface: PostShowingInterface) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Array of HBTGram posts
     private val hbtGramPostObjects = hbtGramPostObjects
 
@@ -29,7 +33,7 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
     private val activity = activity
 
     // The parent activity
-    private val hbtGram = hbtGram
+    private val postsInterface = postsInterface
 
     // ViewHolder for the post item
     inner class ViewHolderHBTGramPost internal constructor(itemView: View) :
@@ -47,6 +51,9 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
         private val userAvatar: ImageView = itemView.findViewById(R.id.userAvatar)
         private val commentToPostContent: EditText = itemView.findViewById(R.id.commentToPostContent)
         private var postCommentButton: ImageView = itemView.findViewById(R.id.postCommentButton)
+
+        // Photo URL of the first photo
+        private var firstPhotoURL: String = ""
 
         // The function to set up post info
         fun setUpPostInfo (postObject: HBTGramPost) {
@@ -78,13 +85,25 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             // Set on click listener for the like button
             likeButton.setOnClickListener {
                 // Call the function to create new like for the post which is liked by the current user
-                getUserInfoAndCreateNewLike(postObject.getId())
+                getUserInfoAndCreateNewLike(postObject.getId(), postObject.getWriter())
             }
 
             // Set on click listener for the post comment button
             postCommentButton.setOnClickListener {
                 // Call the function to get info of the current user and create new comment of that user
                 getUserInfoAndCreateComment(commentToPostContent, postObject.getId())
+            }
+
+            // Set on click listener for the user full name text view and avatar image view
+            // so that it will take user to the activity where the user can see profile detail
+            // of the post writer
+            writerFullName.setOnClickListener {
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(postObject.getWriter())
+            }
+            postWriterAvatar.setOnClickListener{
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(postObject.getWriter())
             }
 
             // Load other info
@@ -104,7 +123,7 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             // Set on click listener for the load more post layout
             loadMorePostLayout.setOnClickListener {
                 // Call the function in the fragment to load more posts
-                hbtGram.loadMorePost()
+                postsInterface.loadMorePosts()
             }
         }
     }
@@ -127,8 +146,6 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -177,8 +194,6 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -322,7 +337,7 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
 
     //*********************************** CREATE NEW LIKE SEQUENCE ***********************************
     // The function which will get info of the current user and create new like based on that info
-    fun getUserInfoAndCreateNewLike (postId: String) {
+    fun getUserInfoAndCreateNewLike (postId: String, likeReceiverId: String) {
         // Create the get current user info service
         val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
             GetCurrentlyLoggedInUserInfoService::class.java)
@@ -351,7 +366,7 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
                     val userId = data["_id"] as String
 
                     // Call the function to add new like based on user id of the current user
-                    createNewLike(userId, postId)
+                    createNewLike(userId, postId, likeReceiverId)
                 } else {
                     print("Something is not right")
                 }
@@ -360,13 +375,13 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
     }
 
     // The function to create new like based on the specified user id (in this case, it gonna be id of the current user)
-    fun createNewLike (likerEmail: String, postId: String) {
+    fun createNewLike (likerId: String, likeReceiverId: String, postId: String) {
         // Create the add like service
         val addLikeService: CreateNewHBTGramPostLikeService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
             CreateNewHBTGramPostLikeService::class.java)
 
         // The call object which will then be used to perform the API call
-        val call: Call<Any> = addLikeService.createNewHBTGramPostLike(likerEmail, postId)
+        val call: Call<Any> = addLikeService.createNewHBTGramPostLike(likerId, postId)
 
         // Perform the API call
         call.enqueue(object: Callback<Any> {
@@ -378,6 +393,9 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // Reload number of likes
                 this@RecyclerViewAdapterHBTGramPost.notifyDataSetChanged()
+
+                // Call the function to send notification
+                postsInterface.createNotification("liked", likeReceiverId, likerId, "", postId)
             }
         })
     }
@@ -446,9 +464,6 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
                 } else {
                     // Empty content of the EditText
                     commentContentToPostEditText.setText("")
-
-                    // Reload the RecyclerView
-                    hbtGram.reloadRecyclerView()
                 }
             }
         })
@@ -535,7 +550,63 @@ class RecyclerViewAdapterHBTGramPost (hbtGramPostObjects: ArrayList<HBTGramPost>
     }
     //*********************************** END CHECK LIKE STATUS SEQUENCE ***********************************
 
-    //*********************************** END UPDATE USER LIKE INTERACTION STATUS SEQUENCE ***********************************
+    //******************************** GET INFO OF USER BASED ON ID AND GO TO PROFILE DETAIL SEQUENCE ********************************
+    // The function to get user info based on id
+    fun getUserInfoBasedOnIdAndGotoProfileDetail(userId: String) {
+        // In order to prevent us from encountering the class cast exception, we need to do the following
+        // Create the GSON object
+        val gs = Gson()
+
+        // Create the get user info service
+        val getUserInfoService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetUserInfoBasedOnIdService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getUserInfoService.getUserInfoBasedOnId(userId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is data
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get obtain user data from that
+                    val data = (((responseBody["data"] as Map<String, Any>)["documents"]) as List<Map<String, Any>>)[0]
+
+                    // Convert user object which is currently a linked tree map into a JSON string
+                    val jsUser = gs.toJson(data)
+
+                    // Convert the JSOn string back into User class
+                    val userObject = gs.fromJson<User>(jsUser, User::class.java)
+
+                    // Call the function to take user to the activity where user can see profile detail of the user
+                    gotoProfileDetail(userObject)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to take user to the activity where the user can see profile detail of user with specified id
+    fun gotoProfileDetail (userObject: User) {
+        // The intent object
+        val intent = Intent(activity, ProfileDetail::class.java)
+
+        // Update user object property of the profile detail activity
+        intent.putExtra("selectedUserObject", userObject)
+
+        // Start the activity
+        activity.startActivity(intent)
+    }
+    //******************************** END GET INFO OF USER BASED ON ID AND GO TO PROFILE DETAIL SEQUENCE ********************************
+
     // The function to take user to the activity where the user can see post detail
     fun gotoPostDetail (postObject: HBTGramPost) {
         // Create the intent object

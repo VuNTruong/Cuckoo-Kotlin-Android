@@ -57,6 +57,9 @@ class LoginActivity : AppCompatActivity() {
                     // Go to the mail page activity
                     val intent = Intent(applicationContext, MainMenu::class.java)
                     startActivity(intent)
+
+                    // Finish this activity
+                    this@LoginActivity.finish()
                 }
             }
         })

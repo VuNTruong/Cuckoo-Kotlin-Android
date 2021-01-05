@@ -1,6 +1,8 @@
 package com.beta.myhbt_api.View.Adapters
 
 import android.app.Activity
+import android.content.Intent
+import android.view.View.OnClickListener
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,11 +12,10 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.myhbt_api.Controller.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Model.UserCommentInteraction
-import com.beta.myhbt_api.Model.UserInteraction
-import com.beta.myhbt_api.Model.UserLikeInteraction
-import com.beta.myhbt_api.Model.UserProfileVisit
+import com.beta.myhbt_api.Model.*
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.View.ProfileDetail
+import com.beta.myhbt_api.View.UserStats.UserStatsDetail
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import retrofit2.Call
@@ -59,6 +60,7 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
         private val userStatsItemAvatar : ImageView = itemView.findViewById(R.id.userStatsItemAvatar)
         private val userStatsItemContent : TextView = itemView.findViewById(R.id.userStatsItemContent)
         private val userStatsItemSubContent : TextView = itemView.findViewById(R.id.userStatsItemSubContent)
+        private val userStatsView : ConstraintLayout = itemView.findViewById(R.id.userStatsView)
 
         // The function to set up the user stats content row
         fun setUpUserStatsContentRow (userId: String, subContent: String) {
@@ -67,6 +69,13 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
 
             // Call the function to load info of user at this row
             getUserInfoBasedOnId(userId, userStatsItemContent, userStatsItemAvatar)
+
+            // Set on click listener for the user stats view which will take user to the activity where
+            // user can see profile detail of user at this row
+            userStatsView.setOnClickListener {
+                // Call the function
+                getUserInfoBasedOnIdAndGotoProfileDetail(userId)
+            }
         }
     }
 
@@ -77,11 +86,9 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
         private val userStatsLoadMoreview : ConstraintLayout = itemView.findViewById(R.id.userStatsSeeMoreView)
 
         // The function to set up the user stats see more row
-        fun setUpUserStatsSeeMoreRow () {
+        fun setUpUserStatsSeeMoreRow (onClickListener: OnClickListener) {
             // Set up on click listener
-            userStatsLoadMoreview.setOnClickListener {
-
-            }
+            userStatsLoadMoreview.setOnClickListener(onClickListener)
         }
     }
 
@@ -104,8 +111,6 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that there is data
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -133,6 +138,63 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
         })
     }
     //******************************** END LOAD INFO OF USER BASED ON ID ********************************
+
+    //******************************** GET INFO OF USER BASED ON ID AND GO TO PROFILE DETAIL SEQUENCE ********************************
+    // The function to get user info based on id
+    fun getUserInfoBasedOnIdAndGotoProfileDetail(userId: String) {
+        // In order to prevent us from encountering the class cast exception, we need to do the following
+        // Create the GSON object
+        val gs = Gson()
+
+        // Create the get user info service
+        val getUserInfoService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetUserInfoBasedOnIdService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getUserInfoService.getUserInfoBasedOnId(userId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is data
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get obtain user data from that
+                    val data = (((responseBody["data"] as Map<String, Any>)["documents"]) as List<Map<String, Any>>)[0]
+
+                    // Convert user object which is currently a linked tree map into a JSON string
+                    val jsUser = gs.toJson(data)
+
+                    // Convert the JSOn string back into User class
+                    val userObject = gs.fromJson<User>(jsUser, User::class.java)
+
+                    // Call the function to take user to the activity where user can see profile detail of the user
+                    gotoProfileDetail(userObject)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to take user to the activity where the user can see profile detail of user with specified id
+    fun gotoProfileDetail (userObject: User) {
+        // The intent object
+        val intent = Intent(activity, ProfileDetail::class.java)
+
+        // Update user object property of the profile detail activity
+        intent.putExtra("selectedUserObject", userObject)
+
+        // Start the activity
+        activity.startActivity(intent)
+    }
+    //******************************** END GET INFO OF USER BASED ON ID AND GO TO PROFILE DETAIL SEQUENCE ********************************
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         // The view object
@@ -208,7 +270,18 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
                     "${userInteractionObject.getUserInteractionFrequency()} interactions (include like, comments)")
             } // After that, show the load more row
             arrayOfUserInteraction.size + 1 -> {
-                (holder as ViewHolderUserStatsLoadMoreRow).setUpUserStatsSeeMoreRow()
+                // This load more button will take user to the activity where the user can ses
+                // list of people who like posts of the user
+                (holder as ViewHolderUserStatsLoadMoreRow).setUpUserStatsSeeMoreRow(OnClickListener {
+                    // The intent object
+                    val intent = Intent(activity, UserStatsDetail::class.java)
+
+                    // Let the next activity know that it should load list of user interactions
+                    intent.putExtra("userStatsKindToShow", "userInteraction")
+
+                    // Start the activity
+                    activity.startActivity(intent)
+                })
             }
 
             // After that, show the second category
@@ -226,7 +299,16 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
                     "${userLikeInteractionObject.getUserNumOfLikes()} likes")
             }// After that, show the load more row
             arrayOfUserInteraction.size + arrayOFUserLikeInteraction.size + 3 -> {
-                (holder as ViewHolderUserStatsLoadMoreRow).setUpUserStatsSeeMoreRow()
+                (holder as ViewHolderUserStatsLoadMoreRow).setUpUserStatsSeeMoreRow(OnClickListener {
+                    // The intent object
+                    val intent = Intent(activity, UserStatsDetail::class.java)
+
+                    // Let the next activity know that it should load list of like interaction
+                    intent.putExtra("userStatsKindToShow", "userLikeInteraction")
+
+                    // Start the activity
+                    activity.startActivity(intent)
+                })
             }
 
             // After that, show the third category
@@ -245,7 +327,16 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
                     "${userCommentInteractionObject.getUserNumOfComments()} comments")
             } // After that, show the load more row
             arrayOfUserInteraction.size + arrayOFUserLikeInteraction.size + arrayOfUserCommentInteraction.size + 5 -> {
-                (holder as ViewHolderUserStatsLoadMoreRow).setUpUserStatsSeeMoreRow()
+                (holder as ViewHolderUserStatsLoadMoreRow).setUpUserStatsSeeMoreRow(OnClickListener {
+                    // The intent object
+                    val intent = Intent(activity, UserStatsDetail::class.java)
+
+                    // Let the next activity know that it should load list of comment interaction
+                    intent.putExtra("userStatsKindToShow", "userCommentInteraction")
+
+                    // Start the activity
+                    activity.startActivity(intent)
+                })
             }
 
             // After that, show the fourth category
@@ -264,7 +355,16 @@ class RecyclerViewAdapterUserStats (arrayOfUserInteraction: ArrayList<UserIntera
                     "${userProfileVisitObject.getUserNumOfVisits()} visits")
             } // After that, show the load more row
             arrayOfUserInteraction.size + arrayOFUserLikeInteraction.size + arrayOfUserCommentInteraction.size + arrayOfUserProfileVisit.size + 7 -> {
-                (holder as ViewHolderUserStatsLoadMoreRow).setUpUserStatsSeeMoreRow()
+                (holder as ViewHolderUserStatsLoadMoreRow).setUpUserStatsSeeMoreRow(OnClickListener {
+                    // The intent object
+                    val intent = Intent(activity, UserStatsDetail::class.java)
+
+                    // Let the next activity know that it should load list of user profile visit
+                    intent.putExtra("userStatsKindToShow", "userProfileVisit")
+
+                    // Start the activity
+                    activity.startActivity(intent)
+                })
             }
         }
     }

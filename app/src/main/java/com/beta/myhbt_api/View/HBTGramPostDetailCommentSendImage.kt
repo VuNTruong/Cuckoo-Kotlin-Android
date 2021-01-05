@@ -69,8 +69,8 @@ class HBTGramPostDetailCommentSendImage : AppCompatActivity() {
         //************************ DO THINGS WITH THE SOCKET.IO ************************
         // Try connecting
         //This address is the way you can connect to localhost with AVD(Android Virtual Device)
-        mSocket = IO.socket("http://10.0.2.2:3000")
-        //mSocket = IO.socket("https://myhbt-api.herokuapp.com")
+        //mSocket = IO.socket("http://10.0.2.2:3000")
+        mSocket = IO.socket("https://myhbt-api.herokuapp.com")
         mSocket.connect()
 
         // Bring user into the chat room between this user and the selected user

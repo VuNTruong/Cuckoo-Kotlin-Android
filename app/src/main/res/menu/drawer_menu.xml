@@ -18,6 +18,14 @@
                 android:icon="@drawable/ic_settings_black_24dp"
                 android:title="Profile settings"/>
 
+            <item android:id="@+id/nav_recommend_album"
+                android:icon="@drawable/ic_person_pin_black_24dp"
+                android:title="Explore"/>
+
+            <item android:id="@+id/nav_notifications"
+                android:icon="@drawable/ic_notifications_black_24dp"
+                android:title="Notifications"/>
+
             <item android:id="@+id/nav_signout"
                 android:icon="@drawable/ic_close_black_24dp"
                 android:title="Sign out"/>
@@ -37,6 +45,18 @@
             <item android:id="@+id/nav_user_stats"
                 android:icon="@drawable/ic_featured_play_list_black_24dp"
                 android:title="Activity summary"/>
+        </menu>
+    </item>
+
+    <item android:title="What's around">
+        <menu>
+            <item android:id="@+id/nav_list_of_users_around"
+                android:icon="@drawable/ic_search_black_24dp"
+                android:title="Who's around"/>
+
+            <item android:id="@+id/nav_list_of_posts_around"
+                android:icon="@drawable/ic_search_black_24dp"
+                android:title="What's going on around"/>
         </menu>
     </item>
 

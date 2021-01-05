@@ -1,16 +1,24 @@
 package com.beta.myhbt_api.View
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.EditText
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Interfaces.CreateNotificationInterface
 import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.Model.HBTGramPostComment
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
+import com.beta.myhbt_api.Model.HBTGramPostPhotoLabel
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterHBTGramPostDetail
 import com.google.gson.Gson
@@ -22,10 +30,12 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class HBTGramPostDetail : AppCompatActivity() {
+class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
+    // User id of the current user
+    private var currentUserId = ""
+
     // These objects are used for socket.io
     private lateinit var mSocket: Socket
-    private val gson = Gson()
 
     // Adapter for the RecyclerView
     private var adapter: RecyclerViewAdapterHBTGramPostDetail?= null
@@ -39,9 +49,16 @@ class HBTGramPostDetail : AppCompatActivity() {
     // Array of comments of the post
     private var arrayOfComments = ArrayList<HBTGramPostComment>()
 
+    // In order to prevent us from encountering the class cast exception, we need to do the following
+    // Create the GSON object
+    private val gs = Gson()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hbtgram_post_detail)
+
+        // Just testing notification
+        createNotificationChannel()
 
         // Get the selected post object from previous activity
         selectedPostObject = intent.getSerializableExtra("selectedPostObject") as HBTGramPost
@@ -52,8 +69,8 @@ class HBTGramPostDetail : AppCompatActivity() {
 
         // Set up on click listener for the post comment button
         postCommentButtonPostDetail.setOnClickListener {
-            // Call the function to get info of the current user and create new comment based on it
-            getUserInfoAndCreateComment(commentContentToPostPostDetail, selectedPostObject.getId())
+            // Call the function to create new comment sent to the post by the current user
+            createNewComment(commentContentToPostPostDetail, selectedPostObject.getId())
         }
 
         // Set up on click listener for the send image as comment button
@@ -67,10 +84,15 @@ class HBTGramPostDetail : AppCompatActivity() {
 
             // Start the activity
             startActivity(intent)
+
+            createNotification()
         }
 
         // Call the function to get post detail
         getPostDetail(selectedPostObject.getId())
+
+        // Call the function to get info of the current user
+        getCurrentUserInfo()
 
         // Call the function to set up socket.io and make everything real time
         setUpSocketIO()
@@ -86,7 +108,7 @@ class HBTGramPostDetail : AppCompatActivity() {
         mSocket.connect()
 
         // Bring user into the post detail room
-        mSocket.emit("jumpInPostDetailRoom", gson.toJson(hashMapOf(
+        mSocket.emit("jumpInPostDetailRoom", gs.toJson(hashMapOf(
             "postId" to selectedPostObject.getId()
         )))
 
@@ -102,7 +124,7 @@ class HBTGramPostDetail : AppCompatActivity() {
     // The callback function to update comment when the new one is added to the post
     private var onUpdateComment = Emitter.Listener {
         // New comment object from the server
-        val commentObject: HBTGramPostComment = gson.fromJson(it[0].toString(), HBTGramPostComment::class.java)
+        val commentObject: HBTGramPostComment = gs.fromJson(it[0].toString(), HBTGramPostComment::class.java)
 
         // Since this will update the view, it MUST run on the UI thread
         runOnUiThread{
@@ -117,7 +139,7 @@ class HBTGramPostDetail : AppCompatActivity() {
     // The callback function to update comment when new one with photo is added to the post
     private var onUpdateCommentWithPhoto = Emitter.Listener {
         // New comment object from the server
-        val commentObject: HBTGramPostComment = gson.fromJson(it[0].toString(), HBTGramPostComment::class.java)
+        val commentObject: HBTGramPostComment = gs.fromJson(it[0].toString(), HBTGramPostComment::class.java)
 
         // Since this will update the view, it MUST run on the UI thread
         runOnUiThread{
@@ -131,8 +153,8 @@ class HBTGramPostDetail : AppCompatActivity() {
     //************************* END CALL BACK FUNCTIONS FOR SOCKET.IO *************************
 
     //*********************************** CREATE NEW COMMENT SEQUENCE ***********************************
-    // The function to get user id of the current user and create comment based on that
-    private fun getUserInfoAndCreateComment (commentToPostContentEditText: EditText, postId: String) {
+    // The function to get user id of the current user
+    private fun getCurrentUserInfo () {
         // Create the get current user info service
         val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
             GetCurrentlyLoggedInUserInfoService::class.java)
@@ -160,8 +182,8 @@ class HBTGramPostDetail : AppCompatActivity() {
                     // Get user id in the database of the currently logged in user
                     val userId = data["_id"] as String
 
-                    // Call the function to create new comment sent to the post by the current user
-                    createNewComment(commentToPostContentEditText, userId, postId)
+                    // Update the current user id variable of this activity
+                    currentUserId = userId
                 } else {
                     print("Something is not right")
                 }
@@ -170,13 +192,17 @@ class HBTGramPostDetail : AppCompatActivity() {
     }
 
     // The function to create new comment for the post
-    fun createNewComment (commentContentToPostEditText: EditText, commentWriterUserId: String, postId: String) {
+    private fun createNewComment (commentContentToPostEditText: EditText, postId: String) {
+        // In order to prevent us from encountering the class cast exception, we need to do the following
+        // Create the GSON object
+        val gs = Gson()
+
         // Create the create comment service
         val postCommentService: CreateNewHBTGramPostCommentService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
             CreateNewHBTGramPostCommentService::class.java)
 
         // The call object which will then be used to perform the API call
-        val call: Call<Any> = postCommentService.createNewHBTGramPostComment(commentContentToPostEditText.text.toString(), commentWriterUserId, postId)
+        val call: Call<Any> = postCommentService.createNewHBTGramPostComment(commentContentToPostEditText.text.toString(), currentUserId, postId)
 
         // Perform the API call
         call.enqueue(object: Callback<Any> {
@@ -201,15 +227,24 @@ class HBTGramPostDetail : AppCompatActivity() {
                     val newCommentId = data["_id"] as String
 
                     // Emit event to the server and let the server know that new comment has been added
-                    mSocket.emit("newComment", gson.toJson(hashMapOf(
+                    mSocket.emit("newComment", gs.toJson(hashMapOf(
                         "commentId" to newCommentId,
-                        "writer" to commentWriterUserId,
+                        "writer" to currentUserId,
                         "content" to commentContentToPostEditText.text.toString(),
                         "postId" to selectedPostObject.getId()
                     )))
 
+                    // Convert photo object which is currently a linked tree map into a JSON string
+                    val jsPhoto = gs.toJson(arrayOfImages[0])
+
+                    // Convert the JSOn string back into PostPhoto class
+                    val photoObject = gs.fromJson<HBTGramPostPhoto>(jsPhoto, HBTGramPostPhoto::class.java)
+
+                    // Call the function to create new notification for the post writer
+                    createNotification("commented", selectedPostObject.getWriter(), currentUserId, photoObject.getImageURL(), selectedPostObject.getId())
+
                     // Create new comment object based on info of the newly created comment
-                    val newCommentObject = HBTGramPostComment(commentContentToPostEditText.text.toString(), commentWriterUserId, newCommentId)
+                    val newCommentObject = HBTGramPostComment(commentContentToPostEditText.text.toString(), currentUserId, newCommentId)
 
                     // Add the newly created comment object to the array
                     arrayOfComments.add(newCommentObject)
@@ -225,6 +260,7 @@ class HBTGramPostDetail : AppCompatActivity() {
     }
     //*********************************** END CREATE NEW COMMENT SEQUENCE ***********************************
 
+    //*********************************** GET POST DETAIL SEQUENCE ***********************************
     // The function to load post info of the selected post
     private fun getPostDetail (postId: String) {
         // Create the get post detail service
@@ -265,10 +301,144 @@ class HBTGramPostDetail : AppCompatActivity() {
 
                     // Add adapter to the RecyclerView
                     hbtGramPostDetailView.adapter = adapter
+
+                    // Loop through list of photos of the post to update user photo label visit status
+                    for (i in 0 until arrayOfImages.size) {
+                        // Convert the image object which is currently a linked tree map into a JSON string
+                        val jsPhoto = gs.toJson(arrayOfImages[i])
+
+                        // Convert the JSON string back into User class
+                        val photoObject = gs.fromJson<HBTGramPostPhoto>(jsPhoto, HBTGramPostPhoto::class.java)
+
+                        // Call the function to update user photo label visit status for the current user
+                        getPhotoLabelsBasedOnIdAndUpdatePhotoLabelVisitStatus(photoObject.getPostId())
+                    }
                 } else {
                     print("Something is not right")
                 }
             }
         })
+    }
+    //*********************************** END GET POST DETAIL SEQUENCE ***********************************
+
+    //*********************************** GET AND UPDATE PHOTO LABEL VISIT ***********************************
+    // The function to get photo labels associated with photos of the post based on their photo ids
+    fun getPhotoLabelsBasedOnIdAndUpdatePhotoLabelVisitStatus (photoId: String) {
+        // Create the get photo labels service
+        val getPhotoLabelBasedOnImageIdService: GetPhotoLabelBasedOnImageIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            GetPhotoLabelBasedOnImageIdService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getPhotoLabelBasedOnImageIdService.getPhotoLabels(photoId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that the token is valid
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data of the response
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get list of photo labels from the data
+                    val imageLabels = data["documents"] as List<Map<String, Any>>
+
+                    // Loop through list of photo labels to update photo label visit status for the current user
+                    for (imageLabel in imageLabels) {
+                        // Convert the image label object which is currently a linked tree map into a JSON string
+                        val jsPhotoLabel = gs.toJson(data)
+
+                        // Convert the JSON string back into User class
+                        val photoLabelObject = gs.fromJson<HBTGramPostPhotoLabel>(jsPhotoLabel, HBTGramPostPhotoLabel::class.java)
+
+                        // Call the function to update user photo label visit status
+                        updateUserPhotoLabelVisitStatus(photoLabelObject.getImageLabel())
+                    }
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to update photo label visit status for the current user
+    fun updateUserPhotoLabelVisitStatus (imageLabel: String) {
+        // Create the update photo label visit service
+        val updateUserPhotoLabelVisitService: UpdateUserPhotoLabelVisitService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            UpdateUserPhotoLabelVisitService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = updateUserPhotoLabelVisitService.updatePhotoLabelVisit(currentUserId, imageLabel)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                print("Done")
+            }
+        })
+    }
+    //*********************************** END GET AND UPDATE PHOTO LABEL VISIT ***********************************
+
+    //******************************** CREATE NOTIFICATION SEQUENCE ********************************
+    // The function to create new notification
+    override fun createNotification (content: String, forUser: String, fromUser: String, image: String, postId: String) {
+        // Create the create notification service
+        val createNotificationService: CreateNotificationService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
+            CreateNotificationService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = createNotificationService.createNewNotification(content, forUser, fromUser, image, postId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+
+            }
+        })
+    }
+    //******************************** END CREATE NOTIFICATION SEQUENCE ********************************
+    // The function to create a notification channel
+    private fun createNotificationChannel () {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Notification"
+            val descriptionText = "Channel for the notification"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel("notification_channel", name, importance).apply {
+                description = descriptionText
+            }
+            // Register the channel with the system
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    // The function to create notification
+    private fun createNotification () {
+        val builder = NotificationCompat.Builder(this, "notification_channel")
+            .setSmallIcon(R.drawable.ic_notifications_black_24dp)
+            .setContentTitle("Title")
+            .setContentText("Notification")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        with(NotificationManagerCompat.from(this)) {
+            notify(1, builder.build())
+        }
     }
 }

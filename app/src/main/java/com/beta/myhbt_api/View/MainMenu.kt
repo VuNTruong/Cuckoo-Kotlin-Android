@@ -11,13 +11,18 @@ import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.core.view.GravityCompat
 import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Controller.LogoutPostDataService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Fragments.*
 import com.bumptech.glide.Glide
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.Gson
+import io.socket.client.IO
+import io.socket.client.Socket
 import kotlinx.android.synthetic.main.activity_main_menu.*
 import kotlinx.android.synthetic.main.nav_header.*
 import retrofit2.Call
@@ -25,8 +30,15 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+    // These objects are used for socket.io
+    private lateinit var mSocket: Socket
+    private val gson = Gson()
+
     // Instance of the FirebaseAuth
     private val mAuth = FirebaseAuth.getInstance()
+
+    // User object of the currently logged in user
+    private lateinit var currentUserObject: User
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,13 +96,25 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
     // The function to set up
     private fun setUp () {
-        // Execute the AsyncTask to load full name, email and avatar for the currently logged in user
-        GetCurrentUserInfoTask().execute(hashMapOf(
-            "fullNameTextView" to userFullNameDrawerMenu,
-            "emailTextView" to userEmailDrawerMenu,
-            "avatarImageView" to userAvatarDrawerMenu
-        ))
+        // Call the function to load info of the currently logged in user
+        getCurrentUserInfo()
     }
+
+    //************************ DO THINGS WITH THE SOCKET.IO ************************
+    // The function to set up socket.IO
+    private fun setUpSocketIO () {
+        // This address is to connect with the server
+        mSocket = IO.socket("http://10.0.2.2:3000")
+        //mSocket = IO.socket("https://myhbt-api.herokuapp.com")
+        //mSocket = IO.socket("http://localhost:3000")
+        mSocket.connect()
+
+        // Bring user into the notification room
+        mSocket.emit("jumpInNotificationRoom", gson.toJson(hashMapOf(
+            "userId" to currentUserObject.getId()
+        )))
+    }
+    //************************ END WORKING WITH SOCKET.IO ************************
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
@@ -140,11 +164,15 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                 supportActionBar!!.title = "Search friends"
             }
             R.id.nav_personal_profile_page -> {
-                supportFragmentManager.beginTransaction().replace(
-                    R.id.fragment_container,
-                    PersonalProfilePageFragment()
-                ).commit()
-                supportActionBar!!.title = "My personal profile"
+                // Go to the activity where user can see profile detail of user's own
+                // The intent object
+                val intent = Intent(this, ProfileDetail::class.java)
+
+                // Update user object property of the profile detail activity
+                intent.putExtra("selectedUserObject", currentUserObject)
+
+                // Start the activity
+                startActivity(intent)
             }
             R.id.nav_update_location -> {
                 supportFragmentManager.beginTransaction().replace(
@@ -160,9 +188,37 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                 ).commit()
                 supportActionBar!!.title = "Activity summary"
             }
+            R.id.nav_recommend_album -> {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    RecommendAlbumFragment()
+                ).commit()
+                supportActionBar!!.title = "Explore"
+            }
+            R.id.nav_list_of_users_around -> {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    SearchUserAroundFragment()
+                ).commit()
+                supportActionBar!!.title = "Who's around?"
+            }
+            R.id.nav_list_of_posts_around -> {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    PostsAroundFragment()
+                ).commit()
+                supportActionBar!!.title = "What's going on around?"
+            }
+            R.id.nav_notifications -> {
+                supportFragmentManager.beginTransaction().replace(
+                    R.id.fragment_container,
+                    NotificationFragment()
+                ).commit()
+                supportActionBar!!.title = "Notifications"
+            }
             R.id.nav_signout -> {
-                // Execute the AsyncTask to sign the user out
-                SignOutTask().execute()
+                // Call the function to sign user out
+                signOut()
             }
         }
 
@@ -170,107 +226,99 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
         return true
     }
 
-    // AsyncTask to sign the user out
-    inner class SignOutTask : AsyncTask<Void, Void, Void>() {
-        override fun doInBackground(vararg params: Void?): Void? {
-            // Create the post service
-            val postService: LogoutPostDataService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-                LogoutPostDataService::class.java)
+    // The function to sign user out
+    private fun signOut () {
+        // Create the post service
+        val postService: LogoutPostDataService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            LogoutPostDataService::class.java)
 
-            // The call object which will then be used to perform the API call
-            val call: Call<Any> = postService.logout()
+        // The call object which will then be used to perform the API call
+        val call: Call<Any> = postService.logout()
 
-            // Perform the API call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    // Report the error if something is not right
-                    print("Boom")
+        // Perform the API call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                // Report the error if something is not right
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is null, it means that the user may didn't enter the correct email or password
+                if (response.body() == null) {
+                    // Show the user that the login was not successful
+                    Toast.makeText(applicationContext, "Something is not right", Toast.LENGTH_SHORT).show()
+                } else {
+                    val memory : SharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+                    //val cookie = memory.getStringSet("PREF_COOKIE", HashSet<String>())
+
+                    // Sign the user out with FirebaseAuth
+                    mAuth.signOut()
+
+                    // Go to the mail page activity
+                    val intent = Intent(applicationContext, MainActivity::class.java)
+                    startActivity(intent)
+
+                    // Finish this activity
+                    this@MainMenu.finish()
                 }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is null, it means that the user may didn't enter the correct email or password
-                    if (response.body() == null) {
-                        // Show the user that the login was not successful
-                        Toast.makeText(applicationContext, "Something is not right", Toast.LENGTH_SHORT).show()
-                    } else {
-                        val responseBody = response.body()
-                        print(responseBody)
-
-                        val memory : SharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-                        val cookie = memory.getStringSet("PREF_COOKIE", HashSet<String>())
-                        print(cookie)
-
-                        // Sign the user out with FirebaseAuth
-                        mAuth.signOut()
-
-                        // Go to the mail page activity
-                        val intent = Intent(applicationContext, MainActivity::class.java)
-                        startActivity(intent)
-                    }
-                }
-            })
-
-            return null
-        }
+            }
+        })
     }
 
-    // AsyncTask to load full name and avatar of the currently logged in user
-    inner class GetCurrentUserInfoTask : AsyncTask<HashMap<String, Any>, Void, Void>() {
-        override fun doInBackground(vararg params: HashMap<String, Any>?): Void? {
-            // Create the validate token service
-            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-                GetCurrentlyLoggedInUserInfoService::class.java)
+    // The function to get user info based on id
+    fun getCurrentUserInfo() {
+        // In order to prevent us from encountering the class cast exception, we need to do the following
+        // Create the GSON object
+        val gs = Gson()
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+        // Create the validate token service
+        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            GetCurrentlyLoggedInUserInfoService::class.java)
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is data
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Convert user object which is currently a linked tree map into a JSON string
+                    val jsUser = gs.toJson(data)
+
+                    // Convert the JSOn string back into User class
+                    val userObject = gs.fromJson<User>(jsUser, User::class.java)
+
+                    // Load full name into the TextView
+                    userFullNameDrawerMenu.text = userObject.getFullName()
+
+                    // Load email into the TextView
+                    userEmailDrawerMenu.text = userObject.getEmail()
+
+                    // Load avatar into the ImageView
+                    Glide.with(applicationContext)
+                        .load(userObject.getAvatarURL())
+                        .into(userAvatarDrawerMenu)
+
+                    // Update current user object for this activity
+                    currentUserObject = userObject
+
+                    // Call the function to set up socket io
+                    setUpSocketIO()
+                } else {
+                    print("Something is not right")
                 }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
-                        // Body of the request
-                        val responseBody = response.body() as Map<String, Any>
-
-                        // Get data from the response body
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Get avatar URL of the user
-                        val avatarURL = data["avatarURL"] as String
-
-                        // Get email of the user
-                        val email = data["email"] as String
-
-                        // Get name of the user
-                        val firstName = data["firstName"] as String
-                        val middleName = data["middleName"] as String
-                        val lastName = data["lastName"] as String
-                        // Combine them all to get the full name
-                        val fullName = "$lastName $middleName $firstName"
-
-                        // Load full name into the TextView
-                        userFullNameDrawerMenu.text = fullName
-
-                        // Load email into the TextView
-                        userEmailDrawerMenu.text = email
-
-                        // Load avatar into the ImageView
-                        Glide.with(applicationContext)
-                            .load(avatarURL)
-                            .into(userAvatarDrawerMenu)
-                    } else {
-                        print("Something is not right")
-                    }
-                }
-            })
-
-            return null
-        }
+            }
+        })
     }
 }

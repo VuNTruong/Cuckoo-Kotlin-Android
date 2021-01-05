@@ -18,8 +18,8 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class DashboardFragment : Fragment(), PostShowingInterface {
-    // Array of HBTGram posts
+class PostsAroundFragment : Fragment(), PostShowingInterface {
+    // Array of HBTGram posts nearby
     private var hbtGramPosts = ArrayList<HBTGramPost>()
 
     // Adapter for the RecyclerView
@@ -46,11 +46,11 @@ class DashboardFragment : Fragment(), PostShowingInterface {
         hbtGramView.visibility = View.INVISIBLE
 
         // Instantiate the recycler view
-        hbtGramView.layoutManager = LinearLayoutManager(this@DashboardFragment.context)
+        hbtGramView.layoutManager = LinearLayoutManager(this@PostsAroundFragment.context)
         hbtGramView.itemAnimator = DefaultItemAnimator()
 
         // Update the adapter
-        adapter = RecyclerViewAdapterHBTGramPost(hbtGramPosts, this@DashboardFragment.requireActivity(), this@DashboardFragment)
+        adapter = RecyclerViewAdapterHBTGramPost(hbtGramPosts, this@PostsAroundFragment.requireActivity(), this@PostsAroundFragment)
 
         // Add adapter to the RecyclerView
         hbtGramView.adapter = adapter
@@ -59,14 +59,7 @@ class DashboardFragment : Fragment(), PostShowingInterface {
         getInfoOfCurrentUserAndLoadPosts()
     }
 
-    //*********************************** GET POSTS SEQUENCE ***********************************
-    /*
-    In this sequence, we will do these things
-    1. Get info of the currently logged in user
-    2. Get current location of the user (already done earlier)
-    3. Get info of the latest post in the database (to start loading)
-     */
-
+    //*************************** GET INFO OF CURRENTLY LOGGED IN USER SEQUENCE ***************************
     // The function to get info of the current user
     private fun getInfoOfCurrentUserAndLoadPosts () {
         // Create the get current user info service
@@ -114,7 +107,7 @@ class DashboardFragment : Fragment(), PostShowingInterface {
                     lastUpdatedLocation = center
                     //---------------- End get last updated location of the user ----------------
 
-                    // Call the function to get info of the latest post
+                    // Call the function to get info of the latest post and load posts around
                     getInfoOfLatestPost()
                 } else {
                     print("Something is not right")
@@ -122,11 +115,19 @@ class DashboardFragment : Fragment(), PostShowingInterface {
             }
         })
     }
+    //*************************** END GET INFO OF CURRENTLY LOGGED IN USER SEQUENCE ***************************
+
+    //*************************** GET POSTS AROUND SEQUENCE ***************************
+    /*
+    In this sequence, we will do 2 things
+    1. Get order in collection of latest post in collection
+    2. Start loading posts from that location
+     */
 
     // The function to get info of the latest post in the database
     private fun getInfoOfLatestPost () {
         // Create the get latest post service
-        val getLatestPostService: GetInfoOfLatestPostService = RetrofitClientInstance.getRetrofitInstance(this@DashboardFragment.context!!)!!.create(
+        val getLatestPostService: GetInfoOfLatestPostService = RetrofitClientInstance.getRetrofitInstance(this@PostsAroundFragment.context!!)!!.create(
             GetInfoOfLatestPostService::class.java)
 
         // Create the call object in order to perform the call
@@ -148,8 +149,11 @@ class DashboardFragment : Fragment(), PostShowingInterface {
                     // We also add 1 to it so that latest post maybe included as well (if it is for the user)
                     val latestPostOrderInCollection = (responseBody["data"] as Double).toInt()
 
-                    // Call the function to get posts for user
-                    getAllPost(userIdOfCurrentUser, latestPostOrderInCollection)
+                    // Update location to start loading
+                    locationInListForNextLoad = latestPostOrderInCollection
+
+                    // Call the function to start loading posts
+                    getPostsAround()
                 } else {
                     print("Something is not right")
                 }
@@ -157,15 +161,14 @@ class DashboardFragment : Fragment(), PostShowingInterface {
         })
     }
 
-    // The function to get all posts from the database for user
-    private fun getAllPost (userId: String, latestPostOrderInCollection: Int) {
-        // Create the get all posts service
-        val getAllPostService: GetAllHBTGramPostService = RetrofitClientInstance.getRetrofitInstance(this@DashboardFragment.context!!)!!.create(
-            GetAllHBTGramPostService::class.java)
+    // The function to start loading posts (when loading more posts, just need to call this one)
+    private fun getPostsAround () {
+        // Create the get posts around service
+        val getPostsWithinARadiusService: GetPostsWithinARadiusService = RetrofitClientInstance.getRetrofitInstance(this@PostsAroundFragment.context!!)!!.create(
+            GetPostsWithinARadiusService::class.java)
 
         // Create the call object in order to perform the call
-        val call: Call<Any> = getAllPostService.getAllPosts(userId, latestPostOrderInCollection,
-            "${lastUpdatedLocation.latitude},${lastUpdatedLocation.longitude}", 50)
+        val call: Call<Any> = getPostsWithinARadiusService.getPostsWithinARadius("${lastUpdatedLocation.latitude},${lastUpdatedLocation.longitude}", 50, locationInListForNextLoad)
 
         // Perform the call
         call.enqueue(object: Callback<Any> {
@@ -180,10 +183,10 @@ class DashboardFragment : Fragment(), PostShowingInterface {
                     val responseBody = response.body() as Map<String, Any>
 
                     // Get data from the response body (array of posts)
-                    val hbtGramPostsArray = ((responseBody["data"] as Map<String, Any>)["documents"]) as ArrayList<HBTGramPost>
+                    val hbtGramPostsArray = responseBody["data"] as ArrayList<HBTGramPost>
 
                     // Get new order in collection to load next series of posts
-                    val newCurrentLocationInList = (((responseBody["data"] as Map<String, Any>)["newCurrentLocationInList"]) as Double).toInt()
+                    val newCurrentLocationInList = (responseBody["newCurrentLocationInList"] as Double).toInt()
 
                     // Update new current location in list (location in list for next load)
                     // If order in collection to load next series of post is null, let it be 0
@@ -204,12 +207,12 @@ class DashboardFragment : Fragment(), PostShowingInterface {
             }
         })
     }
-    //*********************************** END GET POSTS SEQUENCE ***********************************
+    //*************************** END GET POSTS AROUND SEQUENCE ***************************
 
     //*********************************** IMPLEMENT ABSTRACT FUNCTION OF THE INTERFACE TO LOAD MORE POSTS ***********************************
     override fun loadMorePosts() {
         // Call the function to load more posts
-        getAllPost(userIdOfCurrentUser, locationInListForNextLoad)
+        getPostsAround()
     }
     //*********************************** END IMPLEMENT ABSTRACT FUNCTION OF THE INTERFACE TO LOAD MORE POSTS ***********************************
 
@@ -217,7 +220,8 @@ class DashboardFragment : Fragment(), PostShowingInterface {
     // The function to create new notification. It should load first photo of post first
     override fun createNotification (content: String, forUser: String, fromUser: String, image: String, postId: String) {
         // Create the get first image URL service
-        val getFirstImageURLService: GetFirstImageURLOfPostService = RetrofitClientInstance.getRetrofitInstance(this.requireActivity())!!.create(GetFirstImageURLOfPostService::class.java)
+        val getFirstImageURLService: GetFirstImageURLOfPostService = RetrofitClientInstance.getRetrofitInstance(this.requireActivity())!!.create(
+            GetFirstImageURLOfPostService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getFirstImageURLService.getFirstPhotoURL(postId)

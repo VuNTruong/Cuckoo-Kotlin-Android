@@ -40,7 +40,12 @@ class Chat : AppCompatActivity() {
     // User id of the receiver
     private var receiverUserId = ""
 
+    // User id of the currently logged in user
+    private var currentUserId = ""
+
     // Id of the chat room which contains the current user and the one messaging with
+    // if there has not been a chat room between the 2 users, the app will need to get it from the
+    // response and update it here
     private var chatRoomId = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,11 +62,15 @@ class Chat : AppCompatActivity() {
         getUserInfoBasedOnId(receiverUserId)
 
         // CALL THE FUNCTION TO DO THINGS WITH THE SOCKET.IO
-        // If there are messages between these 2 users already, chat room id won't be empty. Tt means that there are already chat room between them
+        // If there are messages between these 2 users already, chat room id won't be empty. It means that there are already chat room between them
         // and we just need to call the function to set up socket.io
+        // if the chat room id is still empty, update it again when first message is sent
         if (chatRoomId != "") {
             setUpSocketIO()
         }
+
+        // Call the function to get info of the currently logged in user (including user id)
+        getCurrentUserInfo()
 
         // Set on click listener for the send image button
         sendImageButtonChatActivity.setOnClickListener {
@@ -93,8 +102,8 @@ class Chat : AppCompatActivity() {
 
         // Set on click listener for the send message button
         sendMessageButton.setOnClickListener {
-            // Call the function to get info of the currently logged in user and send message
-            getCurrentUserInfoAndMessage()
+            // Call the function to create new message and send it to the database
+            createNewMessage(currentUserId)
         }
     }
 
@@ -135,6 +144,12 @@ class Chat : AppCompatActivity() {
         }
 
         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+            // If chat room id is still blank, don't do anything until first message is sent
+            // and chat room id is obtained
+            if (chatRoomId == "") {
+                return
+            }
+
             // Emit event which will let the server know that current user is typing so that the server will
             // let other user in the chat room know that
             mSocket.emit("isTyping", gson.toJson(hashMapOf(
@@ -237,7 +252,6 @@ class Chat : AppCompatActivity() {
     }
 
     //************************* END CALL BACK FUNCTIONS FOR SOCKET.IO *************************
-
     // The function to get info of the message receiver
     private fun getUserInfoBasedOnId (messageReceiverUserId: String) {
         // Create the get user info base on id service
@@ -282,6 +296,7 @@ class Chat : AppCompatActivity() {
         })
     }
 
+    //*********************************** GET MESSAGES SEQUENCE ***********************************
     // The function to get all messages of the chat room in which current user and the selected user are in
     private fun getAllMessages () {
         // Create the get messages service
@@ -300,8 +315,6 @@ class Chat : AppCompatActivity() {
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the response
                     val responseBody = response.body() as Map<String, Any>
 
@@ -328,10 +341,11 @@ class Chat : AppCompatActivity() {
             }
         })
     }
+    //*********************************** END GET MESSAGES SEQUENCE ***********************************
 
-    //************************* SEND MESSAGE SEQUENCE *************************
-    // The function to get info of the currently logged in user and create new message sent by the current user
-    private fun getCurrentUserInfoAndMessage() {
+    //************************* GET INFO OF CURRENTLY LOGGED IN USER SEQUENCE *************************
+    // The function to get info of the currently logged in user
+    private fun getCurrentUserInfo() {
         // Create the get current user info service
         val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
             GetCurrentlyLoggedInUserInfoService::class.java)
@@ -357,15 +371,17 @@ class Chat : AppCompatActivity() {
                     // Get user id of the currently logged in user
                     val userId = data["_id"] as String
 
-                    // Call the function to create new message and send it to the database
-                    createNewMessage(userId)
+                    // Update user id for the currently logged in user
+                    currentUserId = userId
                 } else {
                     print("Something is not right")
                 }
             }
         })
     }
+    //************************* END GET INFO OF CURRENTLY LOGGED IN USER SEQUENCE *************************
 
+    //************************* SEND MESSAGE SEQUENCE *************************
     // The function to create new message and send it to the database
     private fun createNewMessage (currentUserId: String) {
         // Create the create new messages service
@@ -397,22 +413,29 @@ class Chat : AppCompatActivity() {
                         // This is very important especially when message is sent at the first time
                         chatRoomId = data["chatRoomId"] as String
 
-                        // Call the function
+                        // Call the function to re-setup the socket.io since the chat room id is now obtained and updated
                         setUpSocketIO()
                     }
 
+                    //---------------------------- Update UI on the app side ----------------------------
                     // Create the new message object
                     val newMessageObject = Message(currentUserId, receiverUserId, messageContentToSend.text.toString(), data["_id"] as String)
 
-                    // Add new message object to the array of messages
+                    // Add new message object to the array of messages in this app
                     chatMessages.add(newMessageObject)
 
                     // Update the RecyclerView
                     messageView.adapter!!.notifyDataSetChanged()
 
                     // Call the function to scroll to the end of the message view
+                    // we may not want user to scroll every time new message is sent
                     gotoEnd()
 
+                    // Clear content of the message to send content edit text
+                    messageContentToSend.setText("")
+                    //---------------------------- End update UI on the app side ----------------------------
+
+                    //---------------------------- Update UI on the server side (socket.io) ----------------------------
                     // Emit event to the server so that the server will let the selected user know that new message has been sent
                     mSocket.emit("newMessage", gson.toJson(hashMapOf(
                         "sender" to currentUserId,
@@ -421,9 +444,6 @@ class Chat : AppCompatActivity() {
                         "messageId" to data["_id"] as String,
                         "chatRoomId" to chatRoomId
                     )))
-
-                    // Clear content of the message to send content edit text
-                    messageContentToSend.setText("")
 
                     // Emit event to the server so that the server will let other user in the chat room know that
                     // current user is done typing
@@ -434,6 +454,7 @@ class Chat : AppCompatActivity() {
                             )
                         )
                     )
+                    //---------------------------- End update UI on the server side (socket.io) ----------------------------
                 } else {
                     print("Something is not right")
                 }
@@ -441,7 +462,6 @@ class Chat : AppCompatActivity() {
         })
 
     }
-
     //************************* END SEND MESSAGE SEQUENCE *************************
 
     //************************* SUPPLEMENTAL FUNCTIONS *************************

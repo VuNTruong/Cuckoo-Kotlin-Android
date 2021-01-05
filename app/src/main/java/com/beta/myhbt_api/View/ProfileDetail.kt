@@ -4,10 +4,8 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.GetPhotosOfUserService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Controller.UpdateUserProfileVisitService
+import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Interfaces.CreateNotificationInterface
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
@@ -18,7 +16,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.lang.reflect.Array
 
-class ProfileDetail : AppCompatActivity() {
+class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
     // Adapter for the RecyclerView
     private lateinit var adapter: RecyclerViewAdapterProfileDetail
 
@@ -177,4 +175,27 @@ class ProfileDetail : AppCompatActivity() {
         })
     }
     //******************************************* END UPDATE PROFILE VISIT SEQUENCE *******************************************
+
+    //******************************** CREATE NOTIFICATION SEQUENCE ********************************
+    // The function to create new notification
+    override fun createNotification (content: String, forUser: String, fromUser: String, image: String, postId: String) {
+        // Create the create notification service
+        val createNotificationService: CreateNotificationService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
+            CreateNotificationService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = createNotificationService.createNewNotification(content, forUser, fromUser, image, postId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+
+            }
+        })
+    }
+    //******************************** END CREATE NOTIFICATION SEQUENCE ********************************
 }

@@ -15,17 +15,14 @@ import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
-import com.beta.myhbt_api.View.Chat
-import com.beta.myhbt_api.View.HBTGramPostDetail
-import com.beta.myhbt_api.View.MainMenu
-import com.beta.myhbt_api.View.UserShow
+import com.beta.myhbt_api.View.*
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhoto>, userObject: User, activity: Activity, currentUser: Boolean) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhoto>, userObject: User, activity: ProfileDetail, currentUser: Boolean) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Array of photos created by the user
     private val arrayOfPhotos = arrayOfPhotos
 
@@ -210,7 +207,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
             }
             image4ImageView.setOnClickListener {
                 // Call the function
-                getPostObjectBasedOnIdAndGotoPostDetail(image3PostId)
+                getPostObjectBasedOnIdAndGotoPostDetail(image4PostId)
             }
         }
     }
@@ -592,6 +589,9 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                 if (response.body() != null) {
                     // Change content of the follow button to "Unfollow"
                     followButton.text = "Unfollow"
+
+                    // Call the function to create new notification
+                    activity.createNotification("followed", otherUserId, currentUserId, "none", "none")
                 } else {
                     print("Something is not right")
                 }
