@@ -35,7 +35,7 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
     private var currentUserId = ""
 
     // These objects are used for socket.io
-    private lateinit var mSocket: Socket
+    //private lateinit var mSocket: Socket
 
     // Adapter for the RecyclerView
     private var adapter: RecyclerViewAdapterHBTGramPostDetail?= null
@@ -102,21 +102,16 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
     // THe function to set up socket.IO
     private fun setUpSocketIO () {
         //************************ DO THINGS WITH THE SOCKET.IO ************************
-        //This address is the way you can connect to localhost with AVD(Android Virtual Device)
-        //mSocket = IO.socket("http://10.0.2.2:3000")
-        mSocket = IO.socket("https://myhbt-api.herokuapp.com")
-        mSocket.connect()
-
         // Bring user into the post detail room
-        mSocket.emit("jumpInPostDetailRoom", gs.toJson(hashMapOf(
+        MainMenu.mSocket.emit("jumpInPostDetailRoom", gs.toJson(hashMapOf(
             "postId" to selectedPostObject.getId()
         )))
 
         // Listen to event of when new comment is added to the post
-        mSocket.on("updateComment", onUpdateComment)
+        MainMenu.mSocket.on("updateComment", onUpdateComment)
 
         // Listen to event of when new comment with photo is added to the post
-        mSocket.on("updateCommentWithPhoto", onUpdateCommentWithPhoto)
+        MainMenu.mSocket.on("updateCommentWithPhoto", onUpdateCommentWithPhoto)
         //************************ END WORKING WITH SOCKET.IO ************************v
     }
 
@@ -227,7 +222,7 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
                     val newCommentId = data["_id"] as String
 
                     // Emit event to the server and let the server know that new comment has been added
-                    mSocket.emit("newComment", gs.toJson(hashMapOf(
+                    MainMenu.mSocket.emit("newComment", gs.toJson(hashMapOf(
                         "commentId" to newCommentId,
                         "writer" to currentUserId,
                         "content" to commentContentToPostEditText.text.toString(),
@@ -432,7 +427,7 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
     // The function to create notification
     private fun createNotification () {
         val builder = NotificationCompat.Builder(this, "notification_channel")
-            .setSmallIcon(R.drawable.ic_notifications_black_24dp)
+            .setSmallIcon(R.drawable.hbtgram1)
             .setContentTitle("Title")
             .setContentText("Notification")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

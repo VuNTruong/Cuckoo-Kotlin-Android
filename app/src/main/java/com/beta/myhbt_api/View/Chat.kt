@@ -28,7 +28,7 @@ import retrofit2.Response
 
 class Chat : AppCompatActivity() {
     // These objects are used for socket.io
-    private lateinit var mSocket: Socket
+    //private lateinit var mSocket: Socket
     private val gson = Gson()
 
     // Array of chat messages
@@ -111,27 +111,26 @@ class Chat : AppCompatActivity() {
     fun setUpSocketIO () {
         //************************ DO THINGS WITH THE SOCKET.IO ************************
         //This address is the way you can connect to localhost with AVD(Android Virtual Device)
-        //mSocket = IO.socket("http://10.0.2.2:3000")
-        mSocket = IO.socket("https://myhbt-api.herokuapp.com")
-        mSocket.connect()
+        //MainMenu.mSocket = IO.socket("http://10.0.2.2:3000")
+        //mSocket = IO.socket("https://myhbt-api.herokuapp.com")
+        //mSocket.connect()
 
         // Bring user into the chat room between this user and the selected user
-        mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
+        MainMenu.mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
             "chatRoomId" to chatRoomId
         )))
 
         // Listen to event of when new message is sent
-        mSocket.on("updateMessage", onUpdateChat)
+        MainMenu.mSocket.on("updateMessage", onUpdateChat)
 
         // Listen to event of when one of the user sent photo to the server
-        mSocket.on("updateMessageWithPhoto", onUpdateMessageWithPhoto)
+        MainMenu.mSocket.on("updateMessageWithPhoto", onUpdateMessageWithPhoto)
 
         // Listen to event of when other user in the chat room is typing
-        mSocket.on("typing", onIsTyping)
+        MainMenu.mSocket.on("typing", onIsTyping)
 
         // Listen to event of when other user in the chat room is done typing
-        mSocket.on("doneTyping", onIsDoneTyping)
-
+        MainMenu.mSocket.on("doneTyping", onIsDoneTyping)
         //************************ END WORKING WITH SOCKET.IO ************************v
     }
 
@@ -152,14 +151,14 @@ class Chat : AppCompatActivity() {
 
             // Emit event which will let the server know that current user is typing so that the server will
             // let other user in the chat room know that
-            mSocket.emit("isTyping", gson.toJson(hashMapOf(
+            MainMenu.mSocket.emit("isTyping", gson.toJson(hashMapOf(
                 "chatRoomId" to chatRoomId
             )))
 
             // If content of the text field is empty, emit event to the server to so that the server will let
             // other user in the chat room know that current user is not typing
             if (messageContentToSend.text.toString() == "") {
-                mSocket.emit(
+                MainMenu.mSocket.emit(
                     "isDoneTyping", gson.toJson(
                         hashMapOf(
                             "chatRoomId" to chatRoomId
@@ -437,7 +436,7 @@ class Chat : AppCompatActivity() {
 
                     //---------------------------- Update UI on the server side (socket.io) ----------------------------
                     // Emit event to the server so that the server will let the selected user know that new message has been sent
-                    mSocket.emit("newMessage", gson.toJson(hashMapOf(
+                    MainMenu.mSocket.emit("newMessage", gson.toJson(hashMapOf(
                         "sender" to currentUserId,
                         "receiver" to receiverUserId,
                         "content" to messageContentToSend.text.toString(),
@@ -447,7 +446,7 @@ class Chat : AppCompatActivity() {
 
                     // Emit event to the server so that the server will let other user in the chat room know that
                     // current user is done typing
-                    mSocket.emit(
+                    MainMenu.mSocket.emit(
                         "isDoneTyping", gson.toJson(
                             hashMapOf(
                                 "chatRoomId" to chatRoomId
