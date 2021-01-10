@@ -31,6 +31,10 @@ class SeeFriendsLocation : AppCompatActivity(), PermissionsListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Hide the action bar
+        supportActionBar!!.hide()
+
         Mapbox.getInstance(this, getString(R.string.mapbox_access_token))
         setContentView(R.layout.activity_see_friends_location)
 

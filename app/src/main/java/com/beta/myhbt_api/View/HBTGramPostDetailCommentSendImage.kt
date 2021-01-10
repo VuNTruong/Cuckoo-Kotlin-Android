@@ -42,6 +42,9 @@ class HBTGramPostDetailCommentSendImage : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hbtgram_post_detail_comment_send_image)
 
+        // Hide the action bar
+        supportActionBar!!.hide()
+
         // Get post id of the post currently working with from the previous activity
         postId = intent.getStringExtra("postId")!!
 

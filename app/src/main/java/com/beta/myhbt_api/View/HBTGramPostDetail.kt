@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.beta.myhbt_api.BackgroundServices
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Interfaces.CreateNotificationInterface
 import com.beta.myhbt_api.Model.HBTGramPost
@@ -22,8 +23,6 @@ import com.beta.myhbt_api.Model.HBTGramPostPhotoLabel
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterHBTGramPostDetail
 import com.google.gson.Gson
-import io.socket.client.IO
-import io.socket.client.Socket
 import io.socket.emitter.Emitter
 import kotlinx.android.synthetic.main.activity_hbtgram_post_detail.*
 import retrofit2.Call
@@ -33,9 +32,6 @@ import retrofit2.Response
 class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
     // User id of the current user
     private var currentUserId = ""
-
-    // These objects are used for socket.io
-    //private lateinit var mSocket: Socket
 
     // Adapter for the RecyclerView
     private var adapter: RecyclerViewAdapterHBTGramPostDetail?= null
@@ -57,8 +53,8 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hbtgram_post_detail)
 
-        // Just testing notification
-        createNotificationChannel()
+        // Hide the action bar
+        supportActionBar!!.hide()
 
         // Get the selected post object from previous activity
         selectedPostObject = intent.getSerializableExtra("selectedPostObject") as HBTGramPost
@@ -84,8 +80,6 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
 
             // Start the activity
             startActivity(intent)
-
-            createNotification()
         }
 
         // Call the function to get post detail
@@ -103,15 +97,15 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
     private fun setUpSocketIO () {
         //************************ DO THINGS WITH THE SOCKET.IO ************************
         // Bring user into the post detail room
-        MainMenu.mSocket.emit("jumpInPostDetailRoom", gs.toJson(hashMapOf(
+        BackgroundServices.mSocket.emit("jumpInPostDetailRoom", gs.toJson(hashMapOf(
             "postId" to selectedPostObject.getId()
         )))
 
         // Listen to event of when new comment is added to the post
-        MainMenu.mSocket.on("updateComment", onUpdateComment)
+        BackgroundServices.mSocket.on("updateComment", onUpdateComment)
 
         // Listen to event of when new comment with photo is added to the post
-        MainMenu.mSocket.on("updateCommentWithPhoto", onUpdateCommentWithPhoto)
+        BackgroundServices.mSocket.on("updateCommentWithPhoto", onUpdateCommentWithPhoto)
         //************************ END WORKING WITH SOCKET.IO ************************v
     }
 
@@ -166,8 +160,6 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // If the response body is not empty it means that the token is valid
                 if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
                     // Body of the request
                     val responseBody = response.body() as Map<String, Any>
 
@@ -222,7 +214,7 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
                     val newCommentId = data["_id"] as String
 
                     // Emit event to the server and let the server know that new comment has been added
-                    MainMenu.mSocket.emit("newComment", gs.toJson(hashMapOf(
+                    BackgroundServices.mSocket.emit("newComment", gs.toJson(hashMapOf(
                         "commentId" to newCommentId,
                         "writer" to currentUserId,
                         "content" to commentContentToPostEditText.text.toString(),
@@ -406,34 +398,4 @@ class HBTGramPostDetail : AppCompatActivity(), CreateNotificationInterface {
         })
     }
     //******************************** END CREATE NOTIFICATION SEQUENCE ********************************
-    // The function to create a notification channel
-    private fun createNotificationChannel () {
-        // Create the NotificationChannel, but only on API 26+ because
-        // the NotificationChannel class is new and not in the support library
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Notification"
-            val descriptionText = "Channel for the notification"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("notification_channel", name, importance).apply {
-                description = descriptionText
-            }
-            // Register the channel with the system
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
-    // The function to create notification
-    private fun createNotification () {
-        val builder = NotificationCompat.Builder(this, "notification_channel")
-            .setSmallIcon(R.drawable.hbtgram1)
-            .setContentTitle("Title")
-            .setContentText("Notification")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-        with(NotificationManagerCompat.from(this)) {
-            notify(1, builder.build())
-        }
-    }
 }

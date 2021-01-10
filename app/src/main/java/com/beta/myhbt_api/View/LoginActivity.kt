@@ -18,9 +18,33 @@ class LoginActivity : AppCompatActivity() {
     // Instance of the FirebaseAuth
     private val mAuth = FirebaseAuth.getInstance()
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+
+        // Start the main activity again (welcome page)
+        val intent = Intent(this, MainActivity::class.java)
+        startActivity(intent)
+
+        // Finish the current activity
+        this.finish()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
+
+        // Hide the action bar
+        supportActionBar!!.hide()
+
+        // Add on click listener to the back button
+        backButtonLogin.setOnClickListener{
+            // Start the main activity again (welcome page)
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+
+            // Finish the current activity
+            this.finish()
+        }
 
         // Set up event listener for the login button
         submitLoginButton.setOnClickListener {

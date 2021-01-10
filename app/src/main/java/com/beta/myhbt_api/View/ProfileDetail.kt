@@ -4,12 +4,14 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.beta.myhbt_api.BackgroundServices
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Interfaces.CreateNotificationInterface
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterProfileDetail
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_profile_detail.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -17,6 +19,9 @@ import retrofit2.Response
 import java.lang.reflect.Array
 
 class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
+    // These objects are used for socket.io
+    private val gson = Gson()
+
     // Adapter for the RecyclerView
     private lateinit var adapter: RecyclerViewAdapterProfileDetail
 
@@ -24,7 +29,7 @@ class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
     private lateinit var currentUserId: String
 
     // User object of the user
-    private var userObject = User("", "", "", "", "", "", "", "","", "", "", "", "", "", "")
+    private var userObject = User("", "", "", "", "", "", "", "","", "", "", "", "")
 
     // Array of images
     private var arrayOfImages = ArrayList<HBTGramPostPhoto>()
@@ -32,6 +37,9 @@ class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_profile_detail)
+
+        // Hide the action bar
+        supportActionBar!!.hide()
 
         // Get selected user object from the previous activity
         userObject = intent.getSerializableExtra("selectedUserObject") as User
@@ -193,7 +201,11 @@ class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
             }
 
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
-
+                // Emit event to the server so that the server know to send notification to the user that get followed
+                BackgroundServices.mSocket.emit("newFollow", gson.toJson(hashMapOf(
+                    "follower" to fromUser,
+                    "followedUser" to forUser
+                )))
             }
         })
     }

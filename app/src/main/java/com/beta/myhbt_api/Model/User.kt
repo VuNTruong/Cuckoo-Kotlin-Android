@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
 class User (_id: String, firstName: String, middleName: String, lastName: String, email: String, phoneNumber: String, facebook: String,
-            instagram: String, twitter: String, zalo: String, role: String, classCode: String, avatarURL: String, coverURL: String, studentId: String) : Serializable{
+            instagram: String, twitter: String, zalo: String, role: String, avatarURL: String, coverURL: String) : Serializable{
     // Attribute of the user as saved in the database
     @SerializedName("_id")
     private val _id: String = _id
@@ -38,12 +38,6 @@ class User (_id: String, firstName: String, middleName: String, lastName: String
 
     @SerializedName("role")
     private val role: String = role
-
-    @SerializedName("studentId")
-    private val studentId: String = studentId
-
-    @SerializedName("classCode")
-    private val classCode: String = classCode
 
     @SerializedName("avatarURL")
     private val avatarURL: String = avatarURL
@@ -86,14 +80,6 @@ class User (_id: String, firstName: String, middleName: String, lastName: String
 
     fun getRole(): String {
         return role
-    }
-
-    fun getStudentId(): String {
-        return studentId
-    }
-
-    fun getClassCode(): String {
-        return classCode
     }
 
     fun getAvatarURL(): String {

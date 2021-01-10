@@ -25,9 +25,6 @@ class DashboardFragment : Fragment(), PostShowingInterface {
     // Adapter for the RecyclerView
     private var adapter: RecyclerViewAdapterHBTGramPost?= null
 
-    // Last updated location of the user
-    private lateinit var lastUpdatedLocation: LatLng
-
     // Location in list for next load (the variable which will keep track of from where to load next posts for the user)
     private var locationInListForNextLoad: Int = 0
 
@@ -96,23 +93,6 @@ class DashboardFragment : Fragment(), PostShowingInterface {
 
                     // Update user id property of this activity
                     userIdOfCurrentUser = userId
-                    //---------------- Get last updated location of the user ----------------
-                    // Get last updated location of the current user
-                    val locationObject = data["location"] as Map<String, Any>
-                    val coordinatesArray = locationObject["coordinates"] as ArrayList<Double>
-
-                    // Get the latitude
-                    val latitude = coordinatesArray[1]
-
-                    // Get the longitude
-                    val longitude = coordinatesArray[0]
-
-                    // Create the location object for the last updated location of the current user
-                    val center = LatLng(latitude, longitude)
-
-                    // Update the user last updated location property of this activity
-                    lastUpdatedLocation = center
-                    //---------------- End get last updated location of the user ----------------
 
                     // Call the function to get info of the latest post
                     getInfoOfLatestPost()
@@ -164,8 +144,7 @@ class DashboardFragment : Fragment(), PostShowingInterface {
             GetAllHBTGramPostService::class.java)
 
         // Create the call object in order to perform the call
-        val call: Call<Any> = getAllPostService.getAllPosts(userId, latestPostOrderInCollection,
-            "${lastUpdatedLocation.latitude},${lastUpdatedLocation.longitude}", 50)
+        val call: Call<Any> = getAllPostService.getAllPosts(userId, latestPostOrderInCollection)
 
         // Perform the call
         call.enqueue(object: Callback<Any> {
@@ -180,10 +159,10 @@ class DashboardFragment : Fragment(), PostShowingInterface {
                     val responseBody = response.body() as Map<String, Any>
 
                     // Get data from the response body (array of posts)
-                    val hbtGramPostsArray = ((responseBody["data"] as Map<String, Any>)["documents"]) as ArrayList<HBTGramPost>
+                    val hbtGramPostsArray = (responseBody["data"]) as ArrayList<HBTGramPost>
 
                     // Get new order in collection to load next series of posts
-                    val newCurrentLocationInList = (((responseBody["data"] as Map<String, Any>)["newCurrentLocationInList"]) as Double).toInt()
+                    val newCurrentLocationInList = ((responseBody["newCurrentLocationInList"]) as Double).toInt()
 
                     // Update new current location in list (location in list for next load)
                     // If order in collection to load next series of post is null, let it be 0

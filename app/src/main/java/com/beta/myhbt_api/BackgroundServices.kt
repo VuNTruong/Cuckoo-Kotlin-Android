@@ -1,44 +1,56 @@
 package com.beta.myhbt_api
 
-import android.app.IntentService
-import android.app.NotificationChannel
-import android.app.NotificationManager
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.User
-import com.beta.myhbt_api.View.MainMenu
-import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import io.socket.client.IO
 import io.socket.client.Socket
 import io.socket.emitter.Emitter
-import kotlinx.android.synthetic.main.nav_header.*
 import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class BackgroundServices : IntentService (BackgroundServices::class.simpleName) {
+class BackgroundServices : Service() {
+    // The variable that keep track of why service got destro
+
     // User object of the currently logged in user
     private lateinit var currentUserObject: User
 
     // These objects are used for socket.io
     private val gson = Gson()
 
-    lateinit var mSocket: Socket
+    companion object {
+        lateinit var mSocket: Socket
+    }
 
-    override fun onHandleIntent(intent: Intent?) {
-        // Call the function to get info of the currently logged in user
-        getCurrentUser()
-
-        // Call the function to create notification channel
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        // Call the function to create the notification channel
         createNotificationChannel()
+
+        // Call the function to get info of the currently logged in user and set up socket io
+        getCurrentUserAndSetUpSocketIO()
+
+        // If we get killed, after returning from here, restart
+        return START_STICKY
+    }
+
+    override fun onDestroy () {
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
+        // We don't provide binding, so return null
+        return null
     }
 
     //************************ DO THINGS WITH THE SOCKET.IO ************************
@@ -60,10 +72,13 @@ class BackgroundServices : IntentService (BackgroundServices::class.simpleName) 
         )
 
         // Listen to event of when post of user get commented
-        MainMenu.mSocket.on("postGetCommented", onUpdateComment)
+        mSocket.on("postGetCommented", onUpdateComment)
 
         // Listen to event of when message is sent to user
-        MainMenu.mSocket.on("messageReceived", onMessageReceived)
+        mSocket.on("messageReceived", onMessageReceived)
+
+        // Listen to event of when follow is received
+        mSocket.on("followReceived", onFollowReceived)
     }
     //************************ END WORKING WITH SOCKET.IO ************************
 
@@ -85,7 +100,7 @@ class BackgroundServices : IntentService (BackgroundServices::class.simpleName) 
         }
 
         // Call the function to create notification
-        getUserInfoAndCreateNotification(map["fromUser"]!!, map["content"]!!, " commented on your post")
+        getUserInfoAndCreateNotification(map["fromUser"]!!, map["content"]!!, "commented on your post")
     }
 
     // The callback function to send notification when message is received
@@ -105,7 +120,27 @@ class BackgroundServices : IntentService (BackgroundServices::class.simpleName) 
         }
 
         // Call the function to create notification
-        getUserInfoAndCreateNotification(map["fromUser"]!!, map["content"]!!, " sent you a message")
+        getUserInfoAndCreateNotification(map["fromUser"]!!, map["content"]!!, "sent you a message")
+    }
+
+    // The callback function to send notification when follow is received
+    private var onFollowReceived = Emitter.Listener {
+        // New message object from the server
+        val messageObject = it[0]
+
+        val map = HashMap<String, String>()
+
+        val jObject = JSONObject(messageObject.toString())
+        val keys: Iterator<*> = jObject.keys()
+
+        while (keys.hasNext()) {
+            val key = keys.next() as String
+            val value: String = jObject.getString(key)
+            map[key] = value
+        }
+
+        // Call the function to create notification
+        getUserInfoAndCreateNotification(map["follower"]!!, "", "started following you")
     }
     //************************* END CALL BACK FUNCTIONS FOR SOCKET.IO *************************
 
@@ -183,9 +218,9 @@ class BackgroundServices : IntentService (BackgroundServices::class.simpleName) 
     }
     //******************************* END GET INFO OF USER BASED ON ID AND CREATE NOTIFICATION *******************************
 
-    //******************************* GET INFO OF CURRENT USER SEQUENCE *******************************
-    // The function to get info of current user
-    fun getCurrentUser() {
+    //******************************* GET INFO OF CURRENT USER AND SET UP SOCKET IO SEQUENCE *******************************
+    // The function to get info of current user and set up socket io
+    fun getCurrentUserAndSetUpSocketIO() {
         // In order to prevent us from encountering the class cast exception, we need to do the following
         // Create the GSON object
         val gs = Gson()
@@ -232,5 +267,5 @@ class BackgroundServices : IntentService (BackgroundServices::class.simpleName) 
             }
         })
     }
-    //******************************* GET INFO OF CURRENT USER SEQUENCE *******************************
+    //******************************* GET INFO OF CURRENT USER AND SET UP SOCKET IO SEQUENCE *******************************
 }

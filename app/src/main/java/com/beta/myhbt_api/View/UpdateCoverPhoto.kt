@@ -33,6 +33,9 @@ class UpdateCoverPhoto : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_update_cover_photo)
 
+        // Hide the action bar
+        supportActionBar!!.hide()
+
         // Execute the AsyncTask to get info of the currently logged in user as well as load current cover photo for the user
         GetCurrentUserInfoTask().execute()
 

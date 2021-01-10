@@ -23,6 +23,9 @@ class MainActivity : AppCompatActivity() {
             // Start the activity where the user can sign in
             val intent = Intent(applicationContext, LoginActivity::class.java)
             startActivity(intent)
+
+            // Finish the current activity
+            this.finish()
         }
 
         // Show the loading layout at beginning and the main layout to be invisible
@@ -32,8 +35,11 @@ class MainActivity : AppCompatActivity() {
         // Set on click listener for the sign up button
         signUpButton.setOnClickListener {
             // Start the activity where the user can start signing up
-            val intent = Intent(applicationContext, SignUpEnterStudentId::class.java)
+            val intent = Intent(applicationContext, SignUpCreateEmailAndPassword::class.java)
             startActivity(intent)
+
+            // Finish the current activity
+            this.finish()
         }
 
         // Call the function to validate the current token

@@ -27,7 +27,7 @@ class ProfileFragment : Fragment() {
     private var adapter: RecyclerViewAdapterProfilePage?= null
 
     // User object of the currently logged in user
-    private var currentUserObject = User("", "", "", "", "", "", "", "", "", "", "", "", "", "", "")
+    private var currentUserObject = User("", "", "", "", "", "", "", "", "", "", "", "", "")
 
     // Maps of fields with value
     private var mapOfFields = HashMap<String, Any>()

@@ -34,6 +34,9 @@ class UserShow : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_user_show)
 
+        // Hide the action bar
+        supportActionBar!!.hide()
+
         // Get what to do next from the previous activity
         whatToDo = intent.getStringExtra("whatToDo")!!
 

@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.view.View
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.beta.myhbt_api.BackgroundServices
 import com.beta.myhbt_api.Controller.*
 import com.beta.myhbt_api.Model.Message
 import com.beta.myhbt_api.R
@@ -51,6 +52,9 @@ class Chat : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+
+        // Hide the action bar
+        supportActionBar!!.hide()
 
         // Get chat room id from previous activity
         chatRoomId = intent.getStringExtra("chatRoomId")!!
@@ -110,27 +114,22 @@ class Chat : AppCompatActivity() {
     // The function to do set up things with the socket.io
     fun setUpSocketIO () {
         //************************ DO THINGS WITH THE SOCKET.IO ************************
-        //This address is the way you can connect to localhost with AVD(Android Virtual Device)
-        //MainMenu.mSocket = IO.socket("http://10.0.2.2:3000")
-        //mSocket = IO.socket("https://myhbt-api.herokuapp.com")
-        //mSocket.connect()
-
         // Bring user into the chat room between this user and the selected user
-        MainMenu.mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
+        BackgroundServices.mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
             "chatRoomId" to chatRoomId
         )))
 
         // Listen to event of when new message is sent
-        MainMenu.mSocket.on("updateMessage", onUpdateChat)
+        BackgroundServices.mSocket.on("updateMessage", onUpdateChat)
 
         // Listen to event of when one of the user sent photo to the server
-        MainMenu.mSocket.on("updateMessageWithPhoto", onUpdateMessageWithPhoto)
+        BackgroundServices.mSocket.on("updateMessageWithPhoto", onUpdateMessageWithPhoto)
 
         // Listen to event of when other user in the chat room is typing
-        MainMenu.mSocket.on("typing", onIsTyping)
+        BackgroundServices.mSocket.on("typing", onIsTyping)
 
         // Listen to event of when other user in the chat room is done typing
-        MainMenu.mSocket.on("doneTyping", onIsDoneTyping)
+        BackgroundServices.mSocket.on("doneTyping", onIsDoneTyping)
         //************************ END WORKING WITH SOCKET.IO ************************v
     }
 
@@ -151,14 +150,14 @@ class Chat : AppCompatActivity() {
 
             // Emit event which will let the server know that current user is typing so that the server will
             // let other user in the chat room know that
-            MainMenu.mSocket.emit("isTyping", gson.toJson(hashMapOf(
+            BackgroundServices.mSocket.emit("isTyping", gson.toJson(hashMapOf(
                 "chatRoomId" to chatRoomId
             )))
 
             // If content of the text field is empty, emit event to the server to so that the server will let
             // other user in the chat room know that current user is not typing
             if (messageContentToSend.text.toString() == "") {
-                MainMenu.mSocket.emit(
+                BackgroundServices.mSocket.emit(
                     "isDoneTyping", gson.toJson(
                         hashMapOf(
                             "chatRoomId" to chatRoomId
@@ -416,6 +415,27 @@ class Chat : AppCompatActivity() {
                         setUpSocketIO()
                     }
 
+                    //---------------------------- Update UI on the server side (socket.io) ----------------------------
+                    // Emit event to the server so that the server will let the selected user know that new message has been sent
+                    BackgroundServices.mSocket.emit("newMessage", gson.toJson(hashMapOf(
+                        "sender" to currentUserId,
+                        "receiver" to receiverUserId,
+                        "content" to messageContentToSend.text.toString(),
+                        "messageId" to data["_id"] as String,
+                        "chatRoomId" to chatRoomId
+                    )))
+
+                    // Emit event to the server so that the server will let other user in the chat room know that
+                    // current user is done typing
+                    BackgroundServices.mSocket.emit(
+                        "isDoneTyping", gson.toJson(
+                            hashMapOf(
+                                "chatRoomId" to chatRoomId
+                            )
+                        )
+                    )
+                    //---------------------------- End update UI on the server side (socket.io) ----------------------------
+
                     //---------------------------- Update UI on the app side ----------------------------
                     // Create the new message object
                     val newMessageObject = Message(currentUserId, receiverUserId, messageContentToSend.text.toString(), data["_id"] as String)
@@ -434,26 +454,6 @@ class Chat : AppCompatActivity() {
                     messageContentToSend.setText("")
                     //---------------------------- End update UI on the app side ----------------------------
 
-                    //---------------------------- Update UI on the server side (socket.io) ----------------------------
-                    // Emit event to the server so that the server will let the selected user know that new message has been sent
-                    MainMenu.mSocket.emit("newMessage", gson.toJson(hashMapOf(
-                        "sender" to currentUserId,
-                        "receiver" to receiverUserId,
-                        "content" to messageContentToSend.text.toString(),
-                        "messageId" to data["_id"] as String,
-                        "chatRoomId" to chatRoomId
-                    )))
-
-                    // Emit event to the server so that the server will let other user in the chat room know that
-                    // current user is done typing
-                    MainMenu.mSocket.emit(
-                        "isDoneTyping", gson.toJson(
-                            hashMapOf(
-                                "chatRoomId" to chatRoomId
-                            )
-                        )
-                    )
-                    //---------------------------- End update UI on the server side (socket.io) ----------------------------
                 } else {
                     print("Something is not right")
                 }

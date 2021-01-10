@@ -27,6 +27,9 @@ class SearchUserToChatWith : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search_user_to_chat_with)
 
+        // Hide the action bar
+        supportActionBar!!.hide()
+
         // Instantiate the recycler view
         searchUserToChatView.layoutManager = LinearLayoutManager(applicationContext)
         searchUserToChatView.itemAnimator = DefaultItemAnimator()

@@ -33,6 +33,9 @@ class UpdateAvatar : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_update_avatar)
 
+        // Hide the action bar
+        supportActionBar!!.hide()
+
         // Execute the AsyncTask to get info of the currently logged in user as well as load current avatar of the user
         GetCurrentUserInfoTask().execute()
 

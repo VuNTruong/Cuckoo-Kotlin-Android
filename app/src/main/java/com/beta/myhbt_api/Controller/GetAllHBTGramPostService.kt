@@ -6,6 +6,5 @@ import retrofit2.http.Query
 
 interface GetAllHBTGramPostService {
     @GET("/api/v1/hbtGramPost/getHBTGramPostForUser")
-    fun getAllPosts(@Query("userId") userId: String, @Query("currentLocationInList") currentLocationInList: Int,
-                    @Query("location") location: String, @Query("radius") radius: Int): Call<Any>
+    fun getAllPosts(@Query("userId") userId: String, @Query("currentLocationInList") currentLocationInList: Int): Call<Any>
 }

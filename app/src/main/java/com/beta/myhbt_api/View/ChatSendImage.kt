@@ -39,6 +39,9 @@ class ChatSendImage : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat_send_image)
 
+        // Hide the action bar
+        supportActionBar!!.hide()
+
         // Get user id of the message receiver from previous activity
         messageReceiverUserId = intent.getStringExtra("messageReceiverUserId")!!
 
