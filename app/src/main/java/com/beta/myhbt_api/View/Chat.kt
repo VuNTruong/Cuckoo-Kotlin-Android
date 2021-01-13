@@ -111,9 +111,9 @@ class Chat : AppCompatActivity() {
         }
     }
 
+    //************************ DO THINGS WITH THE SOCKET.IO ************************
     // The function to do set up things with the socket.io
     fun setUpSocketIO () {
-        //************************ DO THINGS WITH THE SOCKET.IO ************************
         // Bring user into the chat room between this user and the selected user
         BackgroundServices.mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
             "chatRoomId" to chatRoomId
@@ -130,7 +130,7 @@ class Chat : AppCompatActivity() {
 
         // Listen to event of when other user in the chat room is done typing
         BackgroundServices.mSocket.on("doneTyping", onIsDoneTyping)
-        //************************ END WORKING WITH SOCKET.IO ************************v
+        //************************ END WORKING WITH SOCKET.IO ************************
     }
 
     // The text watcher which will take action of when there is change in content of the message to send content text field
