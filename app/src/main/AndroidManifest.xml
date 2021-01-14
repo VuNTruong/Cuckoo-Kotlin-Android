@@ -19,7 +19,6 @@
         android:roundIcon="@drawable/hbtgram1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.VideoChat"></activity>
 
         <service
             android:name=".BackgroundServices"
