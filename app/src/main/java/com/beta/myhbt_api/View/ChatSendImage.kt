@@ -6,15 +6,13 @@ import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.webkit.MimeTypeMap
-import com.beta.myhbt_api.Controller.CreateNewChatMessagePhotoService
-import com.beta.myhbt_api.Controller.CreateNewMessageService
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.Messages.CreateNewChatMessagePhotoService
+import com.beta.myhbt_api.Controller.Messages.CreateNewMessageService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.R
 import com.google.firebase.storage.FirebaseStorage
 import com.google.gson.Gson
-import io.socket.client.IO
-import io.socket.client.Socket
 import kotlinx.android.synthetic.main.activity_chat_send_image.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -23,7 +21,7 @@ import kotlin.math.floor
 
 class ChatSendImage : AppCompatActivity() {
     // These objects are used for socket.io
-    private lateinit var mSocket: Socket
+    //private lateinit var mSocket: Socket
     private val gson = Gson()
 
     // Image Uri of the selected image
@@ -35,12 +33,24 @@ class ChatSendImage : AppCompatActivity() {
     // Chat room id between the currently logged in user and user currently chatting with
     private var chatRoomId = ""
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat_send_image)
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonChatSendImage.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Get user id of the message receiver from previous activity
         messageReceiverUserId = intent.getStringExtra("messageReceiverUserId")!!
@@ -49,14 +59,8 @@ class ChatSendImage : AppCompatActivity() {
         chatRoomId = intent.getStringExtra("chatRoomId")!!
 
         //************************ DO THINGS WITH THE SOCKET.IO ************************
-        // Try connecting
-        //This address is the way you can connect to localhost with AVD(Android Virtual Device)
-        //mSocket = IO.socket("http://10.0.2.2:3000")
-        mSocket = IO.socket("https://myhbt-api.herokuapp.com")
-        mSocket.connect()
-
         // Bring user into the chat room between this user and the selected user
-        mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
+        MainMenu.mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
             "chatRoomId" to chatRoomId
         )))
 
@@ -220,7 +224,7 @@ class ChatSendImage : AppCompatActivity() {
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
                 // the server know that this user has sent an image as message
-                mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
+                MainMenu.mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
                     "sender" to currentUserId,
                     "receiver" to messageReceiverUserId,
                     "content" to "image",

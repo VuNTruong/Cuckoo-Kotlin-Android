@@ -8,6 +8,8 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.UserStats.GetBriefUserStatsService
 import com.beta.myhbt_api.Model.UserCommentInteraction
 import com.beta.myhbt_api.Model.UserInteraction
 import com.beta.myhbt_api.Model.UserLikeInteraction

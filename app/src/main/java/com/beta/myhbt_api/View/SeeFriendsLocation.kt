@@ -6,9 +6,9 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.GetFollowingService
-import com.beta.myhbt_api.Controller.GetUserInfoBasedOnIdService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.Follows.GetFollowingService
+import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.R
 import com.mapbox.android.core.permissions.PermissionsListener
@@ -32,6 +32,12 @@ class SeeFriendsLocation : AppCompatActivity(), PermissionsListener {
     private lateinit var mapbox: MapboxMap
     private var permissionsManager: PermissionsManager = PermissionsManager(this)
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -40,6 +46,12 @@ class SeeFriendsLocation : AppCompatActivity(), PermissionsListener {
 
         Mapbox.getInstance(this, getString(R.string.mapbox_access_token))
         setContentView(R.layout.activity_see_friends_location)
+
+        // Set on click listener for the back button
+        backButtonSeeFriendsLocation.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         findFriendsMapView?.onCreate(savedInstanceState)
         findFriendsMapView?.getMapAsync { mapboxMap ->
@@ -142,7 +154,8 @@ class SeeFriendsLocation : AppCompatActivity(), PermissionsListener {
     // The function to get info of a user based on id
     fun loadUserInfoBasedOnId (userId: String, mapbox: MapboxMap) {
         // Create the get user info base on id service
-        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(GetUserInfoBasedOnIdService::class.java)
+        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            GetUserInfoBasedOnIdService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(userId)

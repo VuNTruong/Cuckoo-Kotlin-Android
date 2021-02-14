@@ -4,8 +4,11 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.BackgroundServices
 import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Controller.Notifications.CreateNotificationService
+import com.beta.myhbt_api.Controller.Posts.GetPhotosOfUserService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.UserStats.UpdateUserProfileVisitService
 import com.beta.myhbt_api.Interfaces.CreateNotificationInterface
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.Model.User
@@ -16,7 +19,6 @@ import kotlinx.android.synthetic.main.activity_profile_detail.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.lang.reflect.Array
 
 class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
     // These objects are used for socket.io
@@ -34,12 +36,24 @@ class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
     // Array of images
     private var arrayOfImages = ArrayList<HBTGramPostPhoto>()
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_profile_detail)
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonProfileDetail.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Get selected user object from the previous activity
         userObject = intent.getSerializableExtra("selectedUserObject") as User
@@ -202,7 +216,7 @@ class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
 
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // Emit event to the server so that the server know to send notification to the user that get followed
-                BackgroundServices.mSocket.emit("newFollow", gson.toJson(hashMapOf(
+                MainMenu.mSocket.emit("newFollow", gson.toJson(hashMapOf(
                     "follower" to fromUser,
                     "followedUser" to forUser
                 )))

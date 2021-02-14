@@ -10,7 +10,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.GetUserInfoBasedOnIdService
+import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.*
 import com.beta.myhbt_api.R

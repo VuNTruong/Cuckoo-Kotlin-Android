@@ -15,7 +15,7 @@ class HBTGramPostPhoto (imageURL: String, postId: String) {
         return imageURL
     }
 
-    fun getPostId() : String {
+    fun getPhotoId() : String {
         return postId
     }
 }

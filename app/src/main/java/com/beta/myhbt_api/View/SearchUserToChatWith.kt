@@ -7,7 +7,7 @@ import android.text.TextWatcher
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Controller.SearchUserService
+import com.beta.myhbt_api.Controller.User.SearchUserService
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterSearchUserToChatWith
@@ -23,12 +23,24 @@ class SearchUserToChatWith : AppCompatActivity() {
     // Adapter for the RecyclerView
     private lateinit var adapter : RecyclerViewAdapterSearchUserToChatWith
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search_user_to_chat_with)
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonSearchUserToChatWith.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Instantiate the recycler view
         searchUserToChatView.layoutManager = LinearLayoutManager(applicationContext)
@@ -55,7 +67,8 @@ class SearchUserToChatWith : AppCompatActivity() {
     // The function to load list of users based on search query
     fun searchUsers (searchQuery: String) {
         // Create the search user service
-        val searchUserService : SearchUserService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(SearchUserService::class.java)
+        val searchUserService : SearchUserService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            SearchUserService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = searchUserService.searchUser(searchQuery)

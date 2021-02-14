@@ -7,8 +7,8 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.GetUserInfoBasedOnIdService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.User
 import com.google.gson.Gson

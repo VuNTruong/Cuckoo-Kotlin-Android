@@ -5,6 +5,10 @@ import android.os.Bundle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Controller.Follows.GetFollowingService
+import com.beta.myhbt_api.Controller.Follows.GeteFollowerService
+import com.beta.myhbt_api.Controller.LikesAndComments.GetAllPostLikesService
+import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterUserShow
@@ -30,12 +34,24 @@ class UserShow : AppCompatActivity() {
     // List of users to be shown
     private var arrayOfUsers = ArrayList<User>()
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_user_show)
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonUserShow.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Get what to do next from the previous activity
         whatToDo = intent.getStringExtra("whatToDo")!!
@@ -86,8 +102,8 @@ class UserShow : AppCompatActivity() {
     // The function to get list of likes of the post
     private fun getListOfLikes (postId: String) {
         // Create the get post likes service
-        val getPostLikesService: GetAllHBTGramPostLikesService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetAllHBTGramPostLikesService::class.java)
+        val getPostLikesService: GetAllPostLikesService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            GetAllPostLikesService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getPostLikesService.getPostLikes(postId)
@@ -219,7 +235,8 @@ class UserShow : AppCompatActivity() {
     // The function to get user info based on id
     private fun getUserInfoBasedOnId (userId: String) {
         // Create the get user info base on id service
-        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(GetUserInfoBasedOnIdService::class.java)
+        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            GetUserInfoBasedOnIdService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(userId)

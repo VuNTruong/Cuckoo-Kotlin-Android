@@ -5,18 +5,22 @@ import android.os.AsyncTask
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
-import com.beta.myhbt_api.Controller.LoginPostDataService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.android.synthetic.main.activity_login.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class LoginActivity : AppCompatActivity() {
+    // Executor service to perform works in the background
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
     // Instance of the FirebaseAuth
     private val mAuth = FirebaseAuth.getInstance()
+
+    // The user repository
+    private lateinit var userRepository: UserRepository
 
     override fun onBackPressed() {
         super.onBackPressed()
@@ -27,11 +31,16 @@ class LoginActivity : AppCompatActivity() {
 
         // Finish the current activity
         this.finish()
+
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
+
+        // Initiate the user repository
+        userRepository = UserRepository(executorService, applicationContext)
 
         // Hide the action bar
         supportActionBar!!.hide()
@@ -44,6 +53,7 @@ class LoginActivity : AppCompatActivity() {
 
             // Finish the current activity
             this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
         }
 
         // Set up event listener for the login button
@@ -55,38 +65,24 @@ class LoginActivity : AppCompatActivity() {
 
     // The function to perform the login procedure
     private fun login (email: String, password: String) {
-        // Create the post service
-        val postService: LoginPostDataService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            LoginPostDataService::class.java)
+        // Call the function to start the login operation
+        userRepository.login(email, password) {loginSuccess ->
+            // If login is not successful, show alert to the user
+            if (!loginSuccess) {
+                // Show the user that the login was not successful
+                Toast.makeText(applicationContext, "Password or email is not right", Toast.LENGTH_SHORT).show()
+            } else {
+                // Call the function to sign the user in using FirebaseAuth
+                SignInWithFirebaseTask().execute()
 
-        // The call object which will then be used to perform the API call
-        val call: Call<Any> = postService.login(email, password)
+                // Go to the mail page activity
+                val intent = Intent(applicationContext, MainMenu::class.java)
+                startActivity(intent)
 
-        // Perform the API call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                // Report the error if something is not right
-                print("Boom")
+                // Finish this activity
+                this@LoginActivity.finish()
             }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is null, it means that the user may didn't enter the correct email or password
-                if (response.body() == null) {
-                    // Show the user that the login was not successful
-                    Toast.makeText(applicationContext, "Password or email is not right", Toast.LENGTH_SHORT).show()
-                } else {
-                    // Call the function to sign the user in using FirebaseAuth
-                    SignInWithFirebaseTask().execute()
-
-                    // Go to the mail page activity
-                    val intent = Intent(applicationContext, MainMenu::class.java)
-                    startActivity(intent)
-
-                    // Finish this activity
-                    this@LoginActivity.finish()
-                }
-            }
-        })
+        }
     }
 
     // The AsyncTask to sign user in with FirebaseAuth and provide FirebaseAuth token in order to have access to the storage

@@ -16,10 +16,8 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import com.google.android.libraries.places.api.net.PlacesClient
 import kotlinx.android.synthetic.main.activity_explore_location.*
 
 
@@ -34,9 +32,24 @@ class ExploreLocation : AppCompatActivity(), OnMapReadyCallback {
     // location retrieved by the Fused Location Provider.
     private var lastKnownLocation: Location? = null
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_explore_location)
+
+        // Hide the action bar
+        supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonExploreLocation.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Construct a FusedLocationProviderClient.
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
@@ -47,13 +60,6 @@ class ExploreLocation : AppCompatActivity(), OnMapReadyCallback {
     }
 
     override fun onMapReady(googleMap: GoogleMap?) {
-        /*
-        val center = LatLng(-33.852, 151.211)
-        val cameraPosition = CameraPosition.Builder().target(center).zoom(50.toFloat()).build()
-        googleMap!!.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-         */
-        //addMarker(center, "Sydney", googleMap)
-
         getLocationPermission()
         updateLocationUI(googleMap!!)
         getDeviceLocation(googleMap)

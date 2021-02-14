@@ -1,6 +1,5 @@
 package com.beta.myhbt_api.View.Adapters
 
-import android.app.Activity
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -11,6 +10,12 @@ import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Controller.Follows.*
+import com.beta.myhbt_api.Controller.Messages.GetMessageRoomIdBetween2UsersService
+import com.beta.myhbt_api.Controller.Posts.GetPostBasedOnIdService
+import com.beta.myhbt_api.Controller.Posts.GetPostsOfUserService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.Model.User
@@ -849,8 +854,8 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                 // If the remaining number of images is greater than or equal to 4, load all images into image view
                 (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
                     hbtGramPostPhotoModelImage3.getImageURL(), hbtGramPostPhotoModelImage4.getImageURL(),
-                    hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(),
-                    hbtGramPostPhotoModelImage3.getPostId(), hbtGramPostPhotoModelImage4.getPostId())
+                    hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(),
+                    hbtGramPostPhotoModelImage3.getPhotoId(), hbtGramPostPhotoModelImage4.getPhotoId())
             } // If the remaining number of images in the array is less than 4, just load the remaining in and leave the rest blank
             else {
                 // Based on the remaining number of images to decide
@@ -868,7 +873,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
                             hbtGramPostPhotoModelImage3.getImageURL(), "",
-                            hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(), hbtGramPostPhotoModelImage3.getPostId(), "")
+                            hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(), hbtGramPostPhotoModelImage3.getPhotoId(), "")
                     }
                     arrayOfPhotos.size - ((position - 2) * 4) == 2 -> {
                         // Convert objects of the arrayOfComments array which is currently a linked tree map into a JSON string
@@ -880,7 +885,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                         val hbtGramPostPhotoModelImage2 = gs.fromJson<HBTGramPostPhoto>(jsImage2, HBTGramPostPhoto::class.java)
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(), "", "",
-                            hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(), "", "")
+                            hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(), "", "")
                     }
                     arrayOfPhotos.size - ((position - 2) * 4) == 1 -> {
                         // Convert objects of the arrayOfComments array which is currently a linked tree map into a JSON string
@@ -890,7 +895,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                         val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), "", "", "",
-                            hbtGramPostPhotoModelImage1.getPostId(), "", "", "")
+                            hbtGramPostPhotoModelImage1.getPhotoId(), "", "", "")
                     }
                 }
             }

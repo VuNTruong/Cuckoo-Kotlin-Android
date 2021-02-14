@@ -10,7 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Controller.SearchUserService
+import com.beta.myhbt_api.Controller.User.SearchUserService
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterSearchFriend
@@ -61,7 +61,8 @@ class SearchFriendFragment : Fragment() {
     // The function to load list of users based on search query
     fun searchUsers (searchQuery: String) {
         // Create the search user service
-        val searchUserService : SearchUserService = RetrofitClientInstance.getRetrofitInstance(this@SearchFriendFragment.requireActivity())!!.create(SearchUserService::class.java)
+        val searchUserService : SearchUserService = RetrofitClientInstance.getRetrofitInstance(this@SearchFriendFragment.requireActivity())!!.create(
+            SearchUserService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = searchUserService.searchUser(searchQuery)

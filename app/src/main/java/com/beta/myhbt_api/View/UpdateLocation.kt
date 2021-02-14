@@ -4,9 +4,9 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Controller.UpdateUserLocationService
+import com.beta.myhbt_api.Controller.User.UpdateUserLocationService
 import com.beta.myhbt_api.R
 import com.mapbox.android.core.location.*
 import com.mapbox.android.core.permissions.PermissionsListener
@@ -44,6 +44,12 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
     // The location engine which will be used to locate user (to be initiated later in the app)
     private lateinit var locationEngine : LocationEngine
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -52,6 +58,12 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
 
         Mapbox.getInstance(this, getString(R.string.mapbox_access_token))
         setContentView(R.layout.activity_update_location)
+
+        // Set on click listener for the back button
+        backButtonUpdateLocation.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Initiate the last updated location map view
         mapViewLastUpdatedLocation.onCreate(savedInstanceState)

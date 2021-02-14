@@ -8,8 +8,8 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.GetMessageRoomIdBetween2UsersService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.Messages.GetMessageRoomIdBetween2UsersService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R

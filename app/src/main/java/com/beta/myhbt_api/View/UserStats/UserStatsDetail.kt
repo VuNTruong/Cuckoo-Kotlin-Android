@@ -5,6 +5,11 @@ import android.os.Bundle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Controller.LikesAndComments.GetUserLikeInteractionStatusService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.UserStats.GetUserCommentInteractionStatusService
+import com.beta.myhbt_api.Controller.UserStats.GetUserInteractionStatusService
+import com.beta.myhbt_api.Controller.UserStats.GetUserProfileVisitStatusService
 import com.beta.myhbt_api.Model.UserCommentInteraction
 import com.beta.myhbt_api.Model.UserInteraction
 import com.beta.myhbt_api.Model.UserLikeInteraction
@@ -38,9 +43,22 @@ class UserStatsDetail : AppCompatActivity() {
     // Array of user profile visit objects to be shown to the user
     private var arrayOfUserProfileVisit = ArrayList<UserProfileVisit>()
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_user_stats_detail)
+
+        // Hide the action bar
+        supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonUserStatsDetail.setOnClickListener {
+            this.finish()
+        }
 
         // Get which kind of user stats detail to load from previous activity
         userStatsKindToShow = intent.getStringExtra("userStatsKindToShow")!!

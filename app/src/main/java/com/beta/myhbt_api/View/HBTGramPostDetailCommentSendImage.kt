@@ -6,18 +6,14 @@ import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.webkit.MimeTypeMap
-import android.widget.EditText
 import android.widget.Toast
-import com.beta.myhbt_api.Controller.CreateNewHBTGramPostCommentPhotoService
-import com.beta.myhbt_api.Controller.CreateNewHBTGramPostCommentService
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.LikesAndComments.CreateNewPostCommentPhotoService
+import com.beta.myhbt_api.Controller.LikesAndComments.CreateNewPostCommentService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Model.HBTGramPostComment
 import com.beta.myhbt_api.R
 import com.google.firebase.storage.FirebaseStorage
 import com.google.gson.Gson
-import io.socket.client.IO
-import io.socket.client.Socket
 import kotlinx.android.synthetic.main.activity_hbtgram_post_detail_comment_send_image.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -29,7 +25,7 @@ class HBTGramPostDetailCommentSendImage : AppCompatActivity() {
     private val storage = FirebaseStorage.getInstance()
 
     // These objects are used for socket.io
-    private lateinit var mSocket: Socket
+    //private lateinit var mSocket: Socket
     private val gson = Gson()
 
     // Image Uri of the selected image
@@ -38,12 +34,24 @@ class HBTGramPostDetailCommentSendImage : AppCompatActivity() {
     // Post id of the post currently work with
     private var postId = ""
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hbtgram_post_detail_comment_send_image)
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonPostDetailCommentSendImage.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Get post id of the post currently working with from the previous activity
         postId = intent.getStringExtra("postId")!!
@@ -70,14 +78,8 @@ class HBTGramPostDetailCommentSendImage : AppCompatActivity() {
     // The function to start setting up socket.io
     private fun setUpSocket () {
         //************************ DO THINGS WITH THE SOCKET.IO ************************
-        // Try connecting
-        //This address is the way you can connect to localhost with AVD(Android Virtual Device)
-        //mSocket = IO.socket("http://10.0.2.2:3000")
-        mSocket = IO.socket("https://myhbt-api.herokuapp.com")
-        mSocket.connect()
-
         // Bring user into the chat room between this user and the selected user
-        mSocket.emit("jumpInPostDetailRoom", gson.toJson(hashMapOf(
+        MainMenu.mSocket.emit("jumpInPostDetailRoom", gson.toJson(hashMapOf(
             "postId" to postId
         )))
         //************************ END WORKING WITH SOCKET.IO ************************
@@ -174,8 +176,8 @@ class HBTGramPostDetailCommentSendImage : AppCompatActivity() {
     // The function to create new comment for the post
     fun createNewComment (commentContent: String, commentWriterUserId: String, postId: String) {
         // Create the create comment service
-        val postCommentService: CreateNewHBTGramPostCommentService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            CreateNewHBTGramPostCommentService::class.java)
+        val postCommentService: CreateNewPostCommentService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            CreateNewPostCommentService::class.java)
 
         // The call object which will then be used to perform the API call
         val call: Call<Any> = postCommentService.createNewHBTGramPostComment(commentContent, commentWriterUserId, postId)
@@ -237,8 +239,8 @@ class HBTGramPostDetailCommentSendImage : AppCompatActivity() {
     // The function to upload the URL of the image to the comment photo collection in the database
     private fun createNewImageURL (imageURL: String, commentId: String, currentUserId: String) {
         // Create the create comment photo service
-        val createCommentPhotoService: CreateNewHBTGramPostCommentPhotoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            CreateNewHBTGramPostCommentPhotoService::class.java)
+        val createCommentPhotoService: CreateNewPostCommentPhotoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+            CreateNewPostCommentPhotoService::class.java)
 
         // The call object which will then be used to perform the API call
         val call: Call<Any> = createCommentPhotoService.createNewHBTGramPostCommentPhoto(commentId, imageURL)
@@ -253,7 +255,7 @@ class HBTGramPostDetailCommentSendImage : AppCompatActivity() {
             override fun onResponse(call: Call<Any>, response: Response<Any>) {
                 // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
                 // the server know that this user has sent an image as message
-                mSocket.emit("imageSentAsComment", gson.toJson(hashMapOf(
+                MainMenu.mSocket.emit("imageSentAsComment", gson.toJson(hashMapOf(
                     "writer" to currentUserId,
                     "commentId" to commentId,
                     "content" to "image",

@@ -8,9 +8,9 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.webkit.MimeTypeMap
 import android.widget.Toast
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Controller.UpdateUserInfoService
+import com.beta.myhbt_api.Controller.User.UpdateUserInfoService
 import com.beta.myhbt_api.R
 import com.bumptech.glide.Glide
 import com.google.firebase.storage.FirebaseStorage
@@ -29,12 +29,24 @@ class UpdateCoverPhoto : AppCompatActivity() {
     // Map of fields which is used in updating user info
     private var mapOfFields = HashMap<String, Any>()
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_update_cover_photo)
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonUpdateCoverPhoto.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Execute the AsyncTask to get info of the currently logged in user as well as load current cover photo for the user
         GetCurrentUserInfoTask().execute()
@@ -82,7 +94,8 @@ class UpdateCoverPhoto : AppCompatActivity() {
     inner class GetCurrentUserInfoTask : AsyncTask<Void, Void, Void>() {
         override fun doInBackground(vararg params: Void?): Void? {
             // Create the validate token service
-            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(GetCurrentlyLoggedInUserInfoService::class.java)
+            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
+                GetCurrentlyLoggedInUserInfoService::class.java)
 
             // Create the call object in order to perform the call
             val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
@@ -96,8 +109,6 @@ class UpdateCoverPhoto : AppCompatActivity() {
                 override fun onResponse(call: Call<Any>, response: Response<Any>) {
                     // If the response body is not empty it means that the token is valid
                     if (response.body() != null) {
-                        val body = response.body()
-                        print(body)
                         // Body of the request
                         val responseBody = response.body() as Map<String, Any>
 
@@ -106,9 +117,6 @@ class UpdateCoverPhoto : AppCompatActivity() {
 
                         // Get user id in the database
                         val userId = data["_id"] as String
-
-                        // Get student id of the user
-                        val studentId = data["studentId"] as String
 
                         // Get avatar URL of the user
                         val avatarURL = data["avatarURL"] as String
@@ -133,7 +141,6 @@ class UpdateCoverPhoto : AppCompatActivity() {
 
                         // Build the map of fields
                         mapOfFields = hashMapOf(
-                            "studentId" to studentId,
                             "userId" to userId,
                             "avatarURL" to avatarURL,
                             "coverURL" to coverURL,

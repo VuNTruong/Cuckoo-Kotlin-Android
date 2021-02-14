@@ -7,9 +7,9 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.GetOrderInCollectionOfLatestPostPhotoLabelService
-import com.beta.myhbt_api.Controller.GetRecommendedPhotosForUserService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.Posts.GetOrderInCollectionOfLatestPostPhotoLabelService
+import com.beta.myhbt_api.Controller.Posts.GetRecommendedPhotosForUserService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
 import com.beta.myhbt_api.R

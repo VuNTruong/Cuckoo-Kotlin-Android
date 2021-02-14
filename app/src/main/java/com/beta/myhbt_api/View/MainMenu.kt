@@ -1,7 +1,11 @@
 package com.beta.myhbt_api.View
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.MenuItem
@@ -10,15 +14,19 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import com.beta.myhbt_api.BackgroundServices
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.LogoutPostDataService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.User.LogoutPostDataService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.FirebaseMessagingService
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Fragments.*
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.iid.FirebaseInstanceId
 import com.google.gson.Gson
+import io.socket.client.IO
+import io.socket.client.Socket
 import kotlinx.android.synthetic.main.activity_main_menu.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -33,6 +41,10 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
     // User object of the currently logged in user
     private lateinit var currentUserObject: User
+
+    companion object {
+        lateinit var mSocket: Socket
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,12 +102,54 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
     // The function to set up
     private fun setUp () {
-        val intentService = Intent(this, BackgroundServices::class.java)
+        val intentService = Intent(this, FirebaseMessagingService::class.java)
         startService(intentService)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Notification"
+            val descriptionText = "Channel for the notification"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel("notification_channel", name, importance).apply {
+                description = descriptionText
+            }
+            // Register the channel with the system
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
 
         // Call the function to load info of the currently logged in user
         getCurrentUserInfo()
     }
+
+    //************************ DO THINGS WITH THE SOCKET.IO ************************
+    // The function to set up socket.IO
+    private fun setUpSocketIO () {
+        // This address is to connect with the server
+        mSocket = IO.socket("http://10.0.2.2:3000")
+        //mSocket = IO.socket("https://myhbt-api.herokuapp.com")
+        //mSocket = IO.socket("http://localhost:3000")
+
+        // Connect to the socket
+        mSocket.connect()
+
+        // Get registration token of the user and let user join in the notification room
+        FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener {task ->
+            // Registration token of the user
+            val token = task.token
+
+            // Bring user into the notification room
+            mSocket.emit(
+                "jumpInNotificationRoom", gson.toJson(
+                    hashMapOf(
+                        "userId" to currentUserObject.getId(),
+                        "socketId" to token
+                    )
+                )
+            )
+        }
+    }
+    //************************ END WORKING WITH SOCKET.IO ************************
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
@@ -309,6 +363,9 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
                     // Update current user object for this activity
                     currentUserObject = userObject
+
+                    // Call the function to set up socket io for the whole app
+                    setUpSocketIO()
                 } else {
                     print("Something is not right")
                 }

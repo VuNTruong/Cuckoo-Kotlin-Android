@@ -4,19 +4,29 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.beta.myhbt_api.Controller.*
-import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.android.synthetic.main.activity_main.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
+    // Executor service to perform works in the background
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
+    // Instance of the FirebaseAuth
+    private val mAuth = FirebaseAuth.getInstance()
+
+    // The user repository
+    private lateinit var userRepository: UserRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Initiate the user repository
+        userRepository = UserRepository(executorService, applicationContext)
 
         // Set on click listener for the login button
         loginButton.setOnClickListener {
@@ -35,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         // Set on click listener for the sign up button
         signUpButton.setOnClickListener {
             // Start the activity where the user can start signing up
-            val intent = Intent(applicationContext, SignUpCreateEmailAndPassword::class.java)
+            val intent = Intent(applicationContext, SignUp::class.java)
             startActivity(intent)
 
             // Finish the current activity
@@ -48,36 +58,32 @@ class MainActivity : AppCompatActivity() {
 
     // The function to check if current token is still valid or not
     private fun checkToken () {
-        // Create the validate token service
-        val validateTokenService: ValidateTokenPostService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(ValidateTokenPostService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = validateTokenService.validate()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Go to the main activity
-                    val intent = Intent(applicationContext, VideoChat::class.java)
-                    startActivity(intent)
-
-                    // Pass name of this activity to the main menu so that it will know to load the dashboard
-                    intent.putExtra("previousActivityName", "mainActivity")
-
-                    // Finish this activity
-                    this@MainActivity.finish()
-                } else {
-                    // Show the welcome layout and the loading layout to be invisible
-                    loadingLayoutWelcome.visibility = View.INVISIBLE
-                    welcomeLayout.visibility = View.VISIBLE
+        mAuth.getAccessToken(true)
+            .addOnCompleteListener{task ->
+                if (task.isSuccessful) {
+                    val idToken = task.result.token
+                    print(idToken)
                 }
             }
-        })
+
+        // Call the function to validate the login token of the currently logged in user
+        userRepository.checkToken { isValid ->
+            // If the response body is not empty it means that the token is valid
+            if (isValid) {
+                // Go to the main activity
+                val intent = Intent(applicationContext, MainMenu::class.java)
+                startActivity(intent)
+
+                // Pass name of this activity to the main menu so that it will know to load the dashboard
+                intent.putExtra("previousActivityName", "mainActivity")
+
+                // Finish this activity
+                this@MainActivity.finish()
+            } else {
+                // Show the welcome layout and the loading layout to be invisible
+                loadingLayoutWelcome.visibility = View.INVISIBLE
+                welcomeLayout.visibility = View.VISIBLE
+            }
+        }
     }
 }

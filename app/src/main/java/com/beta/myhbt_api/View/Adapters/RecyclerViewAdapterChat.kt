@@ -1,18 +1,16 @@
 package com.beta.myhbt_api.View.Adapters
 
 import android.app.Activity
-import android.os.AsyncTask
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.GetChatMessagePhotoService
-import com.beta.myhbt_api.Controller.GetUserInfoBasedOnIdService
+import com.beta.myhbt_api.Controller.Messages.GetChatMessagePhotoService
+import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.Message
-import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
@@ -66,7 +64,8 @@ class RecyclerViewAdapterChat (chatMessages: ArrayList<Message>, activity: Activ
     // The function to get user info based on id
     private fun getUserInfoBasedOnId (userId: String, senderAvatarImageView: ImageView, senderFullNameTextView: TextView) {
         // Create the get user info base on id service
-        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetUserInfoBasedOnIdService::class.java)
+        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetUserInfoBasedOnIdService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(userId)
@@ -110,7 +109,8 @@ class RecyclerViewAdapterChat (chatMessages: ArrayList<Message>, activity: Activ
     // The function to load photo of the message based on message id
     private fun getMessagePhoto (messageId: String, messagePhotoImageView: ImageView) {
         // Create the get message photo based on message id service
-        val getMessagePhotoBasedOnMessageIdService : GetChatMessagePhotoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(GetChatMessagePhotoService::class.java)
+        val getMessagePhotoBasedOnMessageIdService : GetChatMessagePhotoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
+            GetChatMessagePhotoService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getMessagePhotoBasedOnMessageIdService.getMessagePhoto(messageId)

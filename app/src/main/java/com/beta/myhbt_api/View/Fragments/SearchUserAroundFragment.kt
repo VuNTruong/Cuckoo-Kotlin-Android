@@ -9,8 +9,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.GetUserWithinARadiusService
+import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Controller.User.GetUserWithinARadiusService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
@@ -128,7 +128,8 @@ class SearchUserAroundFragment : Fragment() {
     // The function to load user within a radius and load users based on a search query
     private fun searchUsers (searchQuery: String) {
         // Create the search user nearby service
-        val searchUserService : GetUserWithinARadiusService = RetrofitClientInstance.getRetrofitInstance(this@SearchUserAroundFragment.requireActivity())!!.create(GetUserWithinARadiusService::class.java)
+        val searchUserService : GetUserWithinARadiusService = RetrofitClientInstance.getRetrofitInstance(this@SearchUserAroundFragment.requireActivity())!!.create(
+            GetUserWithinARadiusService::class.java)
 
         // Create the call object in order to perform the call
         val call: Call<Any> = searchUserService.getUserWithinARadius("${lastUpdatedLocation.latitude},${lastUpdatedLocation.longitude}", 50, "km", searchQuery)

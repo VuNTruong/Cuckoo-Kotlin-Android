@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.GetPostBasedOnIdService
+import com.beta.myhbt_api.Controller.Posts.GetPostBasedOnIdService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.HBTGramPost
 import com.beta.myhbt_api.Model.HBTGramPostPhoto
@@ -256,8 +256,8 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
                 // If the remaining number of images is greater than or equal to 4, load all images into image view
                 (holder as ViewHolderRecommendAlbumRow).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
                     hbtGramPostPhotoModelImage3.getImageURL(), hbtGramPostPhotoModelImage4.getImageURL(),
-                    hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(),
-                    hbtGramPostPhotoModelImage3.getPostId(), hbtGramPostPhotoModelImage4.getPostId())
+                    hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(),
+                    hbtGramPostPhotoModelImage3.getPhotoId(), hbtGramPostPhotoModelImage4.getPhotoId())
             } // If the remaining number of images in the array is less than 4, just load the remaining in and leave the rest blank
             else {
                 // Based on the remaining number of images to decide
@@ -275,7 +275,7 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
 
                         (holder as ViewHolderRecommendAlbumRow).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
                             hbtGramPostPhotoModelImage3.getImageURL(), "",
-                            hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(), hbtGramPostPhotoModelImage3.getPostId(), "")
+                            hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(), hbtGramPostPhotoModelImage3.getPhotoId(), "")
                     }
                     arrayOfPhotos.size - ((position - 1) * 4) == 2 -> {
                         // Convert objects of the arrayOfComments array which is currently a linked tree map into a JSON string
@@ -287,7 +287,7 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
                         val hbtGramPostPhotoModelImage2 = gs.fromJson<HBTGramPostPhoto>(jsImage2, HBTGramPostPhoto::class.java)
 
                         (holder as ViewHolderRecommendAlbumRow).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(), "", "",
-                            hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(), "", "")
+                            hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(), "", "")
                     }
                     arrayOfPhotos.size - ((position - 1) * 4) == 1 -> {
                         // Convert objects of the arrayOfComments array which is currently a linked tree map into a JSON string
@@ -297,7 +297,7 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
                         val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
 
                         (holder as ViewHolderRecommendAlbumRow).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), "", "", "",
-                            hbtGramPostPhotoModelImage1.getPostId(), "", "", "")
+                            hbtGramPostPhotoModelImage1.getPhotoId(), "", "", "")
                     }
                 }
             }
