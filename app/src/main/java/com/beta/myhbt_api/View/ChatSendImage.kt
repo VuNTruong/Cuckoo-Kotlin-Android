@@ -11,15 +11,32 @@ import com.beta.myhbt_api.Controller.Messages.CreateNewMessageService
 import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.Repository.MessageRepositories.MessageRepository
+import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
+import com.beta.myhbt_api.ViewModel.MessageViewModel
 import com.google.firebase.storage.FirebaseStorage
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_chat_send_image.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import kotlin.math.floor
 
 class ChatSendImage : AppCompatActivity() {
+    // Executor service to perform works in the background
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
+    // Message view model
+    private lateinit var messageViewModel: MessageViewModel
+
+    // Message repository
+    private lateinit var messageRepository: MessageRepository
+
+    // User repository
+    private lateinit var userRepository: UserRepository
+
     // These objects are used for socket.io
     //private lateinit var mSocket: Socket
     private val gson = Gson()
@@ -52,6 +69,15 @@ class ChatSendImage : AppCompatActivity() {
             overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
         }
 
+        // Initialize message repository
+        messageRepository = MessageRepository(executorService, applicationContext)
+
+        // Initialize user repository
+        userRepository = UserRepository(executorService, applicationContext)
+
+        // Initialize message view model
+        messageViewModel = MessageViewModel(applicationContext)
+
         // Get user id of the message receiver from previous activity
         messageReceiverUserId = intent.getStringExtra("messageReceiverUserId")!!
 
@@ -78,7 +104,8 @@ class ChatSendImage : AppCompatActivity() {
         // Set on click listener for the send message button
         sendImageButton.setOnClickListener {
             // Call the function to get info of the current user and send the image
-            getUserInfoAndSendMessage(messageReceiverUserId)
+            //getUserInfoAndSendMessage(messageReceiverUserId)
+            uploadImageAndSendMessage(imageURI!!)
         }
     }
 
@@ -106,82 +133,32 @@ class ChatSendImage : AppCompatActivity() {
         }
     }
 
-    // The function to get info of currently logged in user and create new message based on that
-    private fun getUserInfoAndSendMessage (receiverUserId: String) {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get user id of the currently logged in user
-                    val userId = data["_id"] as String
-
-                    // Execute the AsyncTask to create new message
-                    sendMessage(userId, receiverUserId)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
-    }
-
     // The function to create new message sent by current user and include the image
-    fun sendMessage (userId: String, receiverUserId: String) {
-        // Create the create new messages service
-        val createNewMessageService: CreateNewMessageService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            CreateNewMessageService::class.java)
+    private fun sendMessage (imageURL: String) {
+        // Call the function to send message
+        messageRepository.sendMessage(chatRoomId, messageReceiverUserId, "image") {messageSentFirstTime, messageObject, chatRoomId, currentUserId ->
+            if (!messageSentFirstTime) {
+                // Call the function to create new message image
+                messageRepository.createNewMessageImage(messageObject.getMessageId(), imageURL) {
+                    // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
+                    // the server know that this user has sent an image as message
+                    MainMenu.mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
+                        "sender" to currentUserId,
+                        "receiver" to messageReceiverUserId,
+                        "content" to "image",
+                        "messageId" to messageObject.getMessageId(),
+                        "chatRoomId" to chatRoomId
+                    )))
 
-        // Create the call object in order to perform the call
-        val call: Call<Any> = createNewMessageService.createNewMessage(userId, receiverUserId, "image")
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that message is created
-                if (response.body() != null) {
-                    // Body of the response
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get id of the sent message
-                    val sentMessageId = data["_id"] as String
-
-                    // Call the function to upload image for the message
-                    fileUploader(imageURI!!, sentMessageId, userId)
-                } else {
-                    print("Something is not right")
+                    // After that, finish this activity
+                    this@ChatSendImage.finish()
                 }
             }
-        })
+        }
     }
 
     // The function to perform the file uploading procedure
-    private fun fileUploader(imageURI: Uri, messageId: String, currentUserId: String) {
+    private fun uploadImageAndSendMessage(imageURI: Uri) {
         // Generate name for the image
         val imageName = generateRandomString(20)
 
@@ -200,42 +177,10 @@ class ChatSendImage : AppCompatActivity() {
             // Get URL of the image that has just been uploaded to the storage
             reference.downloadUrl.addOnSuccessListener { uri ->
                 // Call the function to add new message photo URL to the database
-                createNewImageURL(uri.toString(), messageId, currentUserId)
+                //createNewImageURL(uri.toString(), messageId)
+                sendMessage(uri.toString())
             }
         }
-    }
-
-    // The function to create new chat image URL in the database
-    private fun createNewImageURL (imageURL: String, messageId: String, currentUserId: String) {
-        // Create the create chat message photo service
-        val createMessagePhotoService: CreateNewChatMessagePhotoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            CreateNewChatMessagePhotoService::class.java)
-
-        // The call object which will then be used to perform the API call
-        val call: Call<Any> = createMessagePhotoService.createMessagePhoto(messageId, imageURL)
-
-        // Perform the API call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                // Report the error if something is not right
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
-                // the server know that this user has sent an image as message
-                MainMenu.mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
-                    "sender" to currentUserId,
-                    "receiver" to messageReceiverUserId,
-                    "content" to "image",
-                    "messageId" to messageId,
-                    "chatRoomId" to chatRoomId
-                )))
-
-                // After that, finish this activity
-                this@ChatSendImage.finish()
-            }
-        })
     }
 
     // The function to get extension of the image

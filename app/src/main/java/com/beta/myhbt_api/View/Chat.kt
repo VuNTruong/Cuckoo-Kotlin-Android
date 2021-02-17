@@ -311,7 +311,7 @@ class Chat : AppCompatActivity() {
     // The function to create new message and send it to the database
     private fun createNewMessage () {
         // Call the function to send message
-        messageViewModel.sendMessage(chatRoomId, receiverUserId, messageContentToSend.text.toString()) {messageSentFirstTime, messageObject, chatRoomIdInner ->
+        messageViewModel.sendMessage(chatRoomId, receiverUserId, messageContentToSend.text.toString()) {messageSentFirstTime, messageObject, chatRoomIdInner, currentUserId ->
             // Check to see if message sent in this chat room for the first time or not
             if (messageSentFirstTime) {
                 // Update chat room id
@@ -320,6 +320,28 @@ class Chat : AppCompatActivity() {
                 // Call the function to re-setup the socket.io since the chat room id is now obtained and updated
                 setUpSocketIO()
             }
+
+            //------------------ Send update via socket io ------------------
+            // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
+            // the server know that this user has sent an image as message
+            MainMenu.mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
+                "sender" to currentUserId,
+                "receiver" to receiverUserId,
+                "content" to messageContentToSend.text.toString(),
+                "messageId" to messageObject.getMessageId(),
+                "chatRoomId" to chatRoomId
+            )))
+
+            // Emit event to the server so that the server will let other user in the chat room know that
+            // current user is done typing
+            MainMenu.mSocket.emit(
+                "isDoneTyping", gson.toJson(
+                    hashMapOf(
+                        "chatRoomId" to chatRoomId
+                    )
+                )
+            )
+            //------------------ Send update via socket io ------------------
 
             //---------------------------- Update UI on the app side ----------------------------
             // Add new message object to the array of messages in this app

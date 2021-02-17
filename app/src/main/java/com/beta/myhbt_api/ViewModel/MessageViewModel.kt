@@ -33,11 +33,11 @@ class MessageViewModel (context: Context) {
     }
 
     // The function to send message from current user to the specified message receiver
-    fun sendMessage (messageRoomId: String, messageReceiverUserId: String, messageContent: String, callback: (messageSentFirstTime: Boolean, messageObject: Message, chatRoomId: String) -> Unit) {
+    fun sendMessage (messageRoomId: String, messageReceiverUserId: String, messageContent: String, callback: (messageSentFirstTime: Boolean, messageObject: Message, chatRoomId: String, currentUserId: String) -> Unit) {
         // Call the function to send message
-        messageRepository.sendMessage(messageRoomId, messageReceiverUserId, messageContent) {messageSentFirstTime, messageObject, chatRoomId ->
+        messageRepository.sendMessage(messageRoomId, messageReceiverUserId, messageContent) {messageSentFirstTime, messageObject, chatRoomId, currentUserId: String ->
             // Return message sent first time status and newly sent message object via callback function
-            callback(messageSentFirstTime, messageObject, chatRoomId)
+            callback(messageSentFirstTime, messageObject, chatRoomId, currentUserId)
         }
     }
 }

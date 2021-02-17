@@ -1,10 +1,7 @@
 package com.beta.myhbt_api.Repository.MessageRepositories
 
 import android.content.Context
-import com.beta.myhbt_api.Controller.Messages.CreateNewMessageService
-import com.beta.myhbt_api.Controller.Messages.GetAllMessagesOfChatRoomService
-import com.beta.myhbt_api.Controller.Messages.GetLatestMessageOfMessageRoomService
-import com.beta.myhbt_api.Controller.Messages.GetMessageRoomOfUserService
+import com.beta.myhbt_api.Controller.Messages.*
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.Message
 import com.beta.myhbt_api.Model.MessageRoom
@@ -182,7 +179,7 @@ class MessageRepository (executor: Executor, context: Context) {
     }
 
     // The function to send message from a currently logged in user to the specified message receiver
-    fun sendMessage (messageRoomId: String, messageReceiverUserId: String, messageContent: String, callback: (messageSentFirstTime: Boolean, messageObject: Message, chatRoomId: String) -> Unit) {
+    fun sendMessage (messageRoomId: String, messageReceiverUserId: String, messageContent: String, callback: (messageSentFirstTime: Boolean, messageObject: Message, chatRoomId: String, currentUserId: String) -> Unit) {
         executor.execute {
             // Call the function to get info of the currently logged in user
             userRepository.getInfoOfCurrentUser { userObject ->
@@ -208,27 +205,6 @@ class MessageRepository (executor: Executor, context: Context) {
                             // Get data from the response body (message object of the newly created message)
                             val data = responseBody["data"] as Map<String, Any>
 
-                            //---------------------------- Update on the server side (socket.io) ----------------------------
-                            // Emit event to the server so that the server will let the selected user know that new message has been sent
-                            MainMenu.mSocket.emit("newMessage", gson.toJson(hashMapOf(
-                                "sender" to userObject.getId(),
-                                "receiver" to messageReceiverUserId,
-                                "content" to messageContent,
-                                "messageId" to data["_id"] as String,
-                                "chatRoomId" to messageRoomId
-                            )))
-
-                            // Emit event to the server so that the server will let other user in the chat room know that
-                            // current user is done typing
-                            MainMenu.mSocket.emit(
-                                "isDoneTyping", gson.toJson(
-                                    hashMapOf(
-                                        "chatRoomId" to messageRoomId
-                                    )
-                                )
-                            )
-                            //---------------------------- End update UI on the server side (socket.io) ----------------------------
-
                             // Create the new message object
                             val newMessageObject = Message(userObject.getId(), messageReceiverUserId, messageContent, data["_id"] as String)
 
@@ -237,10 +213,10 @@ class MessageRepository (executor: Executor, context: Context) {
                             if (messageRoomId == "") {
                                 // Set the current chat room to be the one that contain the message that just been sent
                                 // This is very important especially when message is sent at the first time
-                                callback(true, newMessageObject, data["chatRoomId"] as String)
+                                callback(true, newMessageObject, data["chatRoomId"] as String, userObject.getId())
                             } else {
                                 // If room is already set, just need to return newly created message object
-                                callback(false, newMessageObject, data["chatRoomId"] as String)
+                                callback(false, newMessageObject, data["chatRoomId"] as String, userObject.getId())
                             }
                         } else {
                             print("Something is not right")
@@ -248,6 +224,31 @@ class MessageRepository (executor: Executor, context: Context) {
                     }
                 })
             }
+        }
+    }
+
+    // The function to create new message image in the database based on image id and image URL
+    fun createNewMessageImage (messageId: String, imageURL: String, callback: () -> Unit) {
+        executor.execute {
+            // Create the create chat message photo service
+            val createMessagePhotoService: CreateNewChatMessagePhotoService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                CreateNewChatMessagePhotoService::class.java)
+
+            // The call object which will then be used to perform the API call
+            val call: Call<Any> = createMessagePhotoService.createMessagePhoto(messageId, imageURL)
+
+            // Perform the API call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    // Report the error if something is not right
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // Call the function to let the view model know that message image has been uploaded to the database
+                    callback()
+                }
+            })
         }
     }
 }
