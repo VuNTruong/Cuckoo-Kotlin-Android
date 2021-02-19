@@ -1,13 +1,17 @@
 package com.beta.myhbt_api.View
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Controller.User.UpdateUserLocationService
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.Repository.LocationRepositories.LocationRepository
 import com.mapbox.android.core.location.*
 import com.mapbox.android.core.permissions.PermissionsListener
 import com.mapbox.android.core.permissions.PermissionsManager
@@ -27,8 +31,16 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.lang.ref.WeakReference
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class UpdateLocation : AppCompatActivity(), PermissionsListener {
+    // Executor service to perform works in the background
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
+    // Location repository
+    private lateinit var locationRepository: LocationRepository
+
     // Current location of the user (maybe used later on in the app)
     private lateinit var userCurrentLocation: LatLng
 
@@ -56,6 +68,10 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
         // Hide the action bar
         supportActionBar!!.hide()
 
+        // Instantiate the location repository
+        locationRepository = LocationRepository(executorService, applicationContext)
+
+        // Get mapbox instance
         Mapbox.getInstance(this, getString(R.string.mapbox_access_token))
         setContentView(R.layout.activity_update_location)
 
@@ -95,7 +111,7 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
         // Set on click listener for the update location button
         updateLocationButton.setOnClickListener {
             // Call the function to update location of the user
-            getInfoOfCurrentUserAndUpdateLocation(userCurrentLocation, whatAreYouDoingEditText.text.toString())
+            updateUserLocation(whatAreYouDoingEditText.text.toString(), userCurrentLocation)
         }
     }
     //*********************************** OBTAIN USER'S LOCATION SEQUENCE ***********************************
@@ -114,51 +130,11 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
 
     // The function to get info of the current user
     private fun getInfoOfCurrentUserAndLastUpdatedLocation (mapbox: MapboxMap) {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get last updated location of the current user
-                    val locationObject = data["location"] as Map<String, Any>
-                    val coordinatesArray = locationObject["coordinates"] as ArrayList<Double>
-
-                    // Get description of the user location
-                    val locationDescription = locationObject["description"] as String
-
-                    // Get the latitude
-                    val latitude = coordinatesArray[1]
-
-                    // Get the longitude
-                    val longitude = coordinatesArray[0]
-
-                    // Create the location object for the last updated location of the current user
-                    val center = LatLng(latitude, longitude)
-
-                    // Call the function to pin last updated location of the user on the map
-                    pinUser(center, locationDescription, mapbox)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+        // Call the function to get last updated location of the currently logged in user
+        locationRepository.getLastUpdatedLocationOfCurrentUser { lastUpdatedLocation, locationDescription ->
+            // Call the function to pin last updated location of the user on the map
+            pinUser(lastUpdatedLocation, locationDescription, mapbox)
+        }
     }
 
     // The function to add marker on map for the selected user
@@ -228,6 +204,23 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
                 activateLocationComponent(locationComponentActivationOptions)
 
                 // Enable to make the LocationComponent visible
+                if (ActivityCompat.checkSelfPermission(
+                        this@UpdateLocation.applicationContext,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                        this@UpdateLocation.applicationContext,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return
+                }
                 isLocationComponentEnabled = true
 
                 // Set the LocationComponent's camera mode
@@ -252,6 +245,23 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
             LocationEngineRequest.Builder(DEFAULT_INTERVAL_IN_MILLISECONDS)
                 .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
                 .setMaxWaitTime(DEFAULT_MAX_WAIT_TIME).build()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
         locationEngine.requestLocationUpdates(request, callback, mainLooper)
         locationEngine.getLastLocation(callback)
     }
@@ -288,79 +298,10 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
         }
     }
     //--------------------------------- END SEQUENCE OF GETTING USER'S CURRENT LOCATION ---------------------------------
-
-    //--------------------------------- UPDATE USER'S LOCATION SEQUENCE ---------------------------------
-    // The function to get info of the current user
-    private fun getInfoOfCurrentUserAndUpdateLocation (location: LatLng, whatAreYouDoing: String) {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get id of the current user
-                    val currentUserId = data["_id"] as String
-
-                    // Cal the function to update user location
-                    updateUserLocation(currentUserId, whatAreYouDoing, location)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
-    }
-
     // The function to update user's location
-    fun updateUserLocation (currentUserId: String, whatAreYouDoing: String, location: LatLng) {
-        // Create the update user location service
-        val updateUserLocationService: UpdateUserLocationService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
-            UpdateUserLocationService::class.java)
-
-        // Body of the JSON request
-        val requestBody = hashMapOf(
-            "location" to hashMapOf(
-                "description" to whatAreYouDoing,
-                "type" to "Point",
-                "coordinates" to arrayOf(location.longitude, location.latitude)
-            )
-        )
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = updateUserLocationService.updateUserLocation(requestBody, currentUserId)
-
-        // Perform the API call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                // Report the error if something is not right
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is null, it means that the user may didn't enter the correct email or password
-                if (response.body() == null) {
-                    // Show the user that the login was not successful
-                    Toast.makeText(applicationContext, "Something is not right", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(applicationContext, "Updated", Toast.LENGTH_SHORT).show()
-                }
-            }
-        })
+    fun updateUserLocation (whatAreYouDoing: String, location: LatLng) {
+        // Call the function to update location of the currently logged in user
+        locationRepository.updateLocation(whatAreYouDoing, location)
     }
     //--------------------------------- END UPDATE USER'S LOCATION SEQUENCE ---------------------------------
 

@@ -14,12 +14,18 @@ import com.beta.myhbt_api.Controller.User.SearchUserService
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterSearchFriend
+import com.beta.myhbt_api.ViewModel.UserViewModel
 import kotlinx.android.synthetic.main.fragment_search_friends.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class SearchFriendFragment : Fragment() {
+    // User view model
+    private lateinit var userViewModel : UserViewModel
+
     // Array of users
     private var users = ArrayList<User>()
 
@@ -32,6 +38,9 @@ class SearchFriendFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Instantiate the user view model
+        userViewModel = UserViewModel(this.requireContext())
 
         // Instantiate the recycler view
         searchFriendsView.layoutManager = LinearLayoutManager(this.requireContext())
@@ -60,38 +69,16 @@ class SearchFriendFragment : Fragment() {
 
     // The function to load list of users based on search query
     fun searchUsers (searchQuery: String) {
-        // Create the search user service
-        val searchUserService : SearchUserService = RetrofitClientInstance.getRetrofitInstance(this@SearchFriendFragment.requireActivity())!!.create(
-            SearchUserService::class.java)
+        // Call the function to get list of found users based on search query
+        userViewModel.searchUserBasedOnFullName(searchQuery) {listOfUsers ->
+            // Update list of users
+            users = listOfUsers
 
-        // Create the call object in order to perform the call
-        val call: Call<Any> = searchUserService.searchUser(searchQuery)
+            // Update the adapter
+            adapter = RecyclerViewAdapterSearchFriend(users, this@SearchFriendFragment.requireActivity())
 
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is no error
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as ArrayList<User>
-
-                    // Update list of users
-                    users = data
-
-                    // Update the adapter
-                    adapter = RecyclerViewAdapterSearchFriend(users, this@SearchFriendFragment.requireActivity())
-
-                    // Add adapter to the RecyclerView
-                    searchFriendsView.adapter = adapter
-                }
-            }
-        })
+            // Add adapter to the RecyclerView
+            searchFriendsView.adapter = adapter
+        }
     }
 }

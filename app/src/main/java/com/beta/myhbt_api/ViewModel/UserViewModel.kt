@@ -24,4 +24,22 @@ class UserViewModel (context: Context) {
             callback(userObject)
         }
     }
+
+    // The function to search for user based on full name
+    fun searchUserBasedOnFullName (searchQuery: String, callback: (listOfUsers: ArrayList<User>) -> Unit) {
+        // Call the function to get list of users based on full name
+        userInfoRepository.searchUser(searchQuery) {arrayOfUsers ->
+            // Return array of found users based on search query via callback function
+            callback(arrayOfUsers)
+        }
+    }
+
+    // The function to search for user around last updated location of the currently logged in user
+    fun searchUserAround (searchQuery: String, callback: (listOfUsers: ArrayList<User>) -> Unit) {
+        // Call the function to get list of users around the last updated location of the currently logged in user
+        userInfoRepository.searchUserAround(searchQuery) {arrayOfUsers ->
+            // Return array of found users based on search query via callback function
+            callback(arrayOfUsers)
+        }
+    }
 }

@@ -1,11 +1,16 @@
 package com.beta.myhbt_api.Repository.UserRepositories
 
 import android.content.Context
+import android.location.Location
 import com.beta.myhbt_api.Controller.*
+import com.beta.myhbt_api.Controller.Follows.GeteFollowerService
 import com.beta.myhbt_api.Controller.User.*
 import com.beta.myhbt_api.Model.User
+import com.beta.myhbt_api.Repository.LocationRepositories.LocationRepository
+import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterSearchFriend
 import com.google.gson.Gson
 import com.mapbox.mapboxsdk.geometry.LatLng
+import kotlinx.android.synthetic.main.fragment_search_friends.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -17,6 +22,9 @@ class UserRepository (executor: Executor, context: Context) {
 
     // Context of the parent activity
     private val context = context
+
+    // The location repository
+    private val locationRepository: LocationRepository = LocationRepository(executor, context)
 
     // In order to prevent us from encountering the class cast exception, we need to do the following
     // Create the GSON object
@@ -249,6 +257,113 @@ class UserRepository (executor: Executor, context: Context) {
                     //---------------- End get last updated location of the user ----------------
                 } else {
                     print("Something is not right")
+                }
+            }
+        })
+    }
+
+    // The function to search for user based on name
+    fun searchUser (searchQuery: String, callback: (arrayOfUsers: ArrayList<User>) -> Unit) {
+        // Do work in the background
+        executor.execute {
+            // Create the search user service
+            val searchUserService : SearchUserService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                SearchUserService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = searchUserService.searchUser(searchQuery)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that there is no error
+                    if (response.body() != null) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body (array of found users)
+                        val arrayOfFoundUsers = responseBody["data"] as ArrayList<User>
+
+                        // Call the function to return array of users to the view model
+                        callback(arrayOfFoundUsers)
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to search for user around a specified last updated location of the current user
+    fun searchUserAround (searchQuery: String, callback: (arrayOfUsers: ArrayList<User>) -> Unit) {
+        // Do work in the background
+        executor.execute {
+            // Call the function to get last update location of the currently logged in user
+            locationRepository.getLastUpdatedLocationOfCurrentUser { lastUpdatedLocation, _ ->
+                // Create the search user nearby service
+                val searchUserService : GetUserWithinARadiusService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    GetUserWithinARadiusService::class.java)
+
+                // Create the call object in order to perform the call
+                val call: Call<Any> = searchUserService.getUserWithinARadius("${lastUpdatedLocation.latitude},${lastUpdatedLocation.longitude}", 50, "km", searchQuery)
+
+                // Perform the call
+                call.enqueue(object: Callback<Any> {
+                    override fun onFailure(call: Call<Any>, t: Throwable) {
+                        print("Boom")
+                    }
+
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                        // If the response body is not empty it means that the token is valid
+                        if (response.body() != null) {
+                            // Body of the request
+                            val responseBody = response.body() as Map<String, Any>
+
+                            // Get data from the response body (array of found users)
+                            val listOfFoundUsers = responseBody["data"] as ArrayList<User>
+
+                            // Return list of users to view model via callback function
+                            callback(listOfFoundUsers)
+                        } else {
+                            print("Something is not right")
+                        }
+                    }
+                })
+            }
+        }
+    }
+
+    // The function to get list of followers of user with specified user id
+    fun getListOfLikes (userId: String, callback: (arrayOfLikes: ArrayList<String>) -> Unit) {
+        // Create the service for getting array of followers (we will get number of followers based on that)
+        val getArrayOfFollowersService: GeteFollowerService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+            GeteFollowerService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getArrayOfFollowersService.getFollowers(userId)
+
+        // Perform the call
+        call.enqueue(object : Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("There seem to be an error ${t.stackTrace}")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is data
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data of the response
+                    val data = responseBody["data"] as Map<String, Any>
+
+                    // Get list of followers
+                    val listOfFollowers = data["documents"] as ArrayList<Map<String, Any>>
+
+                    // Return list of followers to view model via callback function
+
                 }
             }
         })
