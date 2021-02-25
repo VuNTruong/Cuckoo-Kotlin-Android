@@ -1,16 +1,15 @@
 package com.beta.myhbt_api.Repository.UserRepositories
 
 import android.content.Context
-import android.location.Location
-import com.beta.myhbt_api.Controller.*
-import com.beta.myhbt_api.Controller.Follows.GeteFollowerService
-import com.beta.myhbt_api.Controller.User.*
+import android.widget.Toast
+import com.beta.myhbt_api.Network.*
+import com.beta.myhbt_api.Network.Follows.GeteFollowerService
+import com.beta.myhbt_api.Network.User.*
 import com.beta.myhbt_api.Model.User
+import com.beta.myhbt_api.Network.Follows.GetFollowingService
 import com.beta.myhbt_api.Repository.LocationRepositories.LocationRepository
-import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterSearchFriend
 import com.google.gson.Gson
 import com.mapbox.mapboxsdk.geometry.LatLng
-import kotlinx.android.synthetic.main.fragment_search_friends.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -22,9 +21,6 @@ class UserRepository (executor: Executor, context: Context) {
 
     // Context of the parent activity
     private val context = context
-
-    // The location repository
-    private val locationRepository: LocationRepository = LocationRepository(executor, context)
 
     // In order to prevent us from encountering the class cast exception, we need to do the following
     // Create the GSON object
@@ -114,6 +110,43 @@ class UserRepository (executor: Executor, context: Context) {
                 }
             })
         }
+    }
+
+    // The function to get user of user based on specified user id
+    fun getBioOfUserWithId (userId: String, callback: (userBio: String) -> Unit) {
+        // Create the get user info service
+        val getUserInfoService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+            GetUserInfoBasedOnIdService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = getUserInfoService.getUserInfoBasedOnId(userId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is not empty it means that there is data
+                if (response.body() != null) {
+                    // Body of the request
+                    val responseBody = response.body() as Map<String, Any>
+
+                    // Get data from the response body
+                    // Get obtain user data from that
+                    val data = (((responseBody["data"] as Map<String, Any>)["documents"]) as List<Map<String, Any>>)[0]
+
+                    // Load bio of the user
+                    val userBio = data["description"] as String
+
+                    // Return user bio via callback function
+                    callback(userBio)
+                } else {
+                    print("Something is not right")
+                }
+            }
+        })
     }
 
     // The function to validate login token of the current user
@@ -296,76 +329,142 @@ class UserRepository (executor: Executor, context: Context) {
         }
     }
 
-    // The function to search for user around a specified last updated location of the current user
-    fun searchUserAround (searchQuery: String, callback: (arrayOfUsers: ArrayList<User>) -> Unit) {
-        // Do work in the background
+    // The function to get list of followers of the user with specified user id
+    fun getListOfFollowers (userId: String, callback: (listOfUserId: ArrayList<String>) -> Unit) {
         executor.execute {
-            // Call the function to get last update location of the currently logged in user
-            locationRepository.getLastUpdatedLocationOfCurrentUser { lastUpdatedLocation, _ ->
-                // Create the search user nearby service
-                val searchUserService : GetUserWithinARadiusService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
-                    GetUserWithinARadiusService::class.java)
+            // Create the service for getting array of followers (we will get number of followers based on that)
+            val getArrayOfFollowersService: GeteFollowerService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GeteFollowerService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getArrayOfFollowersService.getFollowers(userId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("There seem to be an error ${t.stackTrace}")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that there is data
+                    if (response.body() != null) {
+                        // Array of user id of followers
+                        val arrayOfFollowerUserId = ArrayList<String>()
+
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data of the response
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get list of followers
+                        val listOfFollowers = data["documents"] as ArrayList<Map<String, Any>>
+
+                        // Loop through that list of followers, get follower info based on their id
+                        for (follower in listOfFollowers) {
+                            // Add user id of follower to the array of follower user id
+                            arrayOfFollowerUserId.add(follower["follower"] as String)
+                        }
+
+                        // Return list of follower user id via callback function
+                        callback(arrayOfFollowerUserId)
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to get list of following of user with specified user id
+    fun getListOfFollowing (userId: String, callback: (listOfUserId: ArrayList<String>) -> Unit) {
+        executor.execute {
+            // Create the service for getting number of followings
+            val getArrayOfFollowingService: GetFollowingService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetFollowingService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getArrayOfFollowingService.getFollowings(userId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("There seem to be an error ${t.stackTrace}")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that there is data
+                    if (response.body() != null) {
+                        // Array of user id of followings
+                        val arrayOfFollowingsUserId = ArrayList<String>()
+
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data of the response
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get list of followings
+                        val listOfFollowings = data["documents"] as ArrayList<Map<String, Any>>
+
+                        // Loop through that list of followings, get follower info based on their id
+                        for (following in listOfFollowings) {
+                            // Add user id of following to the array of following user id
+                            arrayOfFollowingsUserId.add(following["following"] as String)
+                        }
+
+                        // Return array of following user id via callback function
+                        callback(arrayOfFollowingsUserId)
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to update info of the currently logged in user
+    fun updateCurrentUserInfo (mapOfFields: Map<String, Any>, callback: (done: Boolean) -> Unit) {
+        executor.execute {
+            // Call the function to get info of the currently logged in user
+            getInfoOfCurrentUser { userObject ->
+                // Create the update user info service
+                val updateUserInfoService: UpdateUserInfoService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    UpdateUserInfoService::class.java)
 
                 // Create the call object in order to perform the call
-                val call: Call<Any> = searchUserService.getUserWithinARadius("${lastUpdatedLocation.latitude},${lastUpdatedLocation.longitude}", 50, "km", searchQuery)
+                val call: Call<Any> = updateUserInfoService.updateUserInfo(
+                    mapOfFields["avatarURL"] as String,
+                    mapOfFields["coverURL"] as String,
+                    mapOfFields["phoneNumber"] as String,
+                    mapOfFields["facebook"] as String,
+                    mapOfFields["instagram"] as String,
+                    mapOfFields["twitter"] as String,
+                    mapOfFields["zalo"] as String,
+                    userObject.getId()
+                )
 
-                // Perform the call
+                // Perform the API call
                 call.enqueue(object: Callback<Any> {
                     override fun onFailure(call: Call<Any>, t: Throwable) {
+                        // Report the error if something is not right
                         print("Boom")
                     }
 
                     override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                        // If the response body is not empty it means that the token is valid
-                        if (response.body() != null) {
-                            // Body of the request
-                            val responseBody = response.body() as Map<String, Any>
+                        // If the response body is null, it means that the user may didn't enter the correct email or password
+                        if (response.body() == null) {
+                            // Show the user that user update was not successful
+                            Toast.makeText(context, "Something is not right", Toast.LENGTH_SHORT).show()
 
-                            // Get data from the response body (array of found users)
-                            val listOfFoundUsers = responseBody["data"] as ArrayList<User>
-
-                            // Return list of users to view model via callback function
-                            callback(listOfFoundUsers)
+                            // Let the view know that user info was not updated via callback function
+                            callback(false)
                         } else {
-                            print("Something is not right")
+                            // Show the user that user update was successful
+                            Toast.makeText(context, "Updated", Toast.LENGTH_SHORT).show()
+
+                            // Let the view know that user info was updated via callback function
+                            callback(true)
                         }
                     }
                 })
             }
         }
-    }
-
-    // The function to get list of followers of user with specified user id
-    fun getListOfLikes (userId: String, callback: (arrayOfLikes: ArrayList<String>) -> Unit) {
-        // Create the service for getting array of followers (we will get number of followers based on that)
-        val getArrayOfFollowersService: GeteFollowerService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
-            GeteFollowerService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getArrayOfFollowersService.getFollowers(userId)
-
-        // Perform the call
-        call.enqueue(object : Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem to be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is data
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data of the response
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get list of followers
-                    val listOfFollowers = data["documents"] as ArrayList<Map<String, Any>>
-
-                    // Return list of followers to view model via callback function
-
-                }
-            }
-        })
     }
 }

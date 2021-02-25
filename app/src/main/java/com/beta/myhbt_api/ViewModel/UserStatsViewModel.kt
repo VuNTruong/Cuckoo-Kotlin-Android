@@ -25,4 +25,40 @@ class UserStatsViewModel (context: Context) {
             callback(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit)
         }
     }
+
+    // The function to get list of users who interact with currently logged in user
+    fun getListOfUserInteraction (callback: (arrayOfUserInteraction: ArrayList<UserInteraction>) -> Unit) {
+        // Call the function to get list user interaction
+        userStatsRepository.getListOfUserInteraction { arrayOfUserInteraction ->
+            // Return array of user interaction to view via callback function
+            callback(arrayOfUserInteraction)
+        }
+    }
+
+    // The function to get list of users who like post of currently logged in user
+    fun getListOfUserLikeInteraction (callback: (arrayOfUserLikeInteraction: ArrayList<UserLikeInteraction>) -> Unit) {
+        // Call the function to get list of user like interaction
+        userStatsRepository.getListOfUserLikeInteraction{arrayOfUserLikeInteraction ->
+            // Return array of user like interaction to view via callback function
+            callback(arrayOfUserLikeInteraction)
+        }
+    }
+
+    // The function to get list of users who comment on post of currently logged in user
+    fun getListOfUserCommentInteraction (callback: (arrayOfUserCommentInteraction: ArrayList<UserCommentInteraction>) -> Unit) {
+        // Call the function to get list of user comment interaction
+        userStatsRepository.getListUserCommentInteraction { arrayOfUserCommentInteraction ->
+            // Return array of user comment interaction to view via callback function
+            callback(arrayOfUserCommentInteraction)
+        }
+    }
+
+    // The function to get list of users who visit profile of the currently logged in user
+    fun getListOfUserProfileVisit (callback: (arrayOfUserProfileVisit: ArrayList<UserProfileVisit>) -> Unit) {
+        // Call the function to get list of user profile visit
+        userStatsRepository.getListOfUserProfileVisit { arrayOfUserProfileVisit ->
+            // Return array of user profile visit to view via callback function
+            callback(arrayOfUserProfileVisit)
+        }
+    }
 }

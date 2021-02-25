@@ -51,10 +51,10 @@
 
         <activity android:name=".View.LabelImage" />
         <activity android:name=".View.UserStats.UserStatsDetail" />
-        <activity android:name=".View.UserShow" />
-        <activity android:name=".View.HBTGramPostDetailCommentSendImage" />
-        <activity android:name=".View.SeeFriendsLocation" />
-        <activity android:name=".View.UpdateLocation" />
+        <activity android:name=".View.UserInfoView.UserShow" />
+        <activity android:name=".View.PostDetail.PostDetailCommentSendImage" />
+        <activity android:name=".View.Locations.SeeFriendsLocation" />
+        <activity android:name=".View.Locations.UpdateLocation" />
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
@@ -71,21 +71,21 @@
             android:value="@integer/google_play_services_version" />
 
         <activity android:name=".View.ExploreLocation" />
-        <activity android:name=".View.ProfileDetail" />
-        <activity android:name=".View.SearchUserToChatWith" />
-        <activity android:name=".View.ChatSendImage" />
+        <activity android:name=".View.UserInfoView.ProfileDetail" />
+        <activity android:name=".View.Chat.SearchUserToChatWith" />
+        <activity android:name=".View.Chat.ChatSendImage" />
         <activity
-            android:name=".View.Chat"
+            android:name=".View.Chat.Chat"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".View.UpdateCoverPhoto" />
-        <activity android:name=".View.UpdateAvatar" />
-        <activity android:name=".View.SignUp" />
+        <activity android:name=".View.UpdateUserInfo.UpdateCoverPhoto" />
+        <activity android:name=".View.UpdateUserInfo.UpdateAvatar" />
+        <activity android:name=".View.WelcomeView.SignUp" />
         <activity
-            android:name=".View.MainMenu"
+            android:name=".View.MainMenu.MainMenu"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".View.HBTGramPostDetail" />
-        <activity android:name=".View.LoginActivity" />
-        <activity android:name=".View.MainActivity" />
+        <activity android:name=".View.PostDetail.PostDetail" />
+        <activity android:name=".View.WelcomeView.LoginActivity" />
+        <activity android:name=".View.WelcomeView.MainActivity" />
     </application>
 
 </manifest>

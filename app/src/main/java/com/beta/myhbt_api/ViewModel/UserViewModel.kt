@@ -34,12 +34,21 @@ class UserViewModel (context: Context) {
         }
     }
 
-    // The function to search for user around last updated location of the currently logged in user
-    fun searchUserAround (searchQuery: String, callback: (listOfUsers: ArrayList<User>) -> Unit) {
-        // Call the function to get list of users around the last updated location of the currently logged in user
-        userInfoRepository.searchUserAround(searchQuery) {arrayOfUsers ->
-            // Return array of found users based on search query via callback function
-            callback(arrayOfUsers)
+    // The function to get array of user object of followers of user with specified user id
+    fun getListOfFollowerUserObject (userId: String, callback: (arrayOfUserId: ArrayList<String>) -> Unit) {
+        // Call the function to get list of user id of followers of user with specified user id
+        userInfoRepository.getListOfFollowers(userId) {listOfUserId ->
+            // Return array of user id via callback function
+            callback(listOfUserId)
+        }
+    }
+
+    // The function to get array of user object of followings of user wih specified user id
+    fun getListOfFollowingUserObject (userId: String, callback: (arrayOfUserId: ArrayList<String>) -> Unit) {
+        // Call the function to get list of user id of followings of user with specified user id
+        userInfoRepository.getListOfFollowing(userId) {listOfUserId ->
+            // Return array of user id via callback function
+            callback(listOfUserId)
         }
     }
 }

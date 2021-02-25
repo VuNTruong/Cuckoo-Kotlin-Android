@@ -1,15 +1,12 @@
 package com.beta.myhbt_api.Repository.MessageRepositories
 
 import android.content.Context
-import com.beta.myhbt_api.Controller.Messages.*
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Network.Messages.*
+import com.beta.myhbt_api.Network.RetrofitClientInstance
 import com.beta.myhbt_api.Model.Message
 import com.beta.myhbt_api.Model.MessageRoom
 import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
-import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterChat
-import com.beta.myhbt_api.View.MainMenu
 import com.google.gson.Gson
-import kotlinx.android.synthetic.main.activity_chat.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -22,9 +19,6 @@ class MessageRepository (executor: Executor, context: Context) {
 
     // The executor to do work in background thread
     private val executor = executor
-
-    // The user repository
-    private val userInfoRepository: UserRepository = UserRepository(executor, context)
 
     // Context of the parent activity
     private val context = context
@@ -95,7 +89,7 @@ class MessageRepository (executor: Executor, context: Context) {
     fun getLatestMessageInMessageRoom (messageRoomId: String, callback: (latestMessageContent: String) -> Unit) {
         executor.execute {
             // Call the function to get info of the currently logged in user
-            userInfoRepository.getInfoOfCurrentUser {userObject ->
+            userRepository.getInfoOfCurrentUser {userObject ->
                 // Create the get latest message of message room service
                 val getLatestMessageOfMessageRoomService: GetLatestMessageOfMessageRoomService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
                     GetLatestMessageOfMessageRoomService::class.java)
@@ -247,6 +241,55 @@ class MessageRepository (executor: Executor, context: Context) {
                 override fun onResponse(call: Call<Any>, response: Response<Any>) {
                     // Call the function to let the view model know that message image has been uploaded to the database
                     callback()
+                }
+            })
+        }
+    }
+
+    // The function to check for chat room between the 2 users
+    // (between currently logged in user and other user with specified id)
+    fun checkChatRoomBetween2Users (otherUserId: String, callback: (chatRoomId: String) -> Unit) {
+        // Call the function to get info of the currently logged in user
+        userRepository.getInfoOfCurrentUser { userObject ->
+            // Create the get chat room between 2 users service
+            val getChatRoomIdBetween2UsersService: GetMessageRoomIdBetween2UsersService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetMessageRoomIdBetween2UsersService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getChatRoomIdBetween2UsersService.getMessageRoomIddBetween2Users(userObject.getId(), otherUserId)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("There seem be be an error ${t.stackTrace}")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get status of the call (it can be either empty or success)
+                        val status = responseBody["status"] as String
+
+                        // If the status is success, get message room id and pass it to the next view controller
+                        if (status == "success") {
+                            // Get data of the response
+                            val data = responseBody["data"] as Map<String, Any>
+
+                            // Chat chat room id
+                            val chatRoomId = data["_id"] as String
+
+                            // Return chat room id via callback function
+                            callback(chatRoomId)
+                        } // Otherwise, go to the chat activity and let the chat room id be blank
+                        else {
+                            callback("")
+                        }
+                    } else {
+                        print("Something is not right")
+                    }
                 }
             })
         }

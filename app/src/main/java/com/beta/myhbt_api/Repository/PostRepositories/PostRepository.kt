@@ -2,12 +2,12 @@ package com.beta.myhbt_api.Repository.PostRepositories
 
 import android.content.Context
 import android.widget.Toast
-import com.beta.myhbt_api.Controller.*
-import com.beta.myhbt_api.Controller.LikesAndComments.*
-import com.beta.myhbt_api.Controller.Posts.*
-import com.beta.myhbt_api.Model.HBTGramPost
-import com.beta.myhbt_api.Model.HBTGramPostComment
-import com.beta.myhbt_api.Model.HBTGramPostPhoto
+import com.beta.myhbt_api.Network.*
+import com.beta.myhbt_api.Network.LikesAndComments.*
+import com.beta.myhbt_api.Network.Posts.*
+import com.beta.myhbt_api.Model.CuckooPost
+import com.beta.myhbt_api.Model.PostComment
+import com.beta.myhbt_api.Model.PostPhoto
 import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
 import com.google.gson.Gson
 import retrofit2.Call
@@ -26,7 +26,7 @@ class PostRepository (executor: Executor, context: Context) {
     private val userRepository = UserRepository(executor, context)
 
     // The function to get posts for the currently logged in user based on id
-    fun getPostsForUser (userId: String, currentLocationInList: Int, callback: (postArray: ArrayList<HBTGramPost>, newCurrentLocationInList: Int, status: String) -> Unit) {
+    fun getPostsForUser (userId: String, currentLocationInList: Int, callback: (postArray: ArrayList<CuckooPost>, newCurrentLocationInList: Int, status: String) -> Unit) {
         executor.execute{
             // Create the get all posts service
             val getAllPostService: GetAllPostService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
@@ -48,7 +48,7 @@ class PostRepository (executor: Executor, context: Context) {
                         val responseBody = response.body() as Map<String, Any>
 
                         // Get data from the response body (array of posts)
-                        val hbtGramPostsArray = (responseBody["data"]) as ArrayList<HBTGramPost>
+                        val hbtGramPostsArray = (responseBody["data"]) as ArrayList<CuckooPost>
 
                         // Get new order in collection to load next series of posts
                         val newCurrentLocationInList = ((responseBody["newCurrentLocationInList"]) as Double).toInt()
@@ -334,7 +334,7 @@ class PostRepository (executor: Executor, context: Context) {
     }
 
     // The function to get post detail of the post with the specified post id
-    fun getPostDetail (postId: String, callback: (arrayOfImages: ArrayList<HBTGramPostPhoto>, arrayOfComments: ArrayList<HBTGramPostComment>, status: String) -> Unit) {
+    fun getPostDetail (postId: String, callback: (arrayOfImages: ArrayList<PostPhoto>, arrayOfComments: ArrayList<PostComment>, status: String) -> Unit) {
         executor.execute{
             // Create the get post detail service
             val getHBTGramPostDetail: GetPostDetail = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
@@ -356,10 +356,10 @@ class PostRepository (executor: Executor, context: Context) {
                         val responseBody = response.body() as Map<String, Any>
 
                         // Get array of images of the post
-                        val arrayOfImages = responseBody["arrayOfImages"] as ArrayList<HBTGramPostPhoto>
+                        val arrayOfImages = responseBody["arrayOfImages"] as ArrayList<PostPhoto>
 
                         // Get array of comments
-                        val arrayOfComments = responseBody["arrayOfComments"] as ArrayList<HBTGramPostComment>
+                        val arrayOfComments = responseBody["arrayOfComments"] as ArrayList<PostComment>
 
                         // Return array of images and comments of the post to the view model via callback function
                         callback(arrayOfImages, arrayOfComments, "Done")
@@ -414,7 +414,7 @@ class PostRepository (executor: Executor, context: Context) {
     }
 
     // The function to get posts nearby location of the currently logged in user
-    fun getPostAroundOfCurrentUser (callback: (arrayOfPosts: ArrayList<HBTGramPost>, locationForNextLoad: Int) -> Unit) {
+    fun getPostAroundOfCurrentUser (callback: (arrayOfPosts: ArrayList<CuckooPost>, locationForNextLoad: Int) -> Unit) {
         executor.execute {
             // Call the function to get last updated location of the currently logged in user
             userRepository.getLocationOfCurrentUser { lastUpdatedLocation ->
@@ -441,7 +441,7 @@ class PostRepository (executor: Executor, context: Context) {
                                 val responseBody = response.body() as Map<String, Any>
 
                                 // Get data from the response body (array of posts)
-                                val hbtGramPostsArray = responseBody["data"] as ArrayList<HBTGramPost>
+                                val hbtGramPostsArray = responseBody["data"] as ArrayList<CuckooPost>
 
                                 // Get new order in collection to load next series of posts
                                 val newCurrentLocationInList = (responseBody["newCurrentLocationInList"] as Double).toInt()
@@ -460,12 +460,12 @@ class PostRepository (executor: Executor, context: Context) {
     }
 
     // The function to get post object based on post id
-    fun getPostObjectBasedOnId (postId: String, callback: (postObject: HBTGramPost, foundPost: Boolean) -> Unit) {
+    fun getPostObjectBasedOnId (postId: String, callback: (postObject: CuckooPost, foundPost: Boolean) -> Unit) {
         executor.execute {
             // If the post detail is empty, get out of the sequence
             if (postId == "") {
                 // Let view model know that there is no post found via callback function
-                callback(HBTGramPost("", "","",0,0,""), false)
+                callback(CuckooPost("", "","",0,0,""), false)
             }
 
             // Create the get post based on id service
@@ -498,10 +498,119 @@ class PostRepository (executor: Executor, context: Context) {
                         val jsPost = gs.toJson(data)
 
                         // Convert the JSOn string back into HBTGramPost class
-                        val hbtGramPostModel = gs.fromJson<HBTGramPost>(jsPost, HBTGramPost::class.java)
+                        val hbtGramPostModel = gs.fromJson<CuckooPost>(jsPost, CuckooPost::class.java)
 
                         // Return post object via callback function
                         callback(hbtGramPostModel, true)
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to get list of likes of the post with specified post id
+    fun getListOfLikes (postId: String, callback: (listOfUsers: ArrayList<String>) -> Unit) {
+        executor.execute {
+            // Create the get post likes service
+            val getPostLikesService: GetAllPostLikesService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetAllPostLikesService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getPostLikesService.getPostLikes(postId)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        // Array of user id of users who like the post
+                        val arrayOfLiker = ArrayList<String>()
+
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data of the response
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get data from the response
+                        val listOfLikes = data["documents"] as ArrayList<Map<String, Any>>
+
+                        // Loop through that list of likes, get liker info based on their id
+                        for (like in listOfLikes) {
+                            // Add user id of liker to the array of users who like the post
+                            arrayOfLiker.add(like["whoLike"] as String)
+                        }
+
+                        // Return array of user ids of user who like post with the specified post id via callback function
+                        callback(arrayOfLiker)
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to get number of posts created by user with specified user id
+    fun getNumOfPostsCreatedByUserWithId (userId: String, callback: (numOfPosts: Int) -> Unit) {
+        executor.execute {
+            // Create the service for getting number of posts
+            val getPostsOfUserService: GetPostsOfUserService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetPostsOfUserService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getPostsOfUserService.getPostsOfUser(userId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("There seem to be an error ${t.stackTrace}")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that there is data
+                    if (response.body() != null) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get number of posts
+                        val numOfPosts = (responseBody["results"] as Double).toInt()
+
+                        // Return number of posts via callback function
+                        callback(numOfPosts)
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to delete a post with specified post id
+    fun deletePost (postId: String, callback: (postDeleted: Boolean) -> Unit) {
+        executor.execute {
+            // Create the delete post service
+            val deletePostService: DeletePostService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                DeletePostService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = deletePostService.deletePost(postId)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        // Let the view know that post has been deleted via callback function
+                        callback(true)
                     } else {
                         print("Something is not right")
                     }

@@ -2,38 +2,21 @@ package com.beta.myhbt_api.View.Fragments
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
-import android.os.AsyncTask
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.*
-import com.beta.myhbt_api.Controller.Posts.CreateNewPostPhotoLabelService
-import com.beta.myhbt_api.Controller.Posts.CreateNewPostPhotoService
-import com.beta.myhbt_api.Controller.Posts.CreateNewPostService
-import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.Repository.PostRepositories.CreatePostRepository
-import com.beta.myhbt_api.Repository.PostRepositories.PostRepository
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterHBTGramPostPhoto
-import com.google.firebase.ml.vision.FirebaseVision
-import com.google.firebase.ml.vision.common.FirebaseVisionImage
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.android.synthetic.main.fragment_create_post.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.math.floor
 
 class CreatePostFragment : Fragment() {
     // Executor service to perform works in the background

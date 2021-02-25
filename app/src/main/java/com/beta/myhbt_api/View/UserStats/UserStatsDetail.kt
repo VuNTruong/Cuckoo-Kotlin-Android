@@ -4,32 +4,33 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.*
-import com.beta.myhbt_api.Controller.LikesAndComments.GetUserLikeInteractionStatusService
-import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.UserStats.GetUserCommentInteractionStatusService
-import com.beta.myhbt_api.Controller.UserStats.GetUserInteractionStatusService
-import com.beta.myhbt_api.Controller.UserStats.GetUserProfileVisitStatusService
+import com.beta.myhbt_api.Network.*
+import com.beta.myhbt_api.Network.LikesAndComments.GetUserLikeInteractionStatusService
+import com.beta.myhbt_api.Network.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Network.UserStats.GetUserCommentInteractionStatusService
+import com.beta.myhbt_api.Network.UserStats.GetUserInteractionStatusService
+import com.beta.myhbt_api.Network.UserStats.GetUserProfileVisitStatusService
 import com.beta.myhbt_api.Model.UserCommentInteraction
 import com.beta.myhbt_api.Model.UserInteraction
 import com.beta.myhbt_api.Model.UserLikeInteraction
 import com.beta.myhbt_api.Model.UserProfileVisit
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterUserStatsDetail
+import com.beta.myhbt_api.ViewModel.UserStatsViewModel
 import kotlinx.android.synthetic.main.activity_user_stats_detail.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
 class UserStatsDetail : AppCompatActivity() {
+    // User stats view model
+    private lateinit var userStatsViewModel: UserStatsViewModel
+
     // Adapter for the RecyclerView
     private var adapter: RecyclerViewAdapterUserStatsDetail ?= null
 
     // The variable which will keep track of which kind of user stats status to be shown at this activity
     private var userStatsKindToShow = ""
-
-    // User id of the currently logged in user
-    private var currentUserId = ""
 
     // Array of user interaction status objects to be shown to the user (if the activity suppose to show it)
     private var arrayOfUserInteraction = ArrayList<UserInteraction>()
@@ -55,6 +56,9 @@ class UserStatsDetail : AppCompatActivity() {
         // Hide the action bar
         supportActionBar!!.hide()
 
+        // Instantiate the user stats view model
+        userStatsViewModel = UserStatsViewModel(applicationContext)
+
         // Set on click listener for the back button
         backButtonUserStatsDetail.setOnClickListener {
             this.finish()
@@ -67,222 +71,89 @@ class UserStatsDetail : AppCompatActivity() {
         userStatsDetailView.layoutManager = LinearLayoutManager(applicationContext)
         userStatsDetailView.itemAnimator = DefaultItemAnimator()
 
-        // Call the function to get info of the currently logged in user and load user stats detail
-        getInfoOfCurrentUserAndLoadUserStats()
+        // Call the function to get detail user stats of the currently logged in user
+        getUserStats()
     }
 
     //**************************** GET INFO OF CURRENT USER SEQUENCE ****************************
-    // The function to get info of the currently logged in user
-    private fun getInfoOfCurrentUserAndLoadUserStats () {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
+    // The function to call the right function to get the right user stats
+    private fun getUserStats () {
+        // Based on which kind user stats info to load to load to right thing
+        when (userStatsKindToShow) {
+            "userInteraction" -> {
+                // Call the function to load user interaction
+                getUserInteraction()
             }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get user id in the database of the currently logged in user
-                    val userId = data["_id"] as String
-
-                    // Load user id into the user id property of this activity
-                    currentUserId = userId
-
-                    // Based on which kind user stats info to load to load to right thing
-                    when (userStatsKindToShow) {
-                        "userInteraction" -> {
-                            // Call the function to load user interaction
-                            getUserInteraction()
-                        }
-                        "userLikeInteraction" -> {
-                            getUserLikeInteraction()
-                        }
-                        "userCommentInteraction" -> {
-                            getUserCommentInteraction()
-                        }
-                        "userProfileVisit" -> {
-                            getUserProfileVisit()
-                        }
-                    }
-                } else {
-                    print("Something is not right")
-                }
+            "userLikeInteraction" -> {
+                getUserLikeInteraction()
             }
-        })
+            "userCommentInteraction" -> {
+                getUserCommentInteraction()
+            }
+            "userProfileVisit" -> {
+                getUserProfileVisit()
+            }
+        }
     }
-    //**************************** END GET INFO OF CURRENT USER SEQUENCE ****************************
 
-    //**************************** GET USER DETAIL STATS INFO SEQUENCE ****************************
     // The function to get list of user interaction for the currently logged in user
     private fun getUserInteraction () {
-        // Create the get user interaction service
-        val getUserInteractionStatusService: GetUserInteractionStatusService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetUserInteractionStatusService::class.java)
+        // Call the function to get detail user interaction of the currently logged in user
+        userStatsViewModel.getListOfUserInteraction { arrayOfUserInteractionParam ->
+            // Update the array of user interaction
+            arrayOfUserInteraction = arrayOfUserInteractionParam
 
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getUserInteractionStatusService.getUserInteractionStatus(currentUserId, 0)
+            // Update the adapter
+            adapter = RecyclerViewAdapterUserStatsDetail(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit, this@UserStatsDetail)
 
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body (array of user interaction)
-                    val data = responseBody["data"] as ArrayList<UserInteraction>
-
-                    // Update the array of user interaction
-                    arrayOfUserInteraction = data
-
-                    // Update the adapter
-                    adapter = RecyclerViewAdapterUserStatsDetail(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit, this@UserStatsDetail)
-
-                    // Add adapter to the RecyclerView
-                    userStatsDetailView.adapter = adapter
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+            // Add adapter to the RecyclerView
+            userStatsDetailView.adapter = adapter
+        }
     }
 
     // The function to get list of user like interaction for the currently logged in user
     private fun getUserLikeInteraction () {
-        // Create the get user like interaction service
-        val getUserLikeInteractionStatusService: GetUserLikeInteractionStatusService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetUserLikeInteractionStatusService::class.java)
+        // Call the function to get detail user like interaction of the currently logged in use
+        userStatsViewModel.getListOfUserLikeInteraction { arrayOfUserLikeInteractionParam ->
+            // Update the array of user like interaction
+            arrayOfUserLikeInteraction = arrayOfUserLikeInteractionParam
 
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getUserLikeInteractionStatusService.getUserLikeInteractionStatus(currentUserId, 0)
+            // Update the adapter
+            adapter = RecyclerViewAdapterUserStatsDetail(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit, this@UserStatsDetail)
 
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body (array of user like interaction)
-                    val data = responseBody["data"] as ArrayList<UserLikeInteraction>
-
-                    // Update the array of user like interaction
-                    arrayOfUserLikeInteraction = data
-
-                    // Update the adapter
-                    adapter = RecyclerViewAdapterUserStatsDetail(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit, this@UserStatsDetail)
-
-                    // Add adapter to the RecyclerView
-                    userStatsDetailView.adapter = adapter
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+            // Add adapter to the RecyclerView
+            userStatsDetailView.adapter = adapter
+        }
     }
 
     // The function to get list of user comment interaction for the currently logged in user
     private fun getUserCommentInteraction () {
-        // Create the get user comment interaction service
-        val getUserCommentInteractionStatusService: GetUserCommentInteractionStatusService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetUserCommentInteractionStatusService::class.java)
+        // Call the function to get detail user comment interaction of the currently logged in user
+        userStatsViewModel.getListOfUserCommentInteraction { arrayOfUserCommentInteractionParam ->
+            // Update the array of user comment interaction
+            arrayOfUserCommentInteraction = arrayOfUserCommentInteractionParam
 
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getUserCommentInteractionStatusService.getUserCommentInteractionStatus(currentUserId, 0)
+            // Update the adapter
+            adapter = RecyclerViewAdapterUserStatsDetail(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit, this@UserStatsDetail)
 
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body (array of user comment interaction)
-                    val data = responseBody["data"] as ArrayList<UserCommentInteraction>
-
-                    // Update the array of user comment interaction
-                    arrayOfUserCommentInteraction = data
-
-                    // Update the adapter
-                    adapter = RecyclerViewAdapterUserStatsDetail(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit, this@UserStatsDetail)
-
-                    // Add adapter to the RecyclerView
-                    userStatsDetailView.adapter = adapter
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+            // Add adapter to the RecyclerView
+            userStatsDetailView.adapter = adapter
+        }
     }
 
     // The function to get list of user profile visits for the currently logged in user
     private fun getUserProfileVisit () {
-        // Create the get user profile visit service
-        val getUserProfileVisitStatusService: GetUserProfileVisitStatusService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetUserProfileVisitStatusService::class.java)
+        // Call the function to get detail user profile visit of the currently logged in user
+        userStatsViewModel.getListOfUserProfileVisit { arrayOfUserProfileVisitParam ->
+            // Update the array of user comment interaction
+            arrayOfUserProfileVisit = arrayOfUserProfileVisitParam
 
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getUserProfileVisitStatusService.getUserProfileVisitStatus(currentUserId, 0)
+            // Update the adapter
+            adapter = RecyclerViewAdapterUserStatsDetail(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit, this@UserStatsDetail)
 
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that call is successful
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body (array of user profile visit)
-                    val data = responseBody["data"] as ArrayList<UserProfileVisit>
-
-                    // Update the array of user profile visit
-                    arrayOfUserProfileVisit = data
-
-                    // Update the adapter
-                    adapter = RecyclerViewAdapterUserStatsDetail(arrayOfUserInteraction, arrayOfUserLikeInteraction, arrayOfUserCommentInteraction, arrayOfUserProfileVisit, this@UserStatsDetail)
-
-                    // Add adapter to the RecyclerView
-                    userStatsDetailView.adapter = adapter
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+            // Add adapter to the RecyclerView
+            userStatsDetailView.adapter = adapter
+        }
     }
     //**************************** END GET USER DETAIL STATS INFO SEQUENCE ****************************
 }

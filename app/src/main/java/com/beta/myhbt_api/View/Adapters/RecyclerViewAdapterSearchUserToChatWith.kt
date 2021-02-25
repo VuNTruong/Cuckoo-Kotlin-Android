@@ -8,12 +8,12 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.Messages.GetMessageRoomIdBetween2UsersService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Network.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Network.Messages.GetMessageRoomIdBetween2UsersService
+import com.beta.myhbt_api.Network.RetrofitClientInstance
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
-import com.beta.myhbt_api.View.Chat
+import com.beta.myhbt_api.View.Chat.Chat
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import retrofit2.Call

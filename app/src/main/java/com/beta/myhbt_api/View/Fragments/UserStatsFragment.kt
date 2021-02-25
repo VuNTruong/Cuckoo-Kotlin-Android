@@ -7,20 +7,10 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.*
-import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.UserStats.GetBriefUserStatsService
-import com.beta.myhbt_api.Model.UserCommentInteraction
-import com.beta.myhbt_api.Model.UserInteraction
-import com.beta.myhbt_api.Model.UserLikeInteraction
-import com.beta.myhbt_api.Model.UserProfileVisit
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterUserStats
 import com.beta.myhbt_api.ViewModel.UserStatsViewModel
 import kotlinx.android.synthetic.main.fragment_user_stats.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 class UserStatsFragment : Fragment() {
     // User stats view model

@@ -2,28 +2,22 @@ package com.beta.myhbt_api.View.Adapters
 
 import android.app.Activity
 import android.content.Intent
-import android.os.AsyncTask
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Controller.User.UpdateUserInfoService
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
 import com.beta.myhbt_api.View.Fragments.ProfileFragment
-import com.beta.myhbt_api.View.UpdateAvatar
-import com.beta.myhbt_api.View.UpdateCoverPhoto
+import com.beta.myhbt_api.View.UpdateUserInfo.UpdateAvatar
+import com.beta.myhbt_api.View.UpdateUserInfo.UpdateCoverPhoto
 import com.bumptech.glide.Glide
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
-class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<String, Any>, activity: Activity, profileFragment: ProfileFragment): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<String, Any>, activity: Activity, profileFragment: ProfileFragment, userRepository: UserRepository): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Activity of the parent activity
     private val activity = activity
 
@@ -36,9 +30,11 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
     // Maps of fields with value
     private val mapOfFields = mapOfFields
 
+    // User repository
+    private val userRepository = userRepository
+
     // ViewHolder for the profile setting page header
-        inner class ViewHolderProfileSettingPageHeader internal constructor(itemView: View) :
-        RecyclerView.ViewHolder(itemView) {
+    inner class ViewHolderProfileSettingPageHeader internal constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
         // Components from the layout
         private val userAvatar : ImageView = itemView.findViewById(R.id.userAvatarProfileSetting)
         private val userCoverPhoto : ImageView = itemView.findViewById(R.id.userCoverPhotoProfileSetting)
@@ -96,53 +92,18 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
                 // Call the function to update item
                 mapOfFields[fieldToUpdate] = enterUpdateProfileSettingItemEditText.text.toString()
 
-                // Execute the AsyncTask to update user info
-                UpdateUserInfoTask().execute()
+                // Call the function to update user info
+                updateCurrentUserInfo()
             }
         }
     }
 
-    // AsyncTask for updating user info
-    inner class UpdateUserInfoTask : AsyncTask<Void, Void, Void>() {
-        override fun doInBackground(vararg params: Void?): Void? {
-            // Create the update user info service
-            val updateUserInfoService: UpdateUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-                UpdateUserInfoService::class.java)
-
-            // Create the call object in order to perform the call
-            val call: Call<Any> = updateUserInfoService.updateUserInfo(
-                mapOfFields["avatarURL"] as String,
-                mapOfFields["coverURL"] as String,
-                mapOfFields["phoneNumber"] as String,
-                mapOfFields["facebook"] as String,
-                mapOfFields["instagram"] as String,
-                mapOfFields["twitter"] as String,
-                mapOfFields["zalo"] as String,
-                userObject.getId()
-            )
-
-            // Perform the API call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    // Report the error if something is not right
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is null, it means that the user may didn't enter the correct email or password
-                    if (response.body() == null) {
-                        // Show the user that the login was not successful
-                        Toast.makeText(activity, "Something is not right", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(activity, "Updated", Toast.LENGTH_SHORT).show()
-
-                        // Update the user info again
-                        profileFragment.updateUserInfo()
-                    }
-                }
-            })
-
-            return null
+    // The function to update info of the currently logged in user
+    fun updateCurrentUserInfo () {
+        // Call the function to update user info of the currently logged in user
+        userRepository.updateCurrentUserInfo(mapOfFields) {done ->
+            // Update the user info again
+            profileFragment.updateUserInfo()
         }
     }
 

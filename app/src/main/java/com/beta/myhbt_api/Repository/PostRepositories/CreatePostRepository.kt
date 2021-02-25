@@ -4,9 +4,9 @@ import android.content.Context
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import android.widget.Toast
-import com.beta.myhbt_api.Controller.Posts.CreateNewPostPhotoService
-import com.beta.myhbt_api.Controller.Posts.CreateNewPostService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Network.Posts.CreateNewPostPhotoService
+import com.beta.myhbt_api.Network.Posts.CreateNewPostService
+import com.beta.myhbt_api.Network.RetrofitClientInstance
 import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
 import com.google.firebase.storage.FirebaseStorage
 import retrofit2.Call

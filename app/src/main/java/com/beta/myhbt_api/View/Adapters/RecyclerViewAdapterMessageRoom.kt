@@ -8,18 +8,12 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import com.beta.myhbt_api.Controller.Messages.GetLatestMessageOfMessageRoomService
-import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Model.MessageRoom
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.Repository.MessageRepositories.MessageRepository
 import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
-import com.beta.myhbt_api.View.Chat
+import com.beta.myhbt_api.View.Chat.Chat
 import com.bumptech.glide.Glide
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.util.concurrent.ExecutorService
 
 class RecyclerViewAdapterMessageRoom (messageRoom : ArrayList<MessageRoom>, activity: Activity, executorService: ExecutorService) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {

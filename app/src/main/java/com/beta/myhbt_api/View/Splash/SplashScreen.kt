@@ -4,7 +4,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.beta.myhbt_api.R
-import com.beta.myhbt_api.View.MainActivity
+import com.beta.myhbt_api.View.WelcomeView.MainActivity
 
 class SplashScreen : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

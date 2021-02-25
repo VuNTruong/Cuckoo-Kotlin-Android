@@ -10,7 +10,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
-import com.beta.myhbt_api.View.ProfileDetail
+import com.beta.myhbt_api.View.UserInfoView.ProfileDetail
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 

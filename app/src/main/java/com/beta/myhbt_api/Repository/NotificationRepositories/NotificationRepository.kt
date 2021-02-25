@@ -1,13 +1,12 @@
 package com.beta.myhbt_api.Repository.NotificationRepositories
 
 import android.content.Context
-import com.beta.myhbt_api.Controller.Notifications.CreateNotificationService
-import com.beta.myhbt_api.Controller.Notifications.GetNotificationsForUserService
-import com.beta.myhbt_api.Controller.Notifications.GetOrderInCollectionOfLatestNotificationService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Network.Notifications.CreateNotificationService
+import com.beta.myhbt_api.Network.Notifications.GetNotificationsForUserService
+import com.beta.myhbt_api.Network.Notifications.GetOrderInCollectionOfLatestNotificationService
+import com.beta.myhbt_api.Network.RetrofitClientInstance
 import com.beta.myhbt_api.Model.Notification
 import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
-import kotlinx.android.synthetic.main.fragment_notification.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

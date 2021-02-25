@@ -10,8 +10,8 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterLocationPage
-import com.beta.myhbt_api.View.SeeFriendsLocation
-import com.beta.myhbt_api.View.UpdateLocation
+import com.beta.myhbt_api.View.Locations.SeeFriendsLocation
+import com.beta.myhbt_api.View.Locations.UpdateLocation
 import kotlinx.android.synthetic.main.fragment_update_location.*
 
 class UpdateLocationFragment : Fragment() {

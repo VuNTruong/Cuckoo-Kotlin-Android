@@ -9,18 +9,17 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.Posts.GetPostBasedOnIdService
-import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Network.User.GetUserInfoBasedOnIdService
+import com.beta.myhbt_api.Network.RetrofitClientInstance
 import com.beta.myhbt_api.Interfaces.LoadMorePostsInterface
-import com.beta.myhbt_api.Model.HBTGramPost
+import com.beta.myhbt_api.Model.CuckooPost
 import com.beta.myhbt_api.Model.Notification
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.Repository.PostRepositories.PostRepository
 import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
-import com.beta.myhbt_api.View.HBTGramPostDetail
-import com.beta.myhbt_api.View.ProfileDetail
+import com.beta.myhbt_api.View.PostDetail.PostDetail
+import com.beta.myhbt_api.View.UserInfoView.ProfileDetail
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import retrofit2.Call
@@ -182,9 +181,9 @@ class RecyclerViewAdapterNotification (arrayOfNotifications: ArrayList<Notificat
     }
 
     // The function which will take user to the activity where the user can see post detail of the post with specified user id
-    private fun gotoPostDetail (postObject: HBTGramPost) {
+    private fun gotoPostDetail (postObject: CuckooPost) {
         // Intent object
-        val intent = Intent(activity, HBTGramPostDetail::class.java)
+        val intent = Intent(activity, PostDetail::class.java)
 
         // Pass the post object to the post detail view controller
         intent.putExtra("selectedPostObject", postObject)

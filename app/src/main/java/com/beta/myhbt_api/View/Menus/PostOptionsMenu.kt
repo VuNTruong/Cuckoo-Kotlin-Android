@@ -8,24 +8,35 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.cardview.widget.CardView
-import com.beta.myhbt_api.Controller.Posts.DeletePostService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Network.Posts.DeletePostService
+import com.beta.myhbt_api.Network.RetrofitClientInstance
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.Repository.PostRepositories.PostRepository
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.concurrent.Executor
 
-class PostOptionsMenu (parentActivity: Activity, postId: String) : BottomSheetDialogFragment() {
+class PostOptionsMenu (parentActivity: Activity, postId: String, executor: Executor) : BottomSheetDialogFragment() {
     // The parent activity
     private val parentActivity = parentActivity
 
     // Post id of the post to be edited or deleted
     private val postId = postId
 
+    // Executor to do work in the background
+    private val executor = executor
+
+    // Post repository
+    private lateinit var postRepository: PostRepository
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?) : View? {
         // The view object
         val view = inflater.inflate(R.layout.post_option_menu_item, container, false)
+
+        // Instantiate post repository
+        postRepository = PostRepository(executor, parentActivity)
 
         // The delete post button
         val deletePostButton: CardView = view.findViewById(R.id.deletePostButton)
@@ -72,48 +83,32 @@ class PostOptionsMenu (parentActivity: Activity, postId: String) : BottomSheetDi
         // Show the progress bar
         progress.show()
 
-        // Create the delete post service
-        val deletePostService: DeletePostService = RetrofitClientInstance.getRetrofitInstance(parentActivity)!!.create(
-            DeletePostService::class.java)
+        // Call the function to delete a post
+        postRepository.deletePost(postId) {postDeleted ->
+            if (postDeleted) {
+                // Dismiss the waiting dialog
+                progress.dismiss()
 
-        // Create the call object in order to perform the call
-        val call: Call<Any> = deletePostService.deletePost(postId)
+                // build alert dialog
+                val dialogBuilder = AlertDialog.Builder(parentActivity)
 
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
+                // set message of alert dialog
+                dialogBuilder.setMessage("Post has been deleted")
+                    // if the dialog is cancelable
+                    .setCancelable(false)
+                    // positive button text and action
+                    .setPositiveButton("OK") { _, _ ->
+                        // Finish the parent activity
+                        parentActivity.finish()
+                    }
+
+                // create dialog box
+                val alert = dialogBuilder.create()
+                // set title for alert dialog box
+                alert.setTitle("Success!")
+                // show alert dialog
+                alert.show()
             }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Dismiss the waiting dialog
-                    progress.dismiss()
-
-                    // build alert dialog
-                    val dialogBuilder = AlertDialog.Builder(parentActivity)
-
-                    // set message of alert dialog
-                    dialogBuilder.setMessage("Post has been deleted")
-                        // if the dialog is cancelable
-                        .setCancelable(false)
-                        // positive button text and action
-                        .setPositiveButton("OK") { _, _ ->
-                            // Finish the parent activity
-                            parentActivity.finish()
-                        }
-
-                    // create dialog box
-                    val alert = dialogBuilder.create()
-                    // set title for alert dialog box
-                    alert.setTitle("Success!")
-                    // show alert dialog
-                    alert.show()
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+        }
     }
 }

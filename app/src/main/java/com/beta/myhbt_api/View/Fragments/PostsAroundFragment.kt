@@ -7,15 +7,15 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.*
-import com.beta.myhbt_api.Controller.Notifications.CreateNotificationService
-import com.beta.myhbt_api.Controller.Posts.GetFirstImageURLOfPostService
+import com.beta.myhbt_api.Network.*
+import com.beta.myhbt_api.Network.Notifications.CreateNotificationService
+import com.beta.myhbt_api.Network.Posts.GetFirstImageURLOfPostService
 import com.beta.myhbt_api.Interfaces.PostShowingInterface
-import com.beta.myhbt_api.Model.HBTGramPost
+import com.beta.myhbt_api.Model.CuckooPost
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.Repository.PostRepositories.PostRepository
 import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
-import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterHBTGramPost
+import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterCuckooPost
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -31,10 +31,10 @@ class PostsAroundFragment : Fragment(), PostShowingInterface {
     private lateinit var userInfoRepository: UserRepository
 
     // Array of HBTGram posts nearby
-    private var hbtGramPosts = ArrayList<HBTGramPost>()
+    private var hbtGramPosts = ArrayList<CuckooPost>()
 
     // Adapter for the RecyclerView
-    private var adapter: RecyclerViewAdapterHBTGramPost?= null
+    private var adapter: RecyclerViewAdapterCuckooPost?= null
 
     // Location in list for next load (the variable which will keep track of from where to load next posts for the user)
     private var locationInListForNextLoad: Int = 0
@@ -76,7 +76,7 @@ class PostsAroundFragment : Fragment(), PostShowingInterface {
             userIdOfCurrentUser = userObject.getId()
 
             // Update the adapter
-            adapter = RecyclerViewAdapterHBTGramPost(hbtGramPosts, this@PostsAroundFragment.requireActivity(), this@PostsAroundFragment, executorService, userObject)
+            adapter = RecyclerViewAdapterCuckooPost(hbtGramPosts, this@PostsAroundFragment.requireActivity(), this@PostsAroundFragment, executorService, userObject)
 
             // Add adapter to the RecyclerView
             hbtGramView.adapter = adapter

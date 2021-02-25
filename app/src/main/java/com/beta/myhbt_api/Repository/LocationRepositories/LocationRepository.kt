@@ -2,9 +2,11 @@ package com.beta.myhbt_api.Repository.LocationRepositories
 
 import android.content.Context
 import android.widget.Toast
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.User.UpdateUserLocationService
+import com.beta.myhbt_api.Model.User
+import com.beta.myhbt_api.Network.RetrofitClientInstance
+import com.beta.myhbt_api.Network.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Network.User.GetUserWithinARadiusService
+import com.beta.myhbt_api.Network.User.UpdateUserLocationService
 import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
 import com.mapbox.mapboxsdk.geometry.LatLng
 import retrofit2.Call
@@ -116,4 +118,43 @@ class LocationRepository (executor: Executor, context: Context) {
             }
         }
     }
+    // The function to search for user around a specified last updated location of the current user
+    fun searchUserAround (searchQuery: String, callback: (arrayOfUsers: ArrayList<User>) -> Unit) {
+        // Do work in the background
+        executor.execute {
+            // Call the function to get last update location of the currently logged in user
+            getLastUpdatedLocationOfCurrentUser { lastUpdatedLocation, _ ->
+                // Create the search user nearby service
+                val searchUserService : GetUserWithinARadiusService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    GetUserWithinARadiusService::class.java)
+
+                // Create the call object in order to perform the call
+                val call: Call<Any> = searchUserService.getUserWithinARadius("${lastUpdatedLocation.latitude},${lastUpdatedLocation.longitude}", 50, "km", searchQuery)
+
+                // Perform the call
+                call.enqueue(object: Callback<Any> {
+                    override fun onFailure(call: Call<Any>, t: Throwable) {
+                        print("Boom")
+                    }
+
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                        // If the response body is not empty it means that the token is valid
+                        if (response.body() != null) {
+                            // Body of the request
+                            val responseBody = response.body() as Map<String, Any>
+
+                            // Get data from the response body (array of found users)
+                            val listOfFoundUsers = responseBody["data"] as ArrayList<User>
+
+                            // Return list of users to view model via callback function
+                            callback(listOfFoundUsers)
+                        } else {
+                            print("Something is not right")
+                        }
+                    }
+                })
+            }
+        }
+    }
+
 }

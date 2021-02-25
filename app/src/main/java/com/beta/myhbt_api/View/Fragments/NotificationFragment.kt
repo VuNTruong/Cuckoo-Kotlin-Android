@@ -7,20 +7,12 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.Notifications.GetNotificationsForUserService
-import com.beta.myhbt_api.Controller.Notifications.GetOrderInCollectionOfLatestNotificationService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
 import com.beta.myhbt_api.Interfaces.LoadMorePostsInterface
 import com.beta.myhbt_api.Model.Notification
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterNotification
 import com.beta.myhbt_api.ViewModel.NotificationViewModel
-import com.beta.myhbt_api.ViewModel.PostViewModel
 import kotlinx.android.synthetic.main.fragment_notification.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 

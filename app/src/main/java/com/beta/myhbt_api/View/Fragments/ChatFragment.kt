@@ -10,9 +10,8 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.myhbt_api.Model.MessageRoom
 import com.beta.myhbt_api.R
-import com.beta.myhbt_api.Repository.MessageRepositories.MessageRepository
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterMessageRoom
-import com.beta.myhbt_api.View.SearchUserToChatWith
+import com.beta.myhbt_api.View.Chat.SearchUserToChatWith
 import com.beta.myhbt_api.ViewModel.MessageViewModel
 import kotlinx.android.synthetic.main.fragment_chat.*
 import java.util.concurrent.ExecutorService

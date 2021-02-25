@@ -7,9 +7,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.Messages.GetChatMessagePhotoService
-import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
+import com.beta.myhbt_api.Network.Messages.GetChatMessagePhotoService
+import com.beta.myhbt_api.Network.User.GetUserInfoBasedOnIdService
+import com.beta.myhbt_api.Network.RetrofitClientInstance
 import com.beta.myhbt_api.Model.Message
 import com.beta.myhbt_api.R
 import com.bumptech.glide.Glide

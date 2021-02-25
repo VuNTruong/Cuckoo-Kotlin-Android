@@ -9,18 +9,11 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Controller.User.SearchUserService
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
 import com.beta.myhbt_api.View.Adapters.RecyclerViewAdapterSearchFriend
 import com.beta.myhbt_api.ViewModel.UserViewModel
 import kotlinx.android.synthetic.main.fragment_search_friends.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 class SearchFriendFragment : Fragment() {
     // User view model

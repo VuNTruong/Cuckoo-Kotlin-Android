@@ -8,20 +8,17 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.Posts.GetPostBasedOnIdService
-import com.beta.myhbt_api.Controller.RetrofitClientInstance
-import com.beta.myhbt_api.Model.HBTGramPost
-import com.beta.myhbt_api.Model.HBTGramPostPhoto
+import com.beta.myhbt_api.Model.CuckooPost
+import com.beta.myhbt_api.Model.PostPhoto
 import com.beta.myhbt_api.R
+import com.beta.myhbt_api.Repository.PostRepositories.PostRepository
 import com.beta.myhbt_api.View.Fragments.RecommendAlbumFragment
-import com.beta.myhbt_api.View.HBTGramPostDetail
+import com.beta.myhbt_api.View.PostDetail.PostDetail
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import java.util.concurrent.Executor
 
-class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPhoto>, activity: Activity, recommendAlbumFragment: RecommendAlbumFragment): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<PostPhoto>, activity: Activity, recommendAlbumFragment: RecommendAlbumFragment, executor: Executor): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Array of photos recommended for the user
     private val arrayOfPhotos = arrayOfPhotos
 
@@ -30,6 +27,9 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
 
     // The parent fragment
     private val recommendAlbumFragment = recommendAlbumFragment
+
+    // The post repository
+    private val postRepository: PostRepository = PostRepository(executor, activity)
 
     //*********************************** VIEW HOLDERS FOR THE RECYCLER VIEW ***********************************
     // ViewHolder for the recommend album header
@@ -97,7 +97,7 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
             // Set up on click listener for the load more layout
             loadMoreLayout.setOnClickListener {
                 // Call the function to load more post photos
-                recommendAlbumFragment.getRecommendedPhotos()
+                recommendAlbumFragment.getMorePhotosForUser()
             }
         }
     }
@@ -113,56 +113,17 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
 
     // The function to get post object based on the specified post id
     fun getPostObjectBasedOnIdAndGotoPostDetail (postId: String) {
-        // If the post detail is empty, get out of the sequence
-        if (postId == "") {
-            return
+        // Call the function to get post object of the post based on post id
+        postRepository.getPostObjectBasedOnId(postId) {postObject, _ ->
+            // Call the function which will take user to the activity where the user can see post detail of the post with specified id
+            gotoPostDetail(postObject)
         }
-
-        // Create the get post based on id service
-        val getPostBasedOnIdService: GetPostBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetPostBasedOnIdService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getPostBasedOnIdService.getPostBasedOnId(postId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem be be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response
-                    val data = (((responseBody["data"] as Map<String, Any>)["documents"]) as ArrayList<Map<String, Any>>)[0]
-
-                    // In order to prevent us from encountering the class cast exception, we need to do the following
-                    // Create the GSON object
-                    val gs = Gson()
-
-                    // Convert a linked tree map into a JSON string
-                    val jsPost = gs.toJson(data)
-
-                    // Convert the JSOn string back into HBTGramPost class
-                    val hbtGramPostModel = gs.fromJson<HBTGramPost>(jsPost, HBTGramPost::class.java)
-
-                    // Call the function which will take user to the activity where the user can see post detail of the post with specified id
-                    gotoPostDetail(hbtGramPostModel)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
     }
 
     // The function which will take user to the activity where the user can see post detail of the post with specified user id
-    fun gotoPostDetail (postObject: HBTGramPost) {
+    private fun gotoPostDetail (postObject: CuckooPost) {
         // Intent object
-        val intent = Intent(activity, HBTGramPostDetail::class.java)
+        val intent = Intent(activity, PostDetail::class.java)
 
         // Pass the post object to the post detail view controller
         intent.putExtra("selectedPostObject", postObject)
@@ -248,10 +209,10 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
                 val jsImage4 = gs.toJson(arrayOfPhotos[(position - 1) * 4 + 3])
 
                 // Convert the JSOn string back into HBTGramPostPhoto class
-                val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
-                val hbtGramPostPhotoModelImage2 = gs.fromJson<HBTGramPostPhoto>(jsImage2, HBTGramPostPhoto::class.java)
-                val hbtGramPostPhotoModelImage3 = gs.fromJson<HBTGramPostPhoto>(jsImage3, HBTGramPostPhoto::class.java)
-                val hbtGramPostPhotoModelImage4 = gs.fromJson<HBTGramPostPhoto>(jsImage4, HBTGramPostPhoto::class.java)
+                val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
+                val hbtGramPostPhotoModelImage2 = gs.fromJson<PostPhoto>(jsImage2, PostPhoto::class.java)
+                val hbtGramPostPhotoModelImage3 = gs.fromJson<PostPhoto>(jsImage3, PostPhoto::class.java)
+                val hbtGramPostPhotoModelImage4 = gs.fromJson<PostPhoto>(jsImage4, PostPhoto::class.java)
 
                 // If the remaining number of images is greater than or equal to 4, load all images into image view
                 (holder as ViewHolderRecommendAlbumRow).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
@@ -269,9 +230,9 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
                         val jsImage3 = gs.toJson(arrayOfPhotos[(position - 1) * 4 + 2])
 
                         // Convert the JSOn string back into HBTGramPostPhoto class
-                        val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
-                        val hbtGramPostPhotoModelImage2 = gs.fromJson<HBTGramPostPhoto>(jsImage2, HBTGramPostPhoto::class.java)
-                        val hbtGramPostPhotoModelImage3 = gs.fromJson<HBTGramPostPhoto>(jsImage3, HBTGramPostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage2 = gs.fromJson<PostPhoto>(jsImage2, PostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage3 = gs.fromJson<PostPhoto>(jsImage3, PostPhoto::class.java)
 
                         (holder as ViewHolderRecommendAlbumRow).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
                             hbtGramPostPhotoModelImage3.getImageURL(), "",
@@ -283,8 +244,8 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
                         val jsImage2 = gs.toJson(arrayOfPhotos[(position - 1) * 4 + 1])
 
                         // Convert the JSOn string back into HBTGramPostPhoto class
-                        val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
-                        val hbtGramPostPhotoModelImage2 = gs.fromJson<HBTGramPostPhoto>(jsImage2, HBTGramPostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage2 = gs.fromJson<PostPhoto>(jsImage2, PostPhoto::class.java)
 
                         (holder as ViewHolderRecommendAlbumRow).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(), "", "",
                             hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(), "", "")
@@ -294,7 +255,7 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<HBTGramPostPho
                         val jsImage1 = gs.toJson(arrayOfPhotos[(position - 1) * 4])
 
                         // Convert the JSOn string back into HBTGramPostPhoto class
-                        val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
 
                         (holder as ViewHolderRecommendAlbumRow).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), "", "", "",
                             hbtGramPostPhotoModelImage1.getPhotoId(), "", "", "")

@@ -9,25 +9,34 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.beta.myhbt_api.Controller.*
-import com.beta.myhbt_api.Controller.Follows.*
-import com.beta.myhbt_api.Controller.Messages.GetMessageRoomIdBetween2UsersService
-import com.beta.myhbt_api.Controller.Posts.GetPostBasedOnIdService
-import com.beta.myhbt_api.Controller.Posts.GetPostsOfUserService
-import com.beta.myhbt_api.Controller.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.myhbt_api.Controller.User.GetUserInfoBasedOnIdService
-import com.beta.myhbt_api.Model.HBTGramPost
-import com.beta.myhbt_api.Model.HBTGramPostPhoto
+import com.beta.myhbt_api.Network.*
+import com.beta.myhbt_api.Network.Follows.*
+import com.beta.myhbt_api.Network.Messages.GetMessageRoomIdBetween2UsersService
+import com.beta.myhbt_api.Network.Posts.GetPostBasedOnIdService
+import com.beta.myhbt_api.Network.Posts.GetPostsOfUserService
+import com.beta.myhbt_api.Network.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.myhbt_api.Network.User.GetUserInfoBasedOnIdService
+import com.beta.myhbt_api.Model.CuckooPost
+import com.beta.myhbt_api.Model.PostPhoto
 import com.beta.myhbt_api.Model.User
 import com.beta.myhbt_api.R
-import com.beta.myhbt_api.View.*
+import com.beta.myhbt_api.Repository.MessageRepositories.MessageRepository
+import com.beta.myhbt_api.Repository.PostRepositories.PostRepository
+import com.beta.myhbt_api.Repository.UserRepositories.FollowRepository
+import com.beta.myhbt_api.Repository.UserRepositories.UserRepository
+import com.beta.myhbt_api.View.Chat.Chat
+import com.beta.myhbt_api.View.MainMenu.MainMenu
+import com.beta.myhbt_api.View.PostDetail.PostDetail
+import com.beta.myhbt_api.View.UserInfoView.ProfileDetail
+import com.beta.myhbt_api.View.UserInfoView.UserShow
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhoto>, userObject: User, activity: ProfileDetail, currentUser: Boolean) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, userObject: User, activity: ProfileDetail, currentUser: Boolean,
+                                        userRepository: UserRepository, postRepository: PostRepository, messageRepository: MessageRepository, followRepository: FollowRepository) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Array of photos created by the user
     private val arrayOfPhotos = arrayOfPhotos
 
@@ -39,6 +48,18 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
 
     // The user object is current user or not? (this var will keep track of that)
     private val currentUser = currentUser
+
+    // User repository
+    private val userRepository = userRepository
+
+    // Post repository
+    private val postRepository = postRepository
+
+    // Message repository
+    private val messageRepository = messageRepository
+
+    // Follow repository
+    private val followRepository = followRepository
 
     //*********************************** VIEW HOLDERS FOR THE RECYCLER VIEW ***********************************
     // ViewHolder for the profile detail page header
@@ -152,10 +173,10 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                 // If content of the button is "Follow", create a new follow object between the 2 users
                 if (followUnfollowButton.text == "Follow") {
                     // Call the function to create follow for the user
-                    getInfoOfCurrentUserAndCreateFollow(userObject.getId(), followUnfollowButton)
+                    createNewFollow(userObject.getId(), followUnfollowButton)
                 } // Otherwise, remove a follow object between the 2 users
                 else {
-                    getInfoOfCurrentUserAndRemoveFollow(userObject.getId(), followUnfollowButton)
+                    removeFollow(userObject.getId(), followUnfollowButton)
                 }
             }
 
@@ -166,7 +187,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
             }
 
             // Call the function to load follow status between the 2 users and set right content for the follow button
-            getInfoOfCurrentUserAndCheckFollowStatus(userObject.getId(), followUnfollowButton)
+            getFollowStatus(userObject.getId(), followUnfollowButton)
         }
     }
 
@@ -228,229 +249,59 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
      */
     // The function to get user info based on id
     fun getBio(userId: String, userBioTextView: TextView) {
-        // Create the get user info service
-        val getUserInfoService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetUserInfoBasedOnIdService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getUserInfoService.getUserInfoBasedOnId(userId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is data
-                if (response.body() != null) {
-                    val body = response.body()
-                    print(body)
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    // Get obtain user data from that
-                    val data = (((responseBody["data"] as Map<String, Any>)["documents"]) as List<Map<String, Any>>)[0]
-
-                    // Load bio of the user
-                    val userBio = data["description"] as String
-
-                    // Load user info into the TextView
-                    userBioTextView.text = userBio
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+        // Call the function to get user bio
+        userRepository.getBioOfUserWithId(userId) {userBio ->
+            // Load user info into the TextView
+            userBioTextView.text = userBio
+        }
     }
 
     // The function to get number of followers of the user
     fun getNumOfFollowers (userId: String, numOfFollowerTextView: TextView) {
-        // Create the service for getting array of followers (we will get number of followers based on that)
-        val getArrayOfFollowersService: GeteFollowerService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GeteFollowerService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getArrayOfFollowersService.getFollowers(userId)
-
-        // Perform the call
-        call.enqueue(object : Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem to be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is data
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get number of followers
-                    val numOfFollowers = (responseBody["results"] as Double).toInt()
-
-                    // Load number of followers into the text view
-                    numOfFollowerTextView.text = "$numOfFollowers"
-                }
-            }
-
-        })
+        // Call the function to get number of followers of user with specified user id
+        userRepository.getListOfFollowers(userId) {listOfUserId ->
+            // Load number of followers into the text view
+            numOfFollowerTextView.text = "${listOfUserId.size}"
+        }
     }
 
     // The function to get number of following
     fun getNumOfFollowings (userId: String, numOfFollowingTextView: TextView) {
-        // Create the service for getting number of followings
-        val getArrayOfFollowingService: GetFollowingService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetFollowingService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getArrayOfFollowingService.getFollowings(userId)
-
-        // Perform the call
-        call.enqueue(object : Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem to be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is data
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get number of followings
-                    val numOfFollowings = (responseBody["results"] as Double).toInt()
-
-                    // Load number of followers into the text view
-                    numOfFollowingTextView.text = "$numOfFollowings"
-                }
-            }
-        })
+        // Call the function to get number of followings of user with specified user id
+        userRepository.getListOfFollowing(userId) {listOfUserId ->
+            // Load number of followers into the text view
+            numOfFollowingTextView.text = "${listOfUserId.size}"
+        }
     }
 
     // The function to get number of posts created by the user
     fun getNumOfPosts (userId: String, numOfPostsTextView: TextView) {
-        // Create the service for getting number of posts
-        val getPostsOfUserService: GetPostsOfUserService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetPostsOfUserService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getPostsOfUserService.getPostsOfUser(userId)
-
-        // Perform the call
-        call.enqueue(object : Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem to be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is data
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get number of posts
-                    val numOfPosts = (responseBody["results"] as Double).toInt()
-
-                    // Load number of posts into the text view
-                    numOfPostsTextView.text = "$numOfPosts"
-                }
-            }
-        })
+        // Call the function to get number of posts created by the user
+        postRepository.getNumOfPostsCreatedByUserWithId(userId) {numOfPosts ->
+            // Load number of posts into the text view
+            numOfPostsTextView.text = "$numOfPosts"
+        }
     }
     //*********************************** END GET USER INFO SEQUENCE ***********************************
 
     //*********************************** GO TO CHAT SEQUENCE ***********************************
-    /*
-    Do 3 things for this sequence
-    1. Get info of the current user
-    2. Get message room between current user and the selected user
-    3. Go to the chat activity
-     */
-
     // The function to get info of the current user
     fun getInfoOfCurrentUserAndGotoChat () {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
+        // Call the function to check for chat room between the 2 users
+        messageRepository.checkChatRoomBetween2Users(userObject.getId()) {chatRoomId ->
+            // If the status is success, get message room id and pass it to the next view controller
+            if (chatRoomId != "") {
+                // Call the function and go to chat activity and let it know the chat room id as well
+                gotoChat(userObject.getId(), chatRoomId)
+            } // Otherwise, go to the chat activity and let the chat room id be blank
+            else {
+                gotoChat(userObject.getId(), "")
             }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get user id in the database of the currently logged in user
-                    val userId = data["_id"] as String
-
-                    // Call the function to get message room id between 2 users and go to chat activity
-                    checkChatRoomBetween2Users(userId, userObject.getId())
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
-    }
-
-    // The function to check for chat room between the 2 users
-    fun checkChatRoomBetween2Users (currentUserId: String, otherUserId: String) {
-        // Create the get chat room between 2 users service
-        val getChatRoomIdBetween2UsersService: GetMessageRoomIdBetween2UsersService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetMessageRoomIdBetween2UsersService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getChatRoomIdBetween2UsersService.getMessageRoomIddBetween2Users(currentUserId, otherUserId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem be be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get status of the call (it can be either empty or success)
-                    val status = responseBody["status"] as String
-
-                    // If the status is success, get message room id and pass it to the next view controller
-                    if (status == "success") {
-                        // Get data of the response
-                        val data = responseBody["data"] as Map<String, Any>
-
-                        // Chat chat room id
-                        val chatRoomId = data["_id"] as String
-
-                        // Call the function and go to chat activity and let it know the chat room id as well
-                        gotoChat(userObject.getId(), chatRoomId)
-                    } // Otherwise, go to the chat activity and let the chat room id be blank
-                    else {
-                        gotoChat(userObject.getId(), "")
-                    }
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+        }
     }
 
     // The function which will take user to the activity where the user can start chatting
-    fun gotoChat (messageReceiverUserId: String, messageRoomId: String) {
+    private fun gotoChat (messageReceiverUserId: String, messageRoomId: String) {
         // The intent object
         val intent = Intent(activity, Chat::class.java)
 
@@ -464,64 +315,21 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
     //*********************************** END GO TO CHAT SEQUENCE ***********************************
 
     //*********************************** GO TO POST DETAIL SEQUENCE ***********************************
-    /*
-    In this sequence, we will do 2 things
-    1. Get post object based on the specified id
-    2. Go to the post detail activity
-     */
-
     // The function to get post object based on the specified post id
     fun getPostObjectBasedOnIdAndGotoPostDetail (postId: String) {
-        // If the post detail is empty, get out of the sequence
-        if (postId == "") {
-            return
+        // Call the function to get post object of the post based on id and go to post detail
+        postRepository.getPostObjectBasedOnId(postId) {postObject, foundPost ->
+            if (foundPost) {
+                // Call the function which will take user to the activity where the user can see post detail of the post with specified id
+                gotoPostDetail(postObject)
+            }
         }
-
-        // Create the get post based on id service
-        val getPostBasedOnIdService: GetPostBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetPostBasedOnIdService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getPostBasedOnIdService.getPostBasedOnId(postId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem be be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response
-                    val data = (((responseBody["data"] as Map<String, Any>)["documents"]) as ArrayList<Map<String, Any>>)[0]
-
-                    // In order to prevent us from encountering the class cast exception, we need to do the following
-                    // Create the GSON object
-                    val gs = Gson()
-
-                    // Convert a linked tree map into a JSON string
-                    val jsPost = gs.toJson(data)
-
-                    // Convert the JSOn string back into HBTGramPost class
-                    val hbtGramPostModel = gs.fromJson<HBTGramPost>(jsPost, HBTGramPost::class.java)
-
-                    // Call the function which will take user to the activity where the user can see post detail of the post with specified id
-                    gotoPostDetail(hbtGramPostModel)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
     }
 
     // The function which will take user to the activity where the user can see post detail of the post with specified user id
-    fun gotoPostDetail (postObject: HBTGramPost) {
+    private fun gotoPostDetail (postObject: CuckooPost) {
         // Intent object
-        val intent = Intent(activity, HBTGramPostDetail::class.java)
+        val intent = Intent(activity, PostDetail::class.java)
 
         // Pass the post object to the post detail view controller
         intent.putExtra("selectedPostObject", postObject)
@@ -532,228 +340,35 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
     //*********************************** END GO TO POST DETAIL SEQUENCE ***********************************
 
     //*********************************** CREATE NEW FOLLOW SEQUENCE ***********************************
-    /*
-    In this sequence, we will do 2 things
-    1. Get info of the current user
-    2. Create new follow object between current user and selected user at this activity
-    */
-
-    // The function to get info of the current user
-    fun getInfoOfCurrentUserAndCreateFollow (otherUserId: String, followButton: Button) {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get user id in the database of the currently logged in user
-                    val userId = data["_id"] as String
-
-                    // Call the function to create new follow object between the 2 users
-                    createNewFollowBetween2Users(userId, otherUserId, followButton)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
-    }
-
-    // The function to create a new follow object between 2 users
-    fun createNewFollowBetween2Users (currentUserId: String, otherUserId: String, followButton: Button) {
-        // Create the create follow object service
-        val createNewFollowObjectService: CreateNewFollowService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            CreateNewFollowService::class.java)
-
-        // Create the call object to perform the call
-        val call: Call<Any> = createNewFollowObjectService.createNewFollow(currentUserId, otherUserId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that new follow was created
-                if (response.body() != null) {
-                    // Change content of the follow button to "Unfollow"
-                    followButton.text = "Unfollow"
-
-                    // Call the function to create new notification
-                    activity.createNotification("followed", otherUserId, currentUserId, "none", "none")
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+    // The function to create new follow between currently logged in user and user with the specified user id
+    fun createNewFollow (userId: String, followButton: Button) {
+        // Call the function to create new follow between the 2 users
+        followRepository.createNewFollow(userId) {buttonContent ->
+            // Set content for the follow button
+            followButton.text = buttonContent
+        }
     }
     //*********************************** END CREATE NEW FOLLOW SEQUENCE ***********************************
 
     //*********************************** REMOVE FOLLOW SEQUENCE ***********************************
-    /*
-    In this sequence, we will do 2 things
-    1. Get info of the current user
-    2. Delete the follow between the 2 users
-    */
-
-    // The function to get info of the current user
-    fun getInfoOfCurrentUserAndRemoveFollow (otherUserId: String, followButton: Button) {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get user id in the database of the currently logged in user
-                    val userId = data["_id"] as String
-
-                    // Call the function to remove a follow object between the 2 users
-                    removeAFollowBetween2Users(userId, otherUserId, followButton)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
-    }
-
     // The function to remove a follow between the 2 users
-    fun removeAFollowBetween2Users (currentUserId: String, otherUserId: String, followButton: Button) {
-        // Create the delete follow service
-        val deleteFollowService: DeleteFollowService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            DeleteFollowService::class.java)
-
-        // Create the call object to perform the call
-        val call: Call<Any> = deleteFollowService.deleteFollow(currentUserId, otherUserId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // Check the response code
-                // If it is 204. It means that a follow has been removed
-                if (response.code() == 204) {
-                    // Set content of the follow button to be "Follow"
-                    followButton.text = "Follow"
-                }
-            }
-        })
+    fun removeFollow (userId: String, followButton: Button) {
+        // Call the function to remove a follow between the 2 users
+        followRepository.removeAFollow(userId) {buttonContent ->
+            // Set content for the follow button
+            followButton.text = buttonContent
+        }
     }
     //*********************************** END REMOVE FOLLOW SEQUENCE ***********************************
 
     //*********************************** CHECK FOLLOW STATUS ***********************************
-    /*
-    In this sequence, we will do 2 things
-    1. Get info of the currently logged in user
-    2. Get follow status between the 2 users, then set content of the follow button to be the right one
-    */
-
-    // The function to get info of the current user
-    fun getInfoOfCurrentUserAndCheckFollowStatus (otherUserId: String, followButton: Button) {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get user id in the database of the currently logged in user
-                    val userId = data["_id"] as String
-
-                    // Call the function to check follow status between the 2 users
-                    getFollowStatusBetween2Users(userId, otherUserId, followButton)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
-    }
-
-    // The function to check follow status between the 2 users
-    fun getFollowStatusBetween2Users (currentUserId: String, otherUserId: String, followButton: Button) {
-        // Create the get follow status service
-        val getFollowStatusService: GetFollowStatusService = RetrofitClientInstance.getRetrofitInstance(activity)!!.create(
-            GetFollowStatusService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getFollowStatusService.getFollowStatus(currentUserId, otherUserId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem to be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body (follow status)
-                    val data = responseBody["data"] as String
-
-                    // Check the follow status. If it is "Yes", set content of the follow button to be "Unfollow"
-                    if (data == "Yes") {
-                        followButton.text = "Unfollow"
-                    } // Otherwise, set content of the follow button to be "Follow"
-                    else {
-                        followButton.text = "Follow"
-                    }
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+    // The function to get follow status between the 2 users
+    fun getFollowStatus (userId: String, followButton: Button) {
+        // Call the function to get follow status between the 2 users
+        followRepository.checkFollowStatus(userId) {buttonContent ->
+            // Set content for the follow button
+            followButton.text = buttonContent
+        }
     }
     //*********************************** END CHECK FOLLOW STATUS ***********************************
 
@@ -846,10 +461,10 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                 val jsImage4 = gs.toJson(arrayOfPhotos[(position - 2) * 4 + 3])
 
                 // Convert the JSOn string back into HBTGramPostPhoto class
-                val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
-                val hbtGramPostPhotoModelImage2 = gs.fromJson<HBTGramPostPhoto>(jsImage2, HBTGramPostPhoto::class.java)
-                val hbtGramPostPhotoModelImage3 = gs.fromJson<HBTGramPostPhoto>(jsImage3, HBTGramPostPhoto::class.java)
-                val hbtGramPostPhotoModelImage4 = gs.fromJson<HBTGramPostPhoto>(jsImage4, HBTGramPostPhoto::class.java)
+                val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
+                val hbtGramPostPhotoModelImage2 = gs.fromJson<PostPhoto>(jsImage2, PostPhoto::class.java)
+                val hbtGramPostPhotoModelImage3 = gs.fromJson<PostPhoto>(jsImage3, PostPhoto::class.java)
+                val hbtGramPostPhotoModelImage4 = gs.fromJson<PostPhoto>(jsImage4, PostPhoto::class.java)
 
                 // If the remaining number of images is greater than or equal to 4, load all images into image view
                 (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
@@ -867,9 +482,9 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                         val jsImage3 = gs.toJson(arrayOfPhotos[(position - 2) * 4 + 2])
 
                         // Convert the JSOn string back into HBTGramPostPhoto class
-                        val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
-                        val hbtGramPostPhotoModelImage2 = gs.fromJson<HBTGramPostPhoto>(jsImage2, HBTGramPostPhoto::class.java)
-                        val hbtGramPostPhotoModelImage3 = gs.fromJson<HBTGramPostPhoto>(jsImage3, HBTGramPostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage2 = gs.fromJson<PostPhoto>(jsImage2, PostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage3 = gs.fromJson<PostPhoto>(jsImage3, PostPhoto::class.java)
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
                             hbtGramPostPhotoModelImage3.getImageURL(), "",
@@ -881,8 +496,8 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                         val jsImage2 = gs.toJson(arrayOfPhotos[(position - 2) * 4 + 1])
 
                         // Convert the JSOn string back into HBTGramPostPhoto class
-                        val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
-                        val hbtGramPostPhotoModelImage2 = gs.fromJson<HBTGramPostPhoto>(jsImage2, HBTGramPostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage2 = gs.fromJson<PostPhoto>(jsImage2, PostPhoto::class.java)
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(), "", "",
                             hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(), "", "")
@@ -892,7 +507,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<HBTGramPostPhot
                         val jsImage1 = gs.toJson(arrayOfPhotos[(position - 2) * 4])
 
                         // Convert the JSOn string back into HBTGramPostPhoto class
-                        val hbtGramPostPhotoModelImage1 = gs.fromJson<HBTGramPostPhoto>(jsImage1, HBTGramPostPhoto::class.java)
+                        val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), "", "", "",
                             hbtGramPostPhotoModelImage1.getPhotoId(), "", "", "")
