@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "160171792307",
+    "firebase_url": "https://hbtgram.firebaseio.com",
+    "project_id": "hbtgram",
+    "storage_bucket": "hbtgram.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:160171792307:android:3bdd468784f24e5cf61dc6",
+        "android_client_info": {
+          "package_name": "com.beta.myhbt_api"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "160171792307-ljg07l1k0nmmert166q52neg59oosmns.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.beta.myhbt_api",
+            "certificate_hash": "69b0b569eceef49dbab7202d2e9f319bca96fc3f"
+          }
+        },
+        {
+          "client_id": "160171792307-vthnvgbck8i27bdad4kt4ibtd8l21tsb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzF3zPiLZ70nlCP0-nqCotb3IQwxwgTPU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "160171792307-vthnvgbck8i27bdad4kt4ibtd8l21tsb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
