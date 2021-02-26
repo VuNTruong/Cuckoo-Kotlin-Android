@@ -5,6 +5,7 @@ import android.widget.Toast
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.Network.User.GetCurrentlyLoggedInUserInfoService
+import com.beta.cuckoo.Network.User.GetUserInfoBasedOnIdService
 import com.beta.cuckoo.Network.User.GetUserWithinARadiusService
 import com.beta.cuckoo.Network.User.UpdateUserLocationService
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
@@ -157,4 +158,60 @@ class LocationRepository (executor: Executor, context: Context) {
         }
     }
 
+    // The function to get location info of user with specified user id
+    fun getLocationInfoOfUserBasedOnId (userId: String, callback: (userFullName: String, locationDescription: String, location: LatLng) -> Unit) {
+        executor.execute {
+            // Create the get user info base on id service
+            val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetUserInfoBasedOnIdService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(userId)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that there is no error
+                    if (response.body() != null) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get user info from the data
+                        val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
+
+                        // Get full name of the user
+                        val userFullName = userInfo["fullName"] as String
+
+                        //------------- Get location of the user -------------
+                        // Get last updated location of the current user
+                        val locationObject = userInfo["location"] as Map<String, Any>
+                        val coordinatesArray = locationObject["coordinates"] as ArrayList<Double>
+
+                        // Get description of the user location
+                        val locationDescription = locationObject["description"] as String
+
+                        // Get the latitude
+                        val latitude = coordinatesArray[1]
+
+                        // Get the longitude
+                        val longitude = coordinatesArray[0]
+
+                        // Create the location object for the last updated location of the current user
+                        val location = LatLng(latitude, longitude)
+                        //------------- End get location of the user -------------
+
+                        // Return location info via callback function
+                        callback(userFullName, locationDescription, location)
+                    }
+                }
+            })
+        }
+    }
 }

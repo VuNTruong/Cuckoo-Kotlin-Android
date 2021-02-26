@@ -9,6 +9,7 @@ import android.webkit.MimeTypeMap
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.Utils.AdditionalAssets
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.ViewModel.MessageViewModel
 import com.google.firebase.storage.FirebaseStorage
@@ -21,6 +22,9 @@ import kotlin.math.floor
 class ChatSendImage : AppCompatActivity() {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
+    // Additional assets
+    private lateinit var additionalAssets: AdditionalAssets
 
     // Message view model
     private lateinit var messageViewModel: MessageViewModel
@@ -55,6 +59,9 @@ class ChatSendImage : AppCompatActivity() {
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Instantiate additional assets
+        additionalAssets = AdditionalAssets(applicationContext)
 
         // Set on click listener for the back button
         backButtonChatSendImage.setOnClickListener {
@@ -126,6 +133,17 @@ class ChatSendImage : AppCompatActivity() {
         }
     }
 
+    // The function to perform the file uploading procedure
+    private fun uploadImageAndSendMessage(imageURI: Uri) {
+        // Call the function to upload image to the storage and get download URL of the uploaded photo
+        additionalAssets.uploadImageToStorage(imageURI, "messagePhotos") { imageUploaded, imageURL ->
+            if (imageUploaded) {
+                // Call the function to add new message photo URL to the database
+                sendMessage(imageURL)
+            }
+        }
+    }
+
     // The function to create new message sent by current user and include the image
     private fun sendMessage (imageURL: String) {
         // Call the function to send message
@@ -148,48 +166,5 @@ class ChatSendImage : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    // The function to perform the file uploading procedure
-    private fun uploadImageAndSendMessage(imageURI: Uri) {
-        // Generate name for the image
-        val imageName = generateRandomString(20)
-
-        // Create the storage reference
-        val storageReference =
-            FirebaseStorage.getInstance().getReference("messagePhotos")
-
-        // Put name for the image
-        val reference = storageReference.child("${imageName}.${getExtension(imageURI)}")
-
-        // Start the upload task. This is the uploadTask which will be used to keep track of the upload process
-        val uploadTask = reference.putFile(imageURI)
-
-        // When uploading is done, get URL of that image
-        uploadTask.addOnSuccessListener {
-            // Get URL of the image that has just been uploaded to the storage
-            reference.downloadUrl.addOnSuccessListener { uri ->
-                // Call the function to add new message photo URL to the database
-                //createNewImageURL(uri.toString(), messageId)
-                sendMessage(uri.toString())
-            }
-        }
-    }
-
-    // The function to get extension of the image
-    private fun getExtension(uri: Uri): String? {
-        val contentResolver = contentResolver
-        val mimeTypeMap = MimeTypeMap.getSingleton()
-        return mimeTypeMap.getExtensionFromMimeType(contentResolver.getType(uri))
-    }
-
-    // The function to generate a random string
-    private fun generateRandomString (length: Int): String {
-        val chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        var randomString = ""
-        for (i in 0..length) {
-            randomString += chars[floor(Math.random() * chars.length).toInt()]
-        }
-        return randomString
     }
 }

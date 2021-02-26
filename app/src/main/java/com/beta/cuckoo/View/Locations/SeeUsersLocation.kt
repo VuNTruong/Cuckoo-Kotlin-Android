@@ -11,6 +11,8 @@ import com.beta.cuckoo.Network.Follows.GetFollowingService
 import com.beta.cuckoo.Network.User.GetUserInfoBasedOnIdService
 import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.LocationRepositories.LocationRepository
+import com.beta.cuckoo.Repository.UserRepositories.FollowRepository
 import com.mapbox.android.core.permissions.PermissionsListener
 import com.mapbox.android.core.permissions.PermissionsManager
 import com.mapbox.mapboxsdk.Mapbox
@@ -26,11 +28,22 @@ import kotlinx.android.synthetic.main.activity_see_friends_location.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
+    // Executor service to perform works in the background
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
     private lateinit var style: Style
     private lateinit var mapbox: MapboxMap
     private var permissionsManager: PermissionsManager = PermissionsManager(this)
+
+    // Follow repository
+    private lateinit var followRepository: FollowRepository
+
+    // Location repository
+    private lateinit var locationRepository: LocationRepository
 
     override fun onBackPressed() {
         super.onBackPressed()
@@ -44,8 +57,15 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
         // Hide the action bar
         supportActionBar!!.hide()
 
+        // Get mapbox instance
         Mapbox.getInstance(this, getString(R.string.mapbox_access_token))
         setContentView(R.layout.activity_see_friends_location)
+
+        // Instantiate follow repository
+        followRepository = FollowRepository(executorService, applicationContext)
+
+        // Instantiate location repository
+        locationRepository = LocationRepository(executorService, applicationContext)
 
         // Set on click listener for the back button
         backButtonSeeFriendsLocation.setOnClickListener {
@@ -77,133 +97,23 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
 
     // The function to get info of the current user
     private fun getInfoOfCurrentUserAndFriendsLocation (mapbox: MapboxMap) {
-        // Create the get current user info service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
+        // Call the function to get list of followings of the currently logged in user
+        followRepository.getLisOfFollowingsOfCurrentUser { arrayOfUserId ->
+            // Loop through the list of followings to obtain list of user id of users to whom the current user is following
+            for (followingUserId in arrayOfUserId) {
+                // Call the function to pin users to whom the current user is following on the map
+                loadUserInfoBasedOnId(followingUserId, mapbox)
             }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that the token is valid
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get id of the current user
-                    val currentUserId = data["_id"] as String
-
-                    // Call the function to load list of friends of the current user
-                    getListOfFollowingOfUserAndLocation(currentUserId, mapbox)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
-    }
-
-    // The function to load list of following for the current user
-    fun getListOfFollowingOfUserAndLocation (userId: String, mapbox: MapboxMap) {
-        // Create the service for getting number of followings
-        val getArrayOfFollowingService: GetFollowingService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetFollowingService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getArrayOfFollowingService.getFollowings(userId)
-
-        // Perform the call
-        call.enqueue(object : Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("There seem to be an error ${t.stackTrace}")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is data
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data of the response
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get list of following
-                    val listOfFollowings = data["documents"] as ArrayList<Map<String, Any>>
-
-                    // Loop through the list of followings to obtain list of user id of users to whom the current user is following
-                    for (following in listOfFollowings) {
-                        // Get the following id and add it to the array
-                        val followingUserId = following["following"] as String
-
-                        // Call the function to pin users to whom the current user is following on the map
-                        loadUserInfoBasedOnId(followingUserId, mapbox)
-                    }
-                }
-            }
-        })
+        }
     }
 
     // The function to get info of a user based on id
-    fun loadUserInfoBasedOnId (userId: String, mapbox: MapboxMap) {
-        // Create the get user info base on id service
-        val getUserInfoBasedOnUserIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(applicationContext)!!.create(
-            GetUserInfoBasedOnIdService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getUserInfoBasedOnUserIdService.getUserInfoBasedOnId(userId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is no error
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get user info from the data
-                    val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
-
-                    // Get full name of the user
-                    val userFullName = userInfo["fullName"] as String
-
-                    //------------- Get location of the user -------------
-                    // Get last updated location of the current user
-                    val locationObject = userInfo["location"] as Map<String, Any>
-                    val coordinatesArray = locationObject["coordinates"] as ArrayList<Double>
-
-                    // Get description of the user location
-                    val locationDescription = locationObject["description"] as String
-
-                    // Get the latitude
-                    val latitude = coordinatesArray[1]
-
-                    // Get the longitude
-                    val longitude = coordinatesArray[0]
-
-                    // Create the location object for the last updated location of the current user
-                    val center = LatLng(latitude, longitude)
-                    //------------- End get location of the user -------------
-
-                    // Call the function to pin the user on the map
-                    pinUser(center, "${userFullName}: $locationDescription", mapbox)
-                }
-            }
-        })
+    private fun loadUserInfoBasedOnId (userId: String, mapbox: MapboxMap) {
+        // Call the function to get location info of the user with specified user id and pin that user on the map
+        locationRepository.getLocationInfoOfUserBasedOnId(userId) {userFullName, locationDescription, location ->
+            // Call the function to pin the user on the map
+            pinUser(location, "${userFullName}: $locationDescription", mapbox)
+        }
     }
 
     // The function to pin the users
