@@ -4,6 +4,7 @@ import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.webkit.PermissionRequest
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.beta.cuckoo.R
@@ -19,9 +20,6 @@ class VideoChat : AppCompatActivity() {
     // Create an audio track
     private var enable = true
     private lateinit var localAudioTrack: LocalAudioTrack
-
-    // Create video track
-    private lateinit var camera2Enumerator: Camera2Enumerator
 
     // The room in which user and peer will be in
     private lateinit var room: Room
@@ -41,11 +39,6 @@ class VideoChat : AppCompatActivity() {
         requireNotNull(cameraId)
     }
 
-    // Camera capturer
-    private val cameraCapturer by lazy {
-        CameraCapturer(this, backCameraId)
-    }
-
     // Local video track
     private lateinit var localVideoTrack: LocalVideoTrack
 
@@ -60,8 +53,8 @@ class VideoChat : AppCompatActivity() {
         // We will need sound and camera permission
         if ((ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED) ||
             (ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_DENIED)) {
-            // Ask for permission
-            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO), 1)
+            // Call the function to ask for permission
+            requestPermissionForCameraAndMicrophone()
         } else {
             // Call the function to set up camera capture
             setUpCameraCapture()
@@ -79,7 +72,7 @@ class VideoChat : AppCompatActivity() {
         // Set up on click listener for the connect button
         connectButton.setOnClickListener {
             // Call the function to start connecting
-            createChatRoom("chat-room-go")
+            connectToAChatRoom("chat-room-go")
         }
     }
 
@@ -138,11 +131,11 @@ class VideoChat : AppCompatActivity() {
         localAudioTrack = LocalAudioTrack.create(applicationContext, enable)!!
     }
 
-    // The function to create a chat room
-    private fun createChatRoom (roomName: String) {
-        val accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzFlZDBjNTJkZjllNTZkNjdkNWJlNTE4ODVhN2UwNzY5LTE2MTYyODQyMzciLCJncmFudHMiOnsiaWRlbnRpdHkiOiJ2bnRydW9uZzEiLCJ2aWRlbyI6e319LCJpYXQiOjE2MTYyODQyMzcsImV4cCI6MTYxNjI4NzgzNywiaXNzIjoiU0sxZWQwYzUyZGY5ZTU2ZDY3ZDViZTUxODg1YTdlMDc2OSIsInN1YiI6IkFDYWY1YzdjMDM5YjIxNDk5NGEwMzBkZjg3ZjBmNzNkMjYifQ.5AJt8buVWs-2DLVZoDx-KY8GN_kOSjaME9HCNgn-pxA"
-        //vntruong eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzFlZDBjNTJkZjllNTZkNjdkNWJlNTE4ODVhN2UwNzY5LTE2MTYyODQyMDgiLCJncmFudHMiOnsiaWRlbnRpdHkiOiJ2bnRydW9uZyIsInZpZGVvIjp7fX0sImlhdCI6MTYxNjI4NDIwOCwiZXhwIjoxNjE2Mjg3ODA4LCJpc3MiOiJTSzFlZDBjNTJkZjllNTZkNjdkNWJlNTE4ODVhN2UwNzY5Iiwic3ViIjoiQUNhZjVjN2MwMzliMjE0OTk0YTAzMGRmODdmMGY3M2QyNiJ9.qkMcitNzFmG94yMklNFmiort3uvc5D9SsFSIoMmI8es
-        //vntruong1 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzFlZDBjNTJkZjllNTZkNjdkNWJlNTE4ODVhN2UwNzY5LTE2MTYyODQyMzciLCJncmFudHMiOnsiaWRlbnRpdHkiOiJ2bnRydW9uZzEiLCJ2aWRlbyI6e319LCJpYXQiOjE2MTYyODQyMzcsImV4cCI6MTYxNjI4NzgzNywiaXNzIjoiU0sxZWQwYzUyZGY5ZTU2ZDY3ZDViZTUxODg1YTdlMDc2OSIsInN1YiI6IkFDYWY1YzdjMDM5YjIxNDk5NGEwMzBkZjg3ZjBmNzNkMjYifQ.5AJt8buVWs-2DLVZoDx-KY8GN_kOSjaME9HCNgn-pxA
+    // The function to connect to a chat room
+    private fun connectToAChatRoom (roomName: String) {
+        val accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzFlZDBjNTJkZjllNTZkNjdkNWJlNTE4ODVhN2UwNzY5LTE2MTYzNTk1MDciLCJncmFudHMiOnsiaWRlbnRpdHkiOiJ2bnRydW9uZzEiLCJ2aWRlbyI6e319LCJpYXQiOjE2MTYzNTk1MDcsImV4cCI6MTYxNjM2MzEwNywiaXNzIjoiU0sxZWQwYzUyZGY5ZTU2ZDY3ZDViZTUxODg1YTdlMDc2OSIsInN1YiI6IkFDYWY1YzdjMDM5YjIxNDk5NGEwMzBkZjg3ZjBmNzNkMjYifQ.qCtTUWBjbJUSHOGuDwhumOrO9GY_Q7-uhjOD81XlMUc"
+        //vntruong eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzFlZDBjNTJkZjllNTZkNjdkNWJlNTE4ODVhN2UwNzY5LTE2MTYzNTk1NDIiLCJncmFudHMiOnsiaWRlbnRpdHkiOiJ2bnRydW9uZyIsInZpZGVvIjp7fX0sImlhdCI6MTYxNjM1OTU0MiwiZXhwIjoxNjE2MzYzMTQyLCJpc3MiOiJTSzFlZDBjNTJkZjllNTZkNjdkNWJlNTE4ODVhN2UwNzY5Iiwic3ViIjoiQUNhZjVjN2MwMzliMjE0OTk0YTAzMGRmODdmMGY3M2QyNiJ9.DDN9USiOvhN-dnk6iOfcnUzl-gr0FCPWF7F2Fa9Uh9s
+        //vntruong1 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImN0eSI6InR3aWxpby1mcGE7dj0xIn0.eyJqdGkiOiJTSzFlZDBjNTJkZjllNTZkNjdkNWJlNTE4ODVhN2UwNzY5LTE2MTYzNTk1MDciLCJncmFudHMiOnsiaWRlbnRpdHkiOiJ2bnRydW9uZzEiLCJ2aWRlbyI6e319LCJpYXQiOjE2MTYzNTk1MDcsImV4cCI6MTYxNjM2MzEwNywiaXNzIjoiU0sxZWQwYzUyZGY5ZTU2ZDY3ZDViZTUxODg1YTdlMDc2OSIsInN1YiI6IkFDYWY1YzdjMDM5YjIxNDk5NGEwMzBkZjg3ZjBmNzNkMjYifQ.qCtTUWBjbJUSHOGuDwhumOrO9GY_Q7-uhjOD81XlMUc
 
         val connectOptions = ConnectOptions.Builder(accessToken)
             .roomName(roomName)
@@ -157,15 +150,9 @@ class VideoChat : AppCompatActivity() {
     // Room listener
     private val roomListener = object : Room.Listener {
         override fun onConnected(room: Room) {
-            val roomName = room.name
-
-            val remoteParticipants = room.remoteParticipants
-
-            if (remoteParticipants.size != 0) {
-                remoteParticipants[0].remoteVideoTracks[0].remoteVideoTrack?.addSink(remoteVideoView)
-            }
-
-            print(roomName)
+            // When a user join a room, get info of other user that is already inside room
+            // and display their media
+            room.remoteParticipants.firstOrNull()?.let { addRemoteParticipant(it) }
         }
 
         override fun onConnectFailure(room: Room, twilioException: TwilioException) {
@@ -182,14 +169,12 @@ class VideoChat : AppCompatActivity() {
 
         override fun onDisconnected(room: Room, twilioException: TwilioException?) {
             // To be implemented
+            print("disconnected")
         }
 
         override fun onParticipantConnected(room: Room, remoteParticipant: RemoteParticipant) {
-            val participantIdentity = remoteParticipant.identity
-
+            // Set remote participant listener
             remoteParticipant.setListener(remoteParticipantListener)
-
-            print(participantIdentity)
         }
 
         override fun onParticipantDisconnected(room: Room, remoteParticipant: RemoteParticipant) {
@@ -349,6 +334,69 @@ class VideoChat : AppCompatActivity() {
         ) {
             // To be implemented
         }
+    }
 
+    private fun addRemoteParticipant(remoteParticipant: RemoteParticipant) {
+        /*
+         * Add participant renderer
+         */
+        remoteParticipant.remoteVideoTracks.firstOrNull()?.let { remoteVideoTrackPublication ->
+            if (remoteVideoTrackPublication.isTrackSubscribed) {
+                remoteVideoTrackPublication.remoteVideoTrack?.let { addRemoteParticipantVideo(it) }
+            }
+        }
+
+        /*
+         * Start listening for participant events
+         */
+        remoteParticipant.setListener(remoteParticipantListener)
+    }
+
+    /*
+     * Set primary view as renderer for participant video track
+     */
+    private fun addRemoteParticipantVideo(videoTrack: VideoTrack) {
+        remoteVideoView.mirror = true
+        videoTrack.addSink(remoteVideoView)
+    }
+
+    // The function to request for permission to use camera and microphone
+    private fun requestPermissionForCameraAndMicrophone() {
+        // If user need explanation on why the app need to get access to camera and microphone
+        // explain it for the user
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CAMERA) ||
+            ActivityCompat.shouldShowRequestPermissionRationale(this,
+                android.Manifest.permission.RECORD_AUDIO)) {
+            Toast.makeText(this, "We need your permission to use microphone and camera", Toast.LENGTH_LONG).show()
+        } // If not, start asking for permission
+        else {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO), 1)
+        }
+    }
+
+    // Handle user response to permission
+    override fun onRequestPermissionsResult(requestCode: Int,
+                                            permissions: Array<String>,
+                                            grantResults: IntArray) {
+        if (requestCode == 1) {
+            var cameraAndMicPermissionGranted = true
+
+            for (grantResult in grantResults) {
+                cameraAndMicPermissionGranted = cameraAndMicPermissionGranted and
+                        (grantResult == PackageManager.PERMISSION_GRANTED)
+            }
+
+            if (cameraAndMicPermissionGranted) {
+                // Call the function to set up camera capture
+                setUpCameraCapture()
+
+                // Call the function to set up audio
+                setUpAudio()
+            } else {
+                Toast.makeText(this, "We need your permission to use microphone and camera", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }
