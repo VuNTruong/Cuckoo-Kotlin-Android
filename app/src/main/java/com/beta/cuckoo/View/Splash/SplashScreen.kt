@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.beta.cuckoo.R
+import com.beta.cuckoo.View.VideoChat.VideoChat
 import com.beta.cuckoo.View.WelcomeView.MainActivity
 
 class SplashScreen : AppCompatActivity() {

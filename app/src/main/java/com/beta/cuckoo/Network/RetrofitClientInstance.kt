@@ -10,9 +10,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 class RetrofitClientInstance {
     companion object {
         var retrofit: Retrofit? = null
-        //private const val apiURL = "https://myhbt-api.herokuapp.com"
+        private const val apiURL = "https://myhbt-api.herokuapp.com"
         //private const val apiURL = "https://myhbt-api.azurewebsites.net"
-        private const val apiURL = "http://10.0.2.2:3000"
+        //private const val apiURL = "http://10.0.2.2:3000"
         //private const val apiURL = "http://localhost:3000"
 
         fun getRetrofitInstance(applicationContext: Context): Retrofit? {
