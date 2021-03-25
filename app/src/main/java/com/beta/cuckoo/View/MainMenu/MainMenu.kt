@@ -98,7 +98,7 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
             }
         }
 
-        // Call the function to do initial set up
+        // Call the function to do initial setR up
         setUp()
     }
 

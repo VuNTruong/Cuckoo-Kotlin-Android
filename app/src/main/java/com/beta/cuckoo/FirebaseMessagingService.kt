@@ -4,10 +4,14 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentValues.TAG
 import android.content.Context
+import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.beta.cuckoo.View.Chat.SearchUserToChatWith
+import com.beta.cuckoo.View.MainMenu.MainMenu
+import com.beta.cuckoo.View.VideoChat.VideoChatIncomingCall
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -35,6 +39,16 @@ class FirebaseMessagingService : FirebaseMessagingService() {
 
         // Check if message contains a notification payload.
         remoteMessage.notification?.let {
+            val title = it.title
+            val body = it.body
+
+            if (title == "title") {
+                // Go to the main activity
+                val intent = Intent(applicationContext, VideoChatIncomingCall::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+            }
+
             Log.d(TAG, "Message Notification Body: ${it.body}")
         }
 
