@@ -11,9 +11,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.Model.Message
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
+import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterChat
 import com.beta.cuckoo.View.MainMenu.MainMenu
+import com.beta.cuckoo.View.VideoChat.VideoChat
 import com.beta.cuckoo.ViewModel.MessageViewModel
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
@@ -34,6 +36,9 @@ class Chat : AppCompatActivity() {
 
     // User repository
     private lateinit var userRepository: UserRepository
+
+    // Notification repository
+    private lateinit var notificationRepository: NotificationRepository
 
     // These objects are used for socket.io
     //private lateinit var mSocket: Socket
@@ -69,6 +74,7 @@ class Chat : AppCompatActivity() {
         // Instantiate repositories
         userRepository = UserRepository(executorService, applicationContext)
         messagRepository = MessageRepository(executorService, applicationContext)
+        notificationRepository = NotificationRepository(executorService, applicationContext)
 
         // Instantiate message view model
         messageViewModel = MessageViewModel(applicationContext)
@@ -129,11 +135,26 @@ class Chat : AppCompatActivity() {
             // Call the function to create new message and send it to the database
             createNewMessage()
         }
+
+        // Set on click listener for the video chat button
+        videoCallButton.setOnClickListener {
+            // The intent object
+            val intent = Intent(applicationContext, VideoChat::class.java)
+
+            // Let the video chat activity know who is the call receiver (message receiver here)
+            intent.putExtra("callReceiver", receiverUserId)
+
+            // Pass chat room id of the chat room between current user and other user to the next activity
+            intent.putExtra("chatRoomId", chatRoomId)
+
+            // Start the video chat activity
+            startActivity(intent)
+        }
     }
 
     //************************ DO THINGS WITH THE SOCKET.IO ************************
     // The function to do set up things with the socket.io
-    fun setUpSocketIO () {
+    private fun setUpSocketIO () {
         // Bring user into the chat room between this user and the selected user
         MainMenu.mSocket.emit("jumpInChatRoom", gson.toJson(hashMapOf(
             "chatRoomId" to chatRoomId
@@ -323,13 +344,15 @@ class Chat : AppCompatActivity() {
             //------------------ Send update via socket io ------------------
             // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
             // the server know that this user has sent an image as message
-            MainMenu.mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
+            MainMenu.mSocket.emit("newMessage", gson.toJson(hashMapOf(
                 "sender" to currentUserId,
                 "receiver" to receiverUserId,
                 "content" to messageContentToSend.text.toString(),
                 "messageId" to messageObject.getMessageId(),
                 "chatRoomId" to chatRoomId
             )))
+
+            notificationRepository.sendNotificationToAUser(receiverUserId, "New message", messageContentToSend.text.toString()) { }
 
             // Emit event to the server so that the server will let other user in the chat room know that
             // current user is done typing
@@ -361,6 +384,7 @@ class Chat : AppCompatActivity() {
     //************************* END SEND MESSAGE SEQUENCE *************************
 
     //************************* SUPPLEMENTAL FUNCTIONS *************************
+    // Go to end of the message show
     private fun gotoEnd () {
         // The function to roll to the end of the message view
         messageView.scrollToPosition(chatMessages.size - 1)

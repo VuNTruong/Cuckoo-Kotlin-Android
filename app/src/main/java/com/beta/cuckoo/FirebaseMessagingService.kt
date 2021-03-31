@@ -10,6 +10,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.beta.cuckoo.View.Chat.SearchUserToChatWith
+import com.beta.cuckoo.View.Locations.UpdateLocation
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.View.VideoChat.VideoChatIncomingCall
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -37,24 +38,76 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
         Log.d(TAG, "From: ${remoteMessage.from}")
 
+        val messageDataTitle = remoteMessage.data["title"]
+        val messageDataContent = remoteMessage.data["body"]
+
+        // If title of the notification is "video-chat-received", start the call ("data" for now)
+        if (messageDataTitle == "data") {
+            // Go to the incoming call activity
+            val intent = Intent(applicationContext, VideoChatIncomingCall::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            // Pass chat room id to the incoming call activity (it will be in body of the notification)
+            intent.putExtra("chatRoomId", (messageDataContent!!.split("-").toTypedArray())[0])
+
+            // Pass caller user id to the incoming call activity
+            intent.putExtra("callerUserId", (messageDataContent.split("-").toTypedArray())[1])
+
+            // Start the incoming call activity
+            startActivity(intent)
+
+            /*
+            val intent = Intent(applicationContext, UpdateLocation::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            */
+        }
+
+        val messageData = remoteMessage.data["data"]
+        if (messageData == "data") {
+            // Go to the incoming call activity
+            val intent = Intent(applicationContext, UpdateLocation::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            // Start the activity
+            startActivity(intent)
+        }
+
         // Check if message contains a notification payload.
         remoteMessage.notification?.let {
+            // Get title and body of the notification
             val title = it.title
             val body = it.body
 
-            if (title == "title") {
-                // Go to the main activity
-                val intent = Intent(applicationContext, VideoChatIncomingCall::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(intent)
+            // If title of the notification is "video-chat-received", start the call ("title" for now)
+            when (title) {
+                "title" -> {
+                    // Go to the incoming call activity
+                    val intent = Intent(applicationContext, VideoChatIncomingCall::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+                    // Pass chat room id to the incoming call activity (it will be in body of the notification)
+                    intent.putExtra("chatRoomId", (body!!.split("-").toTypedArray())[0])
+
+                    // Pass caller user id to the incoming call activity
+                    intent.putExtra("callerUserId", (body.split("-").toTypedArray())[1])
+
+                    // Start the incoming call activity
+                    startActivity(intent)
+                }
+                "cancelledCall" -> {
+                    val intent = Intent("finish")
+                    sendBroadcast(intent)
+                }
+                else -> {
+                    // Also if you intend on generating your own notifications as a result of a received FCM
+                    // message, here is where that should be initiated. See sendNotification method below.
+                    sendNotification("Cloud message received")
+                }
             }
 
             Log.d(TAG, "Message Notification Body: ${it.body}")
         }
-
-        // Also if you intend on generating your own notifications as a result of a received FCM
-        // message, here is where that should be initiated. See sendNotification method below.
-        sendNotification("Cloud message received")
     }
     // [END receive_message]
 

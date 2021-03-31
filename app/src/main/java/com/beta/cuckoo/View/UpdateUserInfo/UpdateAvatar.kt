@@ -65,10 +65,7 @@ class UpdateAvatar : AppCompatActivity() {
         // Set on click listener for the update avatar button
         updateAvatarButton.setOnClickListener {
             // Execute the AsyncTask to update the avatar
-            FileUploadingTask().execute(hashMapOf(
-                "studentId" to mapOfFields["studentId"] as String,
-                "userId" to mapOfFields["userId"] as String
-            ))
+            FileUploadingTask().execute()
         }
     }
 
@@ -144,9 +141,6 @@ class UpdateAvatar : AppCompatActivity() {
                     }
                 }
             }
-
-            // Get student id of the user
-            val studentId = params[0]!!["studentId"] as String
 
             return null
         }

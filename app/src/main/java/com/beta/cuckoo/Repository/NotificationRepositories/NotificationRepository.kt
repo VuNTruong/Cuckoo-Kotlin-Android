@@ -1,11 +1,9 @@
 package com.beta.cuckoo.Repository.NotificationRepositories
 
 import android.content.Context
-import com.beta.cuckoo.Network.Notifications.CreateNotificationService
-import com.beta.cuckoo.Network.Notifications.GetNotificationsForUserService
-import com.beta.cuckoo.Network.Notifications.GetOrderInCollectionOfLatestNotificationService
 import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.Model.Notification
+import com.beta.cuckoo.Network.Notifications.*
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import retrofit2.Call
 import retrofit2.Callback
@@ -118,6 +116,94 @@ class NotificationRepository (executor: Executor, context: Context) {
                     }
                 })
             }
+        }
+    }
+
+    // The function to send notification to a user with specified user id
+    fun sendNotificationToAUser (userId: String, notificationTitle: String, notificationContent: String, callback: () -> Unit) {
+        executor.execute {
+            // Create the send notification to a user service
+            val sendNotificationToAUserService: SendNotificationToAUserService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                SendNotificationToAUserService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = sendNotificationToAUserService.sendNotificationToAUser(userId, notificationContent, notificationTitle)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        // Call the callback function to let the view know that notification has been sent
+                        callback()
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to send data notification to user with specified user id
+    fun sendDataNotificationToAUser (userId: String, notificationTitle: String, notificationContent: String, callback: () -> Unit) {
+        executor.execute {
+            // Create the send notification to a user service
+            val sendNotificationToAUserService: SendDataNotificationToAUser = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                SendDataNotificationToAUser::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = sendNotificationToAUserService.sendNotificationToAUser(userId, notificationContent, notificationTitle)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        // Call the callback function to let the view know that notification has been sent
+                        callback()
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to delete a notification socket for user with specified user id
+    fun deleteNotificationSocket (userId: String, socketId: String, callback: () -> Unit) {
+        executor.execute {
+            // Create the delete notification socket service
+            val deleteNotificationSocketService: DeleteNotificationSocketService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                DeleteNotificationSocketService::class.java
+            )
+
+            // Create the call object to perform the call
+            val call: Call<Any> = deleteNotificationSocketService.deleteNotificationSocket(userId, socketId)
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that socket has been deleted
+                    if (response.code() == 204) {
+                        // Call the callback function to let the view know that notification socket has been removed
+                        callback()
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
         }
     }
 }

@@ -20,7 +20,8 @@
         android:roundIcon="@drawable/cuckoologo1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.VideoChat.VideoChatIncomingCall"></activity>
+        <activity android:name=".View.AudioChat.AudioChat"></activity>
+        <activity android:name=".View.VideoChat.VideoChatIncomingCall" />
         <activity android:name=".View.VideoChat.VideoChat" />
         <activity android:name=".View.Splash.SplashScreen">
             <intent-filter>

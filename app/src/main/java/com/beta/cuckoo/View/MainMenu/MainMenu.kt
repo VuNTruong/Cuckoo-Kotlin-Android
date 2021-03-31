@@ -20,6 +20,8 @@ import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.FirebaseMessagingService
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
+import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Fragments.*
 import com.beta.cuckoo.View.UserInfoView.ProfileDetail
 import com.beta.cuckoo.View.WelcomeView.MainActivity
@@ -33,8 +35,19 @@ import kotlinx.android.synthetic.main.activity_main_menu.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+    // Executor service to perform works in the background
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
+    // The user repository
+    private lateinit var userRepository: UserRepository
+
+    // The notification repository
+    private lateinit var notificationRepository: NotificationRepository
+
     // These objects are used for socket.io
     private val gson = Gson()
 
@@ -51,6 +64,12 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_menu)
+
+        // Instantiate user repository
+        userRepository = UserRepository(executorService, applicationContext)
+
+        // Instantiate notification repository
+        notificationRepository = NotificationRepository(executorService, applicationContext)
 
         // Set this thing up for the button which will be used to open the hamburger menu
         setSupportActionBar(toolbar)
@@ -98,7 +117,7 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
             }
         }
 
-        // Call the function to do initial setR up
+        // Call the function to do initial set up
         setUp()
     }
 
@@ -128,8 +147,8 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
     // The function to set up socket.IO
     private fun setUpSocketIO () {
         // This address is to connect with the server
-        mSocket = IO.socket("http://10.0.2.2:3000")
-        //mSocket = IO.socket("https://myhbt-api.herokuapp.com")
+        //mSocket = IO.socket("http://10.0.2.2:3000")
+        mSocket = IO.socket("https://myhbt-api.herokuapp.com")
         //mSocket = IO.socket("http://localhost:3000")
 
         // Connect to the socket
@@ -265,91 +284,37 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
     // The function to sign user out
     private fun signOut () {
-        // Create the post service
-        val postService: LogoutPostDataService = RetrofitClientInstance.getRetrofitInstance(
-            applicationContext
-        )!!.create(
-            LogoutPostDataService::class.java
-        )
+        // Call the function to start signing user out
+        userRepository.getInfoOfCurrentUser {userObject ->
+            // Call the function to get info of the currently logged in user
+            userRepository.signOut {
+                // Get registration token of the user delete notification socket as user signs out
+                FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener {task ->
+                    // Registration token of the user
+                    val token = task.token
 
-        // The call object which will then be used to perform the API call
-        val call: Call<Any> = postService.logout()
+                    // Call the function to delete notification socket for the user
+                    notificationRepository.deleteNotificationSocket(userObject.getId(), token) {
+                        // Sign the user out with FirebaseAuth
+                        mAuth.signOut()
 
-        // Perform the API call
-        call.enqueue(object : Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                // Report the error if something is not right
-                print("Boom")
-            }
+                        // Go to the main page activity
+                        val intent = Intent(applicationContext, MainActivity::class.java)
+                        startActivity(intent)
 
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is null, it means that the user may didn't enter the correct email or password
-                if (response.body() == null) {
-                    // Show the user that the login was not successful
-                    Toast.makeText(applicationContext, "Something is not right", Toast.LENGTH_SHORT)
-                        .show()
-                } else {
-                    val memory: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(
-                        applicationContext
-                    )
-                    //val cookie = memory.getStringSet("PREF_COOKIE", HashSet<String>())
-
-                    // Sign the user out with FirebaseAuth
-                    mAuth.signOut()
-
-                    // Stop the background service
-                    val intentService = Intent(this@MainMenu, BackgroundServices::class.java)
-                    stopService(intentService)
-
-                    // Go to the main page activity
-                    val intent = Intent(applicationContext, MainActivity::class.java)
-                    startActivity(intent)
-
-                    // Finish this activity
-                    this@MainMenu.finish()
+                        // Finish this activity
+                        this@MainMenu.finish()
+                    }
                 }
             }
-        })
+        }
     }
 
     // The function to get user info based on id
     fun getCurrentUserInfo() {
-        // In order to prevent us from encountering the class cast exception, we need to do the following
-        // Create the GSON object
-        val gs = Gson()
-
-        // Create the validate token service
-        val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(
-            applicationContext
-        )!!.create(
-            GetCurrentlyLoggedInUserInfoService::class.java
-        )
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
-
-        // Perform the call
-        call.enqueue(object : Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is data
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Convert user object which is currently a linked tree map into a JSON string
-                    val jsUser = gs.toJson(data)
-
-                    // Convert the JSOn string back into User class
-                    val userObject = gs.fromJson<User>(jsUser, User::class.java)
-
-                    /*
+        // Call the function to get info of the currently logged in user
+        userRepository.getInfoOfCurrentUser { userObject ->
+            /*
                     // Load full name into the TextView
                     userFullNameDrawerMenu.text = userObject.getFullName()
 
@@ -363,15 +328,11 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
                      */
 
-                    // Update current user object for this activity
-                    currentUserObject = userObject
+            // Update current user object for this activity
+            currentUserObject = userObject
 
-                    // Call the function to set up socket io for the whole app
-                    setUpSocketIO()
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
+            // Call the function to set up socket io for the whole app
+            setUpSocketIO()
+        }
     }
 }

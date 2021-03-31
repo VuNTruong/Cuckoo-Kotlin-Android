@@ -1,12 +1,16 @@
 package com.beta.cuckoo.Repository.UserRepositories
 
 import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
 import android.widget.Toast
 import com.beta.cuckoo.Network.*
 import com.beta.cuckoo.Network.Follows.GeteFollowerService
 import com.beta.cuckoo.Network.User.*
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.Network.Follows.GetFollowingService
+import com.beta.cuckoo.View.WelcomeView.MainActivity
 import com.google.gson.Gson
 import com.mapbox.mapboxsdk.geometry.LatLng
 import retrofit2.Call
@@ -244,6 +248,36 @@ class UserRepository (executor: Executor, context: Context) {
                 }
             })
         }
+    }
+
+    // The function to sign out
+    fun signOut (callback: () -> Unit) {
+        // Create the post service
+        val postService: LogoutPostDataService = RetrofitClientInstance.getRetrofitInstance(context)!!
+            .create(LogoutPostDataService::class.java)
+
+        // The call object which will then be used to perform the API call
+        val call: Call<Any> = postService.logout()
+
+        // Perform the API call
+        call.enqueue(object : Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                // Report the error if something is not right
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // If the response body is null, it means that the user may didn't enter the correct email or password
+                if (response.body() == null) {
+                    // Show the user that the login was not successful
+                    Toast.makeText(context, "Something is not right", Toast.LENGTH_SHORT)
+                        .show()
+                } else {
+                    // Let the view know that sign out is done via callback function
+                    callback()
+                }
+            }
+        })
     }
 
     // The function to get last updated location of the currently logged in user

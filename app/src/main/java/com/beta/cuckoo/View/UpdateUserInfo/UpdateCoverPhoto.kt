@@ -65,10 +65,7 @@ class UpdateCoverPhoto : AppCompatActivity() {
         // Set on click listener for the update cover photo button
         updateCoverPhotoButton.setOnClickListener {
             // Execute the AsyncTask to update the cover photo
-            FileUploadingTask().execute(hashMapOf(
-                "studentId" to mapOfFields["studentId"] as String,
-                "userId" to mapOfFields["userId"] as String
-            ))
+            FileUploadingTask().execute()
         }
     }
 
