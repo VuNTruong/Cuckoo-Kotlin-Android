@@ -12,7 +12,7 @@
     app:layout_constraintTop_toTopOf="parent">
 
     <ImageView
-        android:id="@+id/stopCallButton"
+        android:id="@+id/stopCallButtonAudioChat"
         android:layout_width="70dp"
         android:layout_height="70dp"
         android:layout_marginBottom="20dp"
@@ -22,7 +22,7 @@
         app:srcCompat="@drawable/declinecall" />
 
     <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/callReceiverAvatar"
+        android:id="@+id/callReceiverAvatarAudioChat"
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:layout_marginTop="100dp"
@@ -33,7 +33,7 @@
     </de.hdodenhof.circleimageview.CircleImageView>
 
     <TextView
-        android:id="@+id/callReceiverName"
+        android:id="@+id/callReceiverNameAudioChat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="176dp"
@@ -45,16 +45,27 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/callReceiverAvatar" />
+        app:layout_constraintTop_toBottomOf="@+id/callReceiverAvatarAudioChat" />
 
     <TextView
         android:id="@+id/callTimer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="00:00"
+        android:text="Connecting..."
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/callReceiverName" />
+        app:layout_constraintTop_toBottomOf="@+id/callReceiverNameAudioChat" />
+
+    <Chronometer
+        android:id="@+id/callTimerCountUp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/callReceiverNameAudioChat">
+
+    </Chronometer>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

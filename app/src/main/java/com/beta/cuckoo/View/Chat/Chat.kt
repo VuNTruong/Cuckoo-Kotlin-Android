@@ -14,6 +14,7 @@ import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
 import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterChat
+import com.beta.cuckoo.View.AudioChat.AudioChat
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.View.VideoChat.VideoChat
 import com.beta.cuckoo.ViewModel.MessageViewModel
@@ -148,6 +149,21 @@ class Chat : AppCompatActivity() {
             intent.putExtra("chatRoomId", chatRoomId)
 
             // Start the video chat activity
+            startActivity(intent)
+        }
+
+        // Set on click listener for the audio chat button
+        audioCallButton.setOnClickListener {
+            // The intent object
+            val intent = Intent(applicationContext, AudioChat::class.java)
+
+             // Let the audio chat activity know who is the call receiver (message receiver here in this activity)
+            intent.putExtra("callReceiver", receiverUserId)
+
+            // Pass chat room id of the chat room between current user and other user to the next activity
+            intent.putExtra("chatRoomId", chatRoomId)
+
+            // Start the audio chat activity
             startActivity(intent)
         }
     }

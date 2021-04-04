@@ -85,6 +85,9 @@ class VideoChat : AppCompatActivity() {
         // Hide the action bar
         supportActionBar!!.hide()
 
+        // Call the function to check and request for camera and microphone permission
+        requestPermissionForCameraAndMicrophone()
+
         // This one is to finish the activity when call receiver does not accept the call
         val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
             override fun onReceive(arg0: Context?, intent: Intent) {
@@ -129,20 +132,6 @@ class VideoChat : AppCompatActivity() {
         // Instantiate user repository
         userRepository = UserRepository(executorService, applicationContext)
 
-        // Check and ask for user permission
-        // We will need sound and camera permission
-        if ((ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED) ||
-            (ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_DENIED)) {
-            // Call the function to ask for permission
-            requestPermissionForCameraAndMicrophone()
-        } else {
-            // Call the function to set up camera capture
-            setUpCameraCapture()
-
-            // Call the function to set up audio
-            setUpAudio()
-        }
-
         // Set up on click listener for the rotate camera button
         rotateCameraButton.setOnClickListener {
             // Call the function to rotate camera
@@ -159,12 +148,6 @@ class VideoChat : AppCompatActivity() {
         cameraSwitchButton.setOnClickListener {
             // Call the function to do things for the camera switch
             cameraSwitch()
-        }
-
-        // Bring user into room
-        userRepository.getInfoOfCurrentUser { userObject ->
-            // Call the function to start connecting
-            connectToAChatRoom(chatRoomName, userObject.getId())
         }
 
         // Call the function to get info of call receiver
@@ -576,6 +559,12 @@ class VideoChat : AppCompatActivity() {
 
                 // Call the function to set up audio
                 setUpAudio()
+
+                // Bring user into room
+                userRepository.getInfoOfCurrentUser { userObject ->
+                    // Call the function to start connecting
+                    connectToAChatRoom(chatRoomName, userObject.getId())
+                }
             } else {
                 Toast.makeText(this, "We need your permission to use microphone and camera", Toast.LENGTH_LONG).show()
             }

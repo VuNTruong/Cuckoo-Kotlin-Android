@@ -9,14 +9,19 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.beta.cuckoo.View.AudioChat.AudioChatIncomingCall
 import com.beta.cuckoo.View.Chat.SearchUserToChatWith
 import com.beta.cuckoo.View.Locations.UpdateLocation
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.View.VideoChat.VideoChatIncomingCall
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.google.gson.Gson
 
-class FirebaseMessagingService : FirebaseMessagingService() {
+class FirebaseMessagingService () : FirebaseMessagingService() {
+    // gson converter
+    private val gson = Gson()
+
     /**
      * Called when message is received.
      *
@@ -55,12 +60,22 @@ class FirebaseMessagingService : FirebaseMessagingService() {
 
             // Start the incoming call activity
             startActivity(intent)
+        }
 
-            /*
-            val intent = Intent(applicationContext, UpdateLocation::class.java)
+        // If title of the notification is "audio-chat-received", start the audio call
+        if (messageDataTitle == "audio-chat-received") {
+            // Go to the incoming audio call activity
+            val intent = Intent(applicationContext, AudioChatIncomingCall::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            // Pass chat room id to the incoming audio call activity
+            intent.putExtra("chatRoomId", (messageDataContent!!.split("-").toTypedArray()[0]))
+
+            // Pass caller user id to the incoming audio call activity
+            intent.putExtra("callerUserId", (messageDataContent!!.split("-").toTypedArray()[1]))
+
+            // Start the incoming audio call activity
             startActivity(intent)
-            */
         }
 
         val messageData = remoteMessage.data["data"]
@@ -139,6 +154,27 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     private fun sendRegistrationToServer(token: String?) {
         // TODO: Implement this method to send token to your app server.
         Log.d(TAG, "sendRegistrationTokenToServer($token)")
+
+        // Get currently saved FCM token of the user
+        val currentToken = MainMenu.preferences.getString("FCMToken", "")
+
+        // Get user id of the currently logged in user (saved in memory)
+        val currentUserId = MainMenu.preferences.getString("currentUserId", "")
+
+        // Save received token into memory
+        MainMenu.memory.putString("FCMToken", token).apply()
+        MainMenu.memory.commit()
+
+        // Bring user into the notification room
+        MainMenu.mSocket.emit(
+            "jumpInNotificationRoom", gson.toJson(
+                hashMapOf(
+                    "userId" to currentUserId,
+                    "socketId" to token,
+                    "oldSocketId" to currentToken
+                )
+            )
+        )
     }
 
     /**

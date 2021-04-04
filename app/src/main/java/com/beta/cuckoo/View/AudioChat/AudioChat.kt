@@ -4,16 +4,24 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import android.widget.Chronometer
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.Repository.VideoChatRepository.VideoChatRepository
+import com.bumptech.glide.Glide
 import com.twilio.video.*
+import kotlinx.android.synthetic.main.activity_audio_chat.*
+import kotlinx.android.synthetic.main.activity_audio_chat_incoming_call.*
 import kotlinx.android.synthetic.main.activity_video_chat.*
+import kotlinx.android.synthetic.main.activity_video_chat.isCallingLayout
 import java.lang.IllegalStateException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -54,6 +62,26 @@ class AudioChat : AppCompatActivity() {
         // Hide the action bar
         supportActionBar!!.hide()
 
+        // Hide the timer which keep track of duration of the call
+        callTimer.visibility = View.VISIBLE
+        callTimerCountUp.visibility = View.INVISIBLE
+
+        // Call the function to request for permission
+        requestPermissionForCameraAndMicrophone()
+
+        // Instantiate media player
+        mp = MediaPlayer.create(applicationContext, R.raw.phonecallsound)
+
+        // Get user id of the call receiver
+        if (intent.getStringExtra("callReceiver") != null) {
+            callReceiverUserId = intent.getStringExtra("callReceiver") as String
+        }
+
+        // Get chat room id of the chat room in which 2 users are in
+        if (intent.getStringExtra("chatRoomId") != null) {
+            chatRoomName = intent.getStringExtra("chatRoomId") as String
+        }
+
         // This one is to finish the activity when call receiver does not accept the call
         val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
             override fun onReceive(arg0: Context?, intent: Intent) {
@@ -71,6 +99,28 @@ class AudioChat : AppCompatActivity() {
             }
         }
         registerReceiver(broadcastReceiver, IntentFilter("finish"))
+
+        // Instantiate user repository
+        userRepository = UserRepository(executorService, applicationContext)
+
+        // Instantiate notification repository
+        notificationRepository = NotificationRepository(executorService, applicationContext)
+
+        // Instantiate video chat repository
+        videoChatRepository = VideoChatRepository(executorService, applicationContext)
+        
+        // Call the function to get info of the call receiver
+        getCallReceiverInfo(callReceiverUserId)
+
+        // Set up on click listener for the stop call button
+        stopCallButtonAudioChat.setOnClickListener {
+            // Call the function to send notification to call receiver and let call receiver know that call has been stopped
+            // by caller
+            notificationRepository.sendNotificationToAUser(callReceiverUserId, "cancelledCall", "callEnded") {
+                // Call the function to end the room
+                endRoom(chatRoomName)
+            }
+        }
     }
 
     // The function to connect to a chat room
@@ -150,11 +200,11 @@ class AudioChat : AppCompatActivity() {
                 userRepository.getInfoOfCurrentUser { userObject ->
                     notificationRepository.sendDataNotificationToAUser(
                         callReceiverUserId,
-                        "data",
+                        "audio-chat-received",
                         "${chatRoomName}-${userObject.getId()}"
                     ) {
                         // Show the is dialing signal
-                        dialStatus.text = "Ringing..."
+                        callTimer.text = "Ringing..."
 
                         // Start playing the ringing sound
                         mp.start()
@@ -162,8 +212,10 @@ class AudioChat : AppCompatActivity() {
                 }
             } else {
                 // Otherwise, start the call
-                inCallLayout.visibility = View.VISIBLE
-                isCallingLayout.visibility = View.INVISIBLE
+                // Show the call timer
+                callTimer.visibility = View.INVISIBLE
+                callTimerCountUp.visibility = View.VISIBLE
+                callTimerCountUp.start()
             }
         }
 
@@ -193,7 +245,8 @@ class AudioChat : AppCompatActivity() {
         }
 
         override fun onParticipantConnected(room: Room, remoteParticipant: RemoteParticipant) {
-
+            // Set remote participant listener
+            remoteParticipant.setListener(remoteParticipantListener)
         }
 
         override fun onParticipantDisconnected(room: Room, remoteParticipant: RemoteParticipant) {
@@ -229,7 +282,13 @@ class AudioChat : AppCompatActivity() {
             remoteAudioTrackPublication: RemoteAudioTrackPublication,
             remoteAudioTrack: RemoteAudioTrack
         ) {
-            // To be implemented
+            // Stop the dialing sound
+            mp.stop()
+
+            // Start the call timer
+            callTimer.visibility = View.INVISIBLE
+            callTimerCountUp.visibility = View.VISIBLE
+            callTimerCountUp.start()
         }
 
         override fun onAudioTrackSubscriptionFailed(
@@ -366,6 +425,28 @@ class AudioChat : AppCompatActivity() {
     }
     //************************************************** END LISTENERS **************************************************
 
+    //************************************************** INITIAL SET UP **************************************************
+    // The function to set up audio
+    private fun setUpAudio () {
+        // Enable local audio track
+        localAudioTrack = LocalAudioTrack.create(applicationContext, enable)!!
+    }
+
+    // The function to get info of call receiver
+    private fun getCallReceiverInfo(callReceiverUserId: String) {
+        // Call the function to get info of the currently logged in user
+        userRepository.getUserInfoBasedOnId(callReceiverUserId) { userObject ->
+            // Load user full name into text view
+            callReceiverNameAudioChat.text = userObject.getFullName()
+
+            // Load user avatar into image view
+            Glide.with(applicationContext)
+                .load(userObject.getAvatarURL())
+                .into(callReceiverAvatarAudioChat)
+        }
+    }
+    //************************************************** END INITIAL SET UP **************************************************
+
     //************************************************** WORK WITH REMOTE PARTICIPANTS **************************************************
     private fun addRemoteParticipant(remoteParticipant: RemoteParticipant) {
         /*
@@ -373,4 +454,49 @@ class AudioChat : AppCompatActivity() {
          */
         remoteParticipant.setListener(remoteParticipantListener)
     }
+    //************************************************** END WORK WITH REMOTE PARTICIPANTS **************************************************
+
+    //************************************************** REQUEST PERMISSION **************************************************
+    // The function to request for permission to use camera and microphone
+    private fun requestPermissionForCameraAndMicrophone() {
+        // If user need explanation on why the app need to get access to camera and microphone
+        // explain it for the user
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                android.Manifest.permission.RECORD_AUDIO)) {
+            Toast.makeText(this, "We need your permission to use microphone and camera", Toast.LENGTH_LONG).show()
+        } // If not, start asking for permission
+        else {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.RECORD_AUDIO), 1)
+        }
+    }
+
+    // Handle user response to permission
+    override fun onRequestPermissionsResult(requestCode: Int,
+                                            permissions: Array<String>,
+                                            grantResults: IntArray) {
+        if (requestCode == 1) {
+            var cameraAndMicPermissionGranted = true
+
+            for (grantResult in grantResults) {
+                cameraAndMicPermissionGranted = cameraAndMicPermissionGranted and
+                        (grantResult == PackageManager.PERMISSION_GRANTED)
+            }
+
+            if (cameraAndMicPermissionGranted) {
+                // Call the function to set up audio
+                setUpAudio()
+
+                // Bring user into room
+                userRepository.getInfoOfCurrentUser { userObject ->
+                    // Call the function to start connecting
+                    connectToAChatRoom(chatRoomName, userObject.getId())
+                }
+            } else {
+                Toast.makeText(this, "We need your permission to use microphone and camera", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    //************************************************** END REQUEST PERMISSION **************************************************
 }

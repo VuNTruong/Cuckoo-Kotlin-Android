@@ -1,21 +1,23 @@
-package com.beta.cuckoo.View.VideoChat
+package com.beta.cuckoo.View.AudioChat
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.MediaPlayer
-import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.View.VideoChat.VideoChat
 import com.bumptech.glide.Glide
+import kotlinx.android.synthetic.main.activity_audio_chat_incoming_call.*
 import kotlinx.android.synthetic.main.activity_video_chat_incoming_call.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class VideoChatIncomingCall : AppCompatActivity() {
+class AudioChatIncomingCall : AppCompatActivity() {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)// Chat room id of the chat room that the 2 users will be in if call is accepted
 
@@ -39,7 +41,7 @@ class VideoChatIncomingCall : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_video_chat_incoming_call)
+        setContentView(R.layout.activity_audio_chat_incoming_call)
 
         // Instantiate broadcast receiver
         broadcastReceiver = object : BroadcastReceiver() {
@@ -80,13 +82,16 @@ class VideoChatIncomingCall : AppCompatActivity() {
         // Call the function to get info of caller
         getCallerInfo(callerUserId)
 
-        // Set up on click listener for the answer button
-        acceptCallButton.setOnClickListener {
+        // Set on click listener for the answer button
+        acceptCallButtonAudioCall.setOnClickListener {
             // Intent object
-            val intent = Intent(applicationContext, VideoChat::class.java)
+            val intent = Intent(applicationContext, AudioChat::class.java)
 
             // Pass chat room id to the video chat activity
             intent.putExtra("chatRoomId", chatRoomId)
+
+            // Pass caller user id to the next activity
+            intent.putExtra("callReceiver", callerUserId)
 
             // Start the video chat activity
             startActivity(intent)
@@ -101,8 +106,8 @@ class VideoChatIncomingCall : AppCompatActivity() {
             this.finish()
         }
 
-        // Set up on click listener for the decline button
-        declineCallButton.setOnClickListener {
+        // Set on click listener for the decline button
+        declineCallButtonAudioCall.setOnClickListener {
             // Call the function to send notification to call receiver and let call receiver know that call has been stopped
             // by caller
             notificationRepository.sendNotificationToAUser(callerUserId, "cancelledCall", "callEnded") {
@@ -123,12 +128,12 @@ class VideoChatIncomingCall : AppCompatActivity() {
         // Call the function to get info of the currently logged in user
         userRepository.getUserInfoBasedOnId(callerUserId) { userObject ->
             // Load user full name into text view
-            callerName.text = userObject.getFullName()
+            callerNameAudioCall.text = userObject.getFullName()
 
             // Load user avatar into image view
             Glide.with(applicationContext)
                 .load(userObject.getAvatarURL())
-                .into(callerAvatar)
+                .into(callerAvatarAudioCall)
         }
     }
 
