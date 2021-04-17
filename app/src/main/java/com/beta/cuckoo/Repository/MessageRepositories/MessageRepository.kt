@@ -174,7 +174,7 @@ class MessageRepository (executor: Executor, context: Context) {
     }
 
     // The function to send message from a currently logged in user to the specified message receiver
-    fun sendMessage (messageRoomId: String, messageReceiverUserId: String, messageContent: String, callback: (messageSentFirstTime: Boolean, messageObject: Message, chatRoomId: String, currentUserId: String) -> Unit) {
+    fun sendMessage (messageRoomId: String, messageReceiverUserId: String, messageContent: String, callback: (messageSentFirstTime: Boolean, messageObject: Message, chatRoomId: String, currentUserId: String, messageSentStatus: String) -> Unit) {
         executor.execute {
             // Call the function to get info of the currently logged in user
             userRepository.getInfoOfCurrentUser { userObject ->
@@ -197,21 +197,30 @@ class MessageRepository (executor: Executor, context: Context) {
                             // Body of the response
                             val responseBody = response.body() as Map<String, Any>
 
-                            // Get data from the response body (message object of the newly created message)
-                            val data = responseBody["data"] as Map<String, Any>
+                            // Check the status
+                            val status = responseBody["status"] as String
 
-                            // Create the new message object
-                            val newMessageObject = Message(userObject.getId(), messageReceiverUserId, messageContent, data["_id"] as String)
-
-                            // If message is sent for the first time, call the function to set up socket.io for realtime update
-                            // if this happens, chat room id of this activity will be empty. We need to check it
-                            if (messageRoomId == "") {
-                                // Set the current chat room to be the one that contain the message that just been sent
-                                // This is very important especially when message is sent at the first time
-                                callback(true, newMessageObject, data["chatRoomId"] as String, userObject.getId())
+                            // If status is not "Message created", there is something wrong between these 2 users
+                            if (status != "Message created") {
+                                // Let the view know that message is not sent and also notify the status
+                                callback(false, Message("", "", "", ""), "", "", status)
                             } else {
-                                // If room is already set, just need to return newly created message object
-                                callback(false, newMessageObject, data["chatRoomId"] as String, userObject.getId())
+                                // Get data from the response body (message object of the newly created message)
+                                val data = responseBody["data"] as Map<String, Any>
+
+                                // Create the new message object
+                                val newMessageObject = Message(userObject.getId(), messageReceiverUserId, messageContent, data["_id"] as String)
+
+                                // If message is sent for the first time, call the function to set up socket.io for realtime update
+                                // if this happens, chat room id of this activity will be empty. We need to check it
+                                if (messageRoomId == "") {
+                                    // Set the current chat room to be the one that contain the message that just been sent
+                                    // This is very important especially when message is sent at the first time
+                                    callback(true, newMessageObject, data["chatRoomId"] as String, userObject.getId(), "Sent")
+                                } else {
+                                    // If room is already set, just need to return newly created message object
+                                    callback(false, newMessageObject, data["chatRoomId"] as String, userObject.getId(), "Sent")
+                                }
                             }
                         } else {
                             print("Something is not right")
@@ -249,82 +258,130 @@ class MessageRepository (executor: Executor, context: Context) {
 
     // The function to get message image based on message id
     fun getMessageImageBasedOnId (messageId: String, callback: (messageImageURL: String) -> Unit) {
-        // Create the get message photo based on message id service
-        val getMessagePhotoBasedOnMessageIdService : GetChatMessagePhotoService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
-            GetChatMessagePhotoService::class.java)
+        executor.execute {
+            // Create the get message photo based on message id service
+            val getMessagePhotoBasedOnMessageIdService : GetChatMessagePhotoService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetChatMessagePhotoService::class.java)
 
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getMessagePhotoBasedOnMessageIdService.getMessagePhoto(messageId)
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getMessagePhotoBasedOnMessageIdService.getMessagePhoto(messageId)
 
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is no error
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    val data = responseBody["data"] as Map<String, Any>
-
-                    // Get image info from the data
-                    val imageInfo = (data["documents"] as List<Map<String, Any>>)[0]
-
-                    // Get image URL of the message photo
-                    val imageURL = imageInfo["imageURL"] as String
-
-                    // Return image URL to the view via callback function
-                    callback(imageURL)
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
                 }
-            }
-        })
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that there is no error
+                    if (response.body() != null) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get image info from the data
+                        val imageInfo = (data["documents"] as List<Map<String, Any>>)[0]
+
+                        // Get image URL of the message photo
+                        val imageURL = imageInfo["imageURL"] as String
+
+                        // Return image URL to the view via callback function
+                        callback(imageURL)
+                    }
+                }
+            })
+        }
     }
 
     // The function to check for chat room between the 2 users
     // (between currently logged in user and other user with specified id)
     fun checkChatRoomBetween2Users (otherUserId: String, callback: (chatRoomId: String) -> Unit) {
-        // Call the function to get info of the currently logged in user
-        userRepository.getInfoOfCurrentUser { userObject ->
-            // Create the get chat room between 2 users service
-            val getChatRoomIdBetween2UsersService: GetMessageRoomIdBetween2UsersService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
-                GetMessageRoomIdBetween2UsersService::class.java)
+        executor.execute {
+            // Call the function to get info of the currently logged in user
+            userRepository.getInfoOfCurrentUser { userObject ->
+                // Create the get chat room between 2 users service
+                val getChatRoomIdBetween2UsersService: GetMessageRoomIdBetween2UsersService =
+                    RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                        GetMessageRoomIdBetween2UsersService::class.java
+                    )
+
+                // Create the call object in order to perform the call
+                val call: Call<Any> =
+                    getChatRoomIdBetween2UsersService.getMessageRoomIddBetween2Users(
+                        userObject.getId(),
+                        otherUserId
+                    )
+
+                // Perform the call
+                call.enqueue(object : Callback<Any> {
+                    override fun onFailure(call: Call<Any>, t: Throwable) {
+                        print("There seem be be an error ${t.stackTrace}")
+                    }
+
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                        // Check response body
+                        if (response.body() != null) {
+                            // Body of the request
+                            val responseBody = response.body() as Map<String, Any>
+
+                            // Get status of the call (it can be either empty or success)
+                            val status = responseBody["status"] as String
+
+                            // If the status is success, get message room id and pass it to the next view controller
+                            if (status == "success") {
+                                // Get data of the response
+                                val data = responseBody["data"] as Map<String, Any>
+
+                                // Chat chat room id
+                                val chatRoomId = data["_id"] as String
+
+                                // Return chat room id via callback function
+                                callback(chatRoomId)
+                            } // Otherwise, go to the chat activity and let the chat room id be blank
+                            else {
+                                callback("")
+                            }
+                        } else {
+                            print("Something is not right")
+                        }
+                    }
+                })
+            }
+        }
+    }
+
+    // The function to get list of photos in chat room with specified id
+    fun getPhotosOfChatRoom (chatRoomId: String, callback: (arrayOfPhotos: ArrayList<String>) -> Unit) {
+        executor.execute {
+            // Create the get photos of chat room service
+            val getPhotosOfChatRoomService: GetMessagePhotosOfChatRoomService =
+                RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    GetMessagePhotosOfChatRoomService::class.java
+                )
 
             // Create the call object in order to perform the call
-            val call: Call<Any> = getChatRoomIdBetween2UsersService.getMessageRoomIddBetween2Users(userObject.getId(), otherUserId)
+            val call: Call<Any> =
+                getPhotosOfChatRoomService.getMessagePhotosOfChatRoom(chatRoomId)
 
             // Perform the call
-            call.enqueue(object: Callback<Any> {
+            call.enqueue(object : Callback<Any> {
                 override fun onFailure(call: Call<Any>, t: Throwable) {
                     print("There seem be be an error ${t.stackTrace}")
                 }
 
                 override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
+                    // Check response body
                     if (response.body() != null) {
                         // Body of the request
                         val responseBody = response.body() as Map<String, Any>
 
-                        // Get status of the call (it can be either empty or success)
-                        val status = responseBody["status"] as String
+                        // Get data of the response (array of photo URL between users)
+                        val arrayOfPhotoURL = responseBody["data"] as ArrayList<String>
 
-                        // If the status is success, get message room id and pass it to the next view controller
-                        if (status == "success") {
-                            // Get data of the response
-                            val data = responseBody["data"] as Map<String, Any>
-
-                            // Chat chat room id
-                            val chatRoomId = data["_id"] as String
-
-                            // Return chat room id via callback function
-                            callback(chatRoomId)
-                        } // Otherwise, go to the chat activity and let the chat room id be blank
-                        else {
-                            callback("")
-                        }
+                        // Return array of photo URL to view via callback function
+                        callback(arrayOfPhotoURL)
                     } else {
                         print("Something is not right")
                     }

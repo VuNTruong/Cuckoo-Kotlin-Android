@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -20,7 +21,9 @@
         android:roundIcon="@drawable/cuckoologo1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.AudioChat.AudioChatIncomingCall"></activity>
+        <activity android:name=".View.ZoomImage"></activity>
+        <activity android:name=".View.Chat.ChatMessageOptions" />
+        <activity android:name=".View.AudioChat.AudioChatIncomingCall" />
         <activity android:name=".View.AudioChat.AudioChat" />
         <activity android:name=".View.VideoChat.VideoChatIncomingCall" />
         <activity android:name=".View.VideoChat.VideoChat" />

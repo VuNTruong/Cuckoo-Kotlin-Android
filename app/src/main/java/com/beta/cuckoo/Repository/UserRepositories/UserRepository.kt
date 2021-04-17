@@ -25,7 +25,6 @@ class UserRepository (executor: Executor, context: Context) {
     // Context of the parent activity
     private val context = context
 
-    // In order to prevent us from encountering the class cast exception, we need to do the following
     // Create the GSON object
     val gs = Gson()
 

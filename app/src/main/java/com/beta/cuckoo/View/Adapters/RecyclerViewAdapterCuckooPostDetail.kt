@@ -20,6 +20,7 @@ import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.PostDetail.PostDetail
 import com.beta.cuckoo.View.UserInfoView.ProfileDetail
 import com.beta.cuckoo.View.UserInfoView.UserShow
+import com.beta.cuckoo.View.ZoomImage
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import java.util.concurrent.ExecutorService
@@ -110,6 +111,12 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
             Glide.with(hbtGramPostDetailActivity)
                 .load(imageURL)
                 .into(postPhoto)
+
+            // Set up on click listener for the photo so that it will take user to the activity where user can see zoomable image
+            postPhoto.setOnClickListener {
+                // Call the function which will take user to the activity where user can zoom image
+                gotoZoom(imageURL)
+            }
         }
     }
 
@@ -330,6 +337,25 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
         hbtGramPostDetailActivity.startActivity(intent)
     }
     //******************************** END GET INFO OF USER BASED ON ID AND GO TO PROFILE DETAIL SEQUENCE ********************************
+
+    //*********************************** ADDITIONAL FUNCTIONS ***********************************
+    // The function which will take user to the activity where user can zoom in and out an image
+    fun gotoZoom (imageURL: String) {
+        if (imageURL == "") {
+            return
+        }
+
+        // The intent object
+        val intent = Intent(hbtGramPostDetailActivity, ZoomImage::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        // Let the activity know which image to load
+        intent.putExtra("imageURLToLoad", imageURL)
+
+        // Start the activity
+        hbtGramPostDetailActivity.startActivity(intent)
+    }
+    //*********************************** ADDITIONAL FUNCTIONS ***********************************
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         // The view object

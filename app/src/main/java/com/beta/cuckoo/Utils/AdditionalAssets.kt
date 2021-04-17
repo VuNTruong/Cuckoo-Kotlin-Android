@@ -41,7 +41,7 @@ class AdditionalAssets  (context: Context) {
     }
 
     // The function to create a random string of 20 characters
-    private fun generateRandomString (length: Int): String {
+    fun generateRandomString (length: Int): String {
         val chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
         var randomString = ""
         for (i in 0..length) {

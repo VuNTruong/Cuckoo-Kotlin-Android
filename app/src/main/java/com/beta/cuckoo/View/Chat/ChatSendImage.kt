@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.webkit.MimeTypeMap
+import android.widget.Toast
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
@@ -147,22 +148,31 @@ class ChatSendImage : AppCompatActivity() {
     // The function to create new message sent by current user and include the image
     private fun sendMessage (imageURL: String) {
         // Call the function to send message
-        messageRepository.sendMessage(chatRoomId, messageReceiverUserId, "image") {messageSentFirstTime, messageObject, chatRoomId, currentUserId ->
-            if (!messageSentFirstTime) {
-                // Call the function to create new message image
-                messageRepository.createNewMessageImage(messageObject.getMessageId(), imageURL) {
-                    // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
-                    // the server know that this user has sent an image as message
-                    MainMenu.mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
-                        "sender" to currentUserId,
-                        "receiver" to messageReceiverUserId,
-                        "content" to "image",
-                        "messageId" to messageObject.getMessageId(),
-                        "chatRoomId" to chatRoomId
-                    )))
+        messageRepository.sendMessage(chatRoomId, messageReceiverUserId, "image") {messageSentFirstTime, messageObject, chatRoomId, currentUserId, messageSentStatus ->
+            // Check the message sent status
+            if (messageSentStatus == "Not sent. Is blocking receiver") {
+                // Show toast and let user know that user is blocking receiver
+                Toast.makeText(applicationContext, "You are blocking receiver", Toast.LENGTH_SHORT).show()
+            } else if (messageSentStatus == "Not sent. Is being blocked by receiver") {
+                // Show toast and let user know that user is being blocked by receiver
+                Toast.makeText(applicationContext, "Message cannot be sent at this time", Toast.LENGTH_SHORT).show()
+            } else {
+                if (!messageSentFirstTime) {
+                    // Call the function to create new message image
+                    messageRepository.createNewMessageImage(messageObject.getMessageId(), imageURL) {
+                        // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
+                        // the server know that this user has sent an image as message
+                        MainMenu.mSocket.emit("userSentPhotoAsMessage", gson.toJson(hashMapOf(
+                            "sender" to currentUserId,
+                            "receiver" to messageReceiverUserId,
+                            "content" to "image",
+                            "messageId" to messageObject.getMessageId(),
+                            "chatRoomId" to chatRoomId
+                        )))
 
-                    // After that, finish this activity
-                    this@ChatSendImage.finish()
+                        // After that, finish this activity
+                        this@ChatSendImage.finish()
+                    }
                 }
             }
         }

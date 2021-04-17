@@ -6,6 +6,7 @@ import android.os.Bundle
 import com.beta.cuckoo.R
 import com.beta.cuckoo.View.VideoChat.VideoChat
 import com.beta.cuckoo.View.WelcomeView.MainActivity
+import com.beta.cuckoo.View.ZoomImage
 
 class SplashScreen : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

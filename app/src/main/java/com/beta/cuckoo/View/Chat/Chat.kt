@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.widget.Toast
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.Model.Message
@@ -164,6 +165,19 @@ class Chat : AppCompatActivity() {
             intent.putExtra("chatRoomId", chatRoomId)
 
             // Start the audio chat activity
+            startActivity(intent)
+        }
+
+        // Set on click listener for the message option button
+        messageOptionsButton.setOnClickListener {
+            // The intent object
+            val intent = Intent(applicationContext, ChatMessageOptions::class.java)
+
+            // Let the activity know chat room id and user id of message receiver
+            intent.putExtra("chatRoomId", chatRoomId)
+            intent.putExtra("messageReceiverUserId", receiverUserId)
+
+            // Start the activity
             startActivity(intent)
         }
     }
@@ -347,54 +361,67 @@ class Chat : AppCompatActivity() {
     // The function to create new message and send it to the database
     private fun createNewMessage () {
         // Call the function to send message
-        messageViewModel.sendMessage(chatRoomId, receiverUserId, messageContentToSend.text.toString()) {messageSentFirstTime, messageObject, chatRoomIdInner, currentUserId ->
-            // Check to see if message sent in this chat room for the first time or not
-            if (messageSentFirstTime) {
-                // Update chat room id
-                chatRoomId = chatRoomIdInner
+        messageViewModel.sendMessage(chatRoomId, receiverUserId, messageContentToSend.text.toString()) {messageSentFirstTime, messageObject, chatRoomIdInner, currentUserId, messageSentStatus ->
+            // Check to see if message is sent without error or not
+            when (messageSentStatus) {
+                "Not sent. Is blocking receiver" -> {
+                    // Show toast and let user know that user is blocking receiver
+                    Toast.makeText(applicationContext, "You are blocking receiver", Toast.LENGTH_SHORT).show()
+                }
+                "Not sent. Is being blocked by receiver" -> {
+                    // Show toast and let user know that user is being blocked by receiver
+                    Toast.makeText(applicationContext, "Message cannot be sent at this time", Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    // Check to see if message sent in this chat room for the first time or not
+                    if (messageSentFirstTime) {
+                        // Update chat room id
+                        chatRoomId = chatRoomIdInner
 
-                // Call the function to re-setup the socket.io since the chat room id is now obtained and updated
-                setUpSocketIO()
-            }
+                        // Call the function to re-setup the socket.io since the chat room id is now obtained and updated
+                        setUpSocketIO()
+                    }
 
-            //------------------ Send update via socket io ------------------
-            // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
-            // the server know that this user has sent an image as message
-            MainMenu.mSocket.emit("newMessage", gson.toJson(hashMapOf(
-                "sender" to currentUserId,
-                "receiver" to receiverUserId,
-                "content" to messageContentToSend.text.toString(),
-                "messageId" to messageObject.getMessageId(),
-                "chatRoomId" to chatRoomId
-            )))
-
-            notificationRepository.sendNotificationToAUser(receiverUserId, "New message", messageContentToSend.text.toString()) { }
-
-            // Emit event to the server so that the server will let other user in the chat room know that
-            // current user is done typing
-            MainMenu.mSocket.emit(
-                "isDoneTyping", gson.toJson(
-                    hashMapOf(
+                    //------------------ Send update via socket io ------------------
+                    // After photo is sent to the storage and image URL is sent to the database, emit event to the server so that
+                    // the server know that this user has sent an image as message
+                    MainMenu.mSocket.emit("newMessage", gson.toJson(hashMapOf(
+                        "sender" to currentUserId,
+                        "receiver" to receiverUserId,
+                        "content" to messageContentToSend.text.toString(),
+                        "messageId" to messageObject.getMessageId(),
                         "chatRoomId" to chatRoomId
+                    )))
+
+                    notificationRepository.sendNotificationToAUser(receiverUserId, "New message", messageContentToSend.text.toString()) { }
+
+                    // Emit event to the server so that the server will let other user in the chat room know that
+                    // current user is done typing
+                    MainMenu.mSocket.emit(
+                        "isDoneTyping", gson.toJson(
+                            hashMapOf(
+                                "chatRoomId" to chatRoomId
+                            )
+                        )
                     )
-                )
-            )
-            //------------------ Send update via socket io ------------------
+                    //------------------ Send update via socket io ------------------
 
-            //---------------------------- Update UI on the app side ----------------------------
-            // Add new message object to the array of messages in this app
-            chatMessages.add(messageObject)
+                    //---------------------------- Update UI on the app side ----------------------------
+                    // Add new message object to the array of messages in this app
+                    chatMessages.add(messageObject)
 
-            // Update the RecyclerView
-            messageView.adapter!!.notifyDataSetChanged()
+                    // Update the RecyclerView
+                    messageView.adapter!!.notifyDataSetChanged()
 
-            // Call the function to scroll to the end of the message view
-            // we may not want user to scroll every time new message is sent
-            gotoEnd()
+                    // Call the function to scroll to the end of the message view
+                    // we may not want user to scroll every time new message is sent
+                    gotoEnd()
 
-            // Clear content of the message to send content edit text
-            messageContentToSend.setText("")
-            //---------------------------- End update UI on the app side ----------------------------
+                    // Clear content of the message to send content edit text
+                    messageContentToSend.setText("")
+                    //---------------------------- End update UI on the app side ----------------------------
+                }
+            }
         }
     }
     //************************* END SEND MESSAGE SEQUENCE *************************
