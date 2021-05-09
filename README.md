@@ -4,9 +4,9 @@ Social network
 # About Cuckoo
 This is the simple Android app for the social network that is capable of doing several basic functionalities of existing social networking app such as Instagram, Tinder, Snapchat <br>
 This consists of 3 components:
-1. Android App
-2. iOS App
-3. Server and API
+1. Android App: https://github.com/VuNTruong/Cuckoo-Kotlin-Android.git
+2. iOS App: https://github.com/VuNTruong/Cuckoo-Swift-iOS.git
+3. Server and API: https://github.com/VuNTruong/Cuckoo-Node.js-API.git
 
 This is the Android version of the Cuckoo social network <br>
 
