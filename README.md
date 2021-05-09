@@ -26,4 +26,9 @@ This is the Android version of the Cuckoo social network <br>
 # Technologies used:
 1. Programming language: Kotlin
 2. Design pattern: MVVM (Model - View - View Model)
-3. 
+3. Realtime communication and updates: SocketIO
+4. Video and audio calling: Twillio Programmable Video
+5. Locations: Mapbox
+6. Image recognitions (used when the app need to predict user's search trend): Firebase Machine Learning
+7. API operations: Retrofit
+8. Notifications: Firebase Cloud Messaging
