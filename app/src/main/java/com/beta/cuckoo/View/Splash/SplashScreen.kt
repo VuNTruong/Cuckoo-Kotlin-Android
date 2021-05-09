@@ -16,6 +16,9 @@ class SplashScreen : AppCompatActivity() {
         // Hide the action bar
         supportActionBar!!.hide()
 
+        // Do the fade in and fade out transition to make it look better
+        overridePendingTransition(R.animator.fade_in, R.animator.fade_out)
+
         // Go to the main activity
         android.os.Handler().postDelayed(
             {

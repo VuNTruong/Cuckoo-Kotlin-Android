@@ -8,11 +8,13 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
+import android.view.Gravity
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
+import androidx.fragment.app.Fragment
 import com.beta.cuckoo.BackgroundServices
 import com.beta.cuckoo.Network.User.GetCurrentlyLoggedInUserInfoService
 import com.beta.cuckoo.Network.User.LogoutPostDataService
@@ -32,6 +34,7 @@ import com.google.gson.Gson
 import io.socket.client.IO
 import io.socket.client.Socket
 import kotlinx.android.synthetic.main.activity_main_menu.*
+import kotlinx.android.synthetic.main.fragment_dashboard.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -59,8 +62,6 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
     companion object {
         lateinit var mSocket: Socket
-        lateinit var memory : SharedPreferences.Editor
-        lateinit var preferences : SharedPreferences
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,15 +74,12 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
         // Instantiate notification repository
         notificationRepository = NotificationRepository(executorService, applicationContext)
 
-        // Instantiate preference manager
-        memory = PreferenceManager.getDefaultSharedPreferences(applicationContext).edit()
-
-        // Instantiate preference object
-        preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-
         // Set this thing up for the button which will be used to open the hamburger menu
         setSupportActionBar(toolbar)
         nav_view.setNavigationItemSelectedListener(this)
+
+        // Hide the action bar
+        supportActionBar!!.hide()
 
         // To open the hamburger menu
         val toggle = ActionBarDrawerToggle(
@@ -131,9 +129,6 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
     // The function to set up
     private fun setUp () {
-        val intentService = Intent(this, FirebaseMessagingService::class.java)
-        startService(intentService)
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Notification"
             val descriptionText = "Channel for the notification"
@@ -164,26 +159,18 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
 
         // Get registration token of the user and let user join in the notification room
         FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener {task ->
-            // Get currently saved FCM token of the user
-            val currentToken = preferences.getString("FCMToken", "")
-
             // Registration token of the user
             val token = task.token
 
-            // Save received token into memory
-            memory.putString("FCMToken", token).apply()
-            memory.commit()
-
-            // Bring user into the notification room
-            mSocket.emit(
-                "jumpInNotificationRoom", gson.toJson(
-                    hashMapOf(
-                        "userId" to currentUserObject.getId(),
-                        "socketId" to token,
-                        "oldSocketId" to currentToken
-                    )
-                )
-            )
+            // Call the function to get user id of the currently logged in user
+            userRepository.getInfoOfCurrentUser { userObject ->
+                // Call the function to update socket id of the currently logged in user
+                notificationRepository.updateNotificationSocket(userObject.getId(), token) {
+                    // Start Firebase Messaging service
+                    val intentService = Intent(this, FirebaseMessagingService::class.java)
+                    startService(intentService)
+                }
+            }
         }
     }
     //************************ END WORKING WITH SOCKET.IO ************************
@@ -314,10 +301,6 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                         // Sign the user out with FirebaseAuth
                         mAuth.signOut()
 
-                        // Set current user id to be ""
-                        memory.putString("currentUserId", "").apply()
-                        memory.commit()
-
                         // Go to the main page activity
                         val intent = Intent(applicationContext, MainActivity::class.java)
                         startActivity(intent)
@@ -351,12 +334,12 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
             // Update current user object for this activity
             currentUserObject = userObject
 
-            // Save current user id into memory
-            memory.putString("currentUserId", userObject.getId()).apply()
-            memory.commit()
-
             // Call the function to set up socket io for the whole app
             setUpSocketIO()
         }
+    }
+
+    fun openDrawerMenu () {
+        drawer_layout.openDrawer(Gravity.LEFT)
     }
 }

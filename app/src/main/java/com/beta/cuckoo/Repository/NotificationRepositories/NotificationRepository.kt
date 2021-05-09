@@ -1,6 +1,7 @@
 package com.beta.cuckoo.Repository.NotificationRepositories
 
 import android.content.Context
+import android.os.Build
 import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.Model.Notification
 import com.beta.cuckoo.Network.Notifications.*
@@ -126,25 +127,28 @@ class NotificationRepository (executor: Executor, context: Context) {
             val sendNotificationToAUserService: SendNotificationToAUserService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
                 SendNotificationToAUserService::class.java)
 
-            // Create the call object in order to perform the call
-            val call: Call<Any> = sendNotificationToAUserService.sendNotificationToAUser(userId, notificationContent, notificationTitle)
+            // Call the function to get info of the currently logged in user
+            userRepository.getInfoOfCurrentUser { userObject ->
+                // Create the call object in order to perform the call
+                val call: Call<Any> = sendNotificationToAUserService.sendNotificationToAUser(userId, notificationContent, notificationTitle, userObject.getId())
 
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        // Call the callback function to let the view know that notification has been sent
-                        callback()
-                    } else {
-                        print("Something is not right")
+                // Perform the call
+                call.enqueue(object: Callback<Any> {
+                    override fun onFailure(call: Call<Any>, t: Throwable) {
+                        print("Boom")
                     }
-                }
-            })
+
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                        // If the response body is not empty it means that the token is valid
+                        if (response.body() != null) {
+                            // Call the callback function to let the view know that notification has been sent
+                            callback()
+                        } else {
+                            print("Something is not right")
+                        }
+                    }
+                })
+            }
         }
     }
 
@@ -186,7 +190,7 @@ class NotificationRepository (executor: Executor, context: Context) {
             )
 
             // Create the call object to perform the call
-            val call: Call<Any> = deleteNotificationSocketService.deleteNotificationSocket(userId, socketId)
+            val call: Call<Any> = deleteNotificationSocketService.deleteNotificationSocket(userId, socketId, Build.MODEL)
 
             // Perform the call
             call.enqueue(object: Callback<Any> {
@@ -198,6 +202,66 @@ class NotificationRepository (executor: Executor, context: Context) {
                     // If the response body is not empty it means that socket has been deleted
                     if (response.code() == 204) {
                         // Call the callback function to let the view know that notification socket has been removed
+                        callback()
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to update notification socket
+    fun updateNotificationSocket (userId: String, newSocketId: String, callback: () -> Unit) {
+        executor.execute {
+            // Create the update notification socket service
+            val updateNotificationSocketService: UpdateNotificationSocketService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                UpdateNotificationSocketService::class.java
+            )
+
+            //  Create the call object to perform the call
+            val call: Call<Any> = updateNotificationSocketService.updateNotificationSocket(userId, newSocketId, Build.MODEL)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that socket has been updated
+                    if (response.code() == 200) {
+                        // Call the callback function to let the view know that notification socket has been updated
+                        callback()
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to check and create new notification socket object
+    fun checkAndCreateNewNotificationSocketObject (userId: String, socketId: String, callback: () -> Unit) {
+        executor.execute {
+            // Create the check and create notification socket object service
+            val checkAndCreateNotificationObjectService: CheckAndCreateNotificationSocketService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                CheckAndCreateNotificationSocketService::class.java
+            )
+
+            // Create the call object to perform the call
+            val call: Call<Any> = checkAndCreateNotificationObjectService.checkAndCreateNotificationSocket(userId, socketId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that socket has been checked and created
+                    if (response.code() == 200) {
+                        // Call the callback function to let the view know that notification socket has been checked and created
                         callback()
                     } else {
                         print("Something is not right")

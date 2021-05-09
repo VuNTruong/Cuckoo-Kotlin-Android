@@ -9,6 +9,8 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
+import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.AudioChat.AudioChatIncomingCall
 import com.beta.cuckoo.View.Chat.SearchUserToChatWith
 import com.beta.cuckoo.View.Locations.UpdateLocation
@@ -17,10 +19,15 @@ import com.beta.cuckoo.View.VideoChat.VideoChatIncomingCall
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.google.gson.Gson
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class FirebaseMessagingService () : FirebaseMessagingService() {
     // gson converter
     private val gson = Gson()
+
+    // Executor service to perform works in the background
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
     /**
      * Called when message is received.
@@ -94,9 +101,9 @@ class FirebaseMessagingService () : FirebaseMessagingService() {
             val title = it.title
             val body = it.body
 
-            // If title of the notification is "video-chat-received", start the call ("title" for now)
+            // If title of the notification is "incoming-video-call", start the call ("title" for now)
             when (title) {
-                "title" -> {
+                "incoming-video-call" -> {
                     // Go to the incoming call activity
                     val intent = Intent(applicationContext, VideoChatIncomingCall::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -155,26 +162,17 @@ class FirebaseMessagingService () : FirebaseMessagingService() {
         // TODO: Implement this method to send token to your app server.
         Log.d(TAG, "sendRegistrationTokenToServer($token)")
 
-        // Get currently saved FCM token of the user
-        val currentToken = MainMenu.preferences.getString("FCMToken", "")
+        // Create the notification repository
+        val notificationRepository = NotificationRepository(executorService, applicationContext)
 
-        // Get user id of the currently logged in user (saved in memory)
-        val currentUserId = MainMenu.preferences.getString("currentUserId", "")
+        // Create the user repository
+        val userRepository = UserRepository(executorService, applicationContext)
 
-        // Save received token into memory
-        MainMenu.memory.putString("FCMToken", token).apply()
-        MainMenu.memory.commit()
-
-        // Bring user into the notification room
-        MainMenu.mSocket.emit(
-            "jumpInNotificationRoom", gson.toJson(
-                hashMapOf(
-                    "userId" to currentUserId,
-                    "socketId" to token,
-                    "oldSocketId" to currentToken
-                )
-            )
-        )
+        // Call the function to get info of the currently logged in user
+        userRepository.getInfoOfCurrentUser { userObject ->
+            // Call the function to update notification socket
+            notificationRepository.updateNotificationSocket(userObject.getId(), token!!) { }
+        }
     }
 
     /**

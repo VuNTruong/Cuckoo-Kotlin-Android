@@ -110,24 +110,28 @@ class MessageRepository (executor: Executor, context: Context) {
                             // Body of the request
                             val responseBody = response.body() as Map<String, Any>
 
-                            // Get data from the response body
-                            val data = responseBody["data"] as Map<String, Any>
+                            if (responseBody["data"] != null) {
+                                // Get data from the response body
+                                val data = responseBody["data"] as Map<String, Any>
 
-                            // Get content of the latest message
-                            val latestMessageContent = data["content"] as String
+                                // Get content of the latest message
+                                val latestMessageContent = data["content"] as String
 
-                            // Get sender of the latest message
-                            val latestMessageSender = data["sender"] as String
+                                // Get sender of the latest message
+                                val latestMessageSender = data["sender"] as String
 
-                            // Check to see if latest message is written by the current user or not
-                            if (latestMessageSender == userObject.getId()) {
-                                // Return content of the latest message via callback function
-                                // Also let the user know that it is sent by the current user
-                                callback("You: $latestMessageContent")
-                            } // Otherwise, just load the content in
-                            else {
-                                callback(latestMessageContent)
+                                // Check to see if latest message is written by the current user or not
+                                if (latestMessageSender == userObject.getId()) {
+                                    // Return content of the latest message via callback function
+                                    // Also let the user know that it is sent by the current user
+                                    callback("You: $latestMessageContent")
+                                } // Otherwise, just load the content in
+                                else {
+                                    callback(latestMessageContent)
+                                }
                             }
+                        } else {
+                            callback("")
                         }
                     }
                 })
@@ -382,6 +386,46 @@ class MessageRepository (executor: Executor, context: Context) {
 
                         // Return array of photo URL to view via callback function
                         callback(arrayOfPhotoURL)
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to create new message room
+    fun createNewMessageRoom (user1: String, user2: String, callback: (messageRoomId: String) -> Unit) {
+        executor.execute {
+            // Create the create new message room service
+            val createNewMessageRoomService: CreateNewMessageRoomService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(CreateNewMessageRoomService::class.java)
+
+            // Create the call object to perform the call
+            val call: Call<Any> = createNewMessageRoomService.createNewMessageRoom(user1, user2)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("There seem be be an error ${t.stackTrace}")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // Check response body
+                    if (response.body() != null) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data of the response
+                        val responseData = responseBody["data"] as Map<String, Any>
+
+                        // Get newly created chat room info
+                        val newChatRoomInfo = responseData["tour"] as Map<String, Any>
+
+                        // Get chat room id of the newly created chat room
+                        val chatRoomId = newChatRoomInfo["_id"] as String
+
+                        // Return chat room id of the newly created chat room to view via callback function
+                        callback(chatRoomId)
                     } else {
                         print("Something is not right")
                     }

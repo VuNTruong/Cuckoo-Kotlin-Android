@@ -6,5 +6,5 @@ import retrofit2.http.Query
 
 interface DeleteNotificationSocketService {
     @DELETE("/api/v1/cuckooNotificationSocket/deleteNotificationSocket")
-    fun deleteNotificationSocket(@Query("userId") userId: String, @Query("socketId") socketId: String): Call<Any>
+    fun deleteNotificationSocket(@Query("userId") userId: String, @Query("socketId") socketId: String, @Query("deviceModel") deviceModel: String): Call<Any>
 }

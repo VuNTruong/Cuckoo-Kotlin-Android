@@ -1,10 +1,13 @@
 package com.beta.cuckoo.View
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -12,18 +15,24 @@ import androidx.core.graphics.drawable.toBitmap
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Utils.AdditionalAssets
 import com.bumptech.glide.Glide
-import com.bumptech.glide.request.Request
-import com.bumptech.glide.request.target.SizeReadyCallback
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import com.bumptech.glide.request.transition.Transition
 import kotlinx.android.synthetic.main.activity_zoom_image.*
 import java.io.File
 import java.io.FileOutputStream
-
+import java.io.OutputStream
 
 class ZoomImage : AppCompatActivity() {
+    // Image bitmap of the image to be saved
+    private lateinit var imageBitmapToBeSaved: Bitmap
+
     // Image URL of the image to load at this activity
     private lateinit var imageURLToLoad: String
+
+    // The variable which will keep track of if the image option layout is being shown or not
+    private var isShowingImageOptionLayout = false
 
     // Additional assets
     private lateinit var additionalAssets: AdditionalAssets
@@ -41,101 +50,104 @@ class ZoomImage : AppCompatActivity() {
         // Get image URL to load from the previous activity
         imageURLToLoad = intent.getStringExtra("imageURLToLoad")!!
 
+        // Call the function to request for permission to download image
+        requestPermissionForExternalStorage()
+
         // Load image into zoomable image view
         Glide.with(applicationContext)
             .load(imageURLToLoad)
+            .listener(object: RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?,
+                    model: Any?,
+                    target: Target<Drawable>?,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable?,
+                    model: Any?,
+                    target: Target<Drawable>?,
+                    dataSource: DataSource?,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    // Update the image bitmap to be saved
+                    imageBitmapToBeSaved = resource!!.toBitmap()
+                    return false
+                }
+
+            })
             .into(largeImage)
+
+        // Hide the image option layout initially
+        //imageOptionLayout.visibility = View.INVISIBLE
+
+        // Set on click listener for the image option layout
+        imageOptionLayout.setOnClickListener {
+            // Call the function to toggle the layout
+            toggleShowAndHideImageOptionLayout()
+        }
+
+        // Set on click listener for the download button
+        downloadImageButton.setOnClickListener {
+            // Call the function to start downloading
+            downloadImage()
+        }
     }
 
     // The function to start downloading image into device's external storage
-    fun downloadImage (imageURL: String) {
+    private fun downloadImage () {
         // Check for permission
         if (!verifyPermission()) {
             return
         }
 
-        // Get the directory path
-        val dirPath = Environment.getExternalStorageDirectory().absolutePath + "/" + getString(R.string.app_name) + "/"
-
-        // Create the file object based on file path
-        val dir = File(dirPath)
-
         // Generate file name
         val fileName = additionalAssets.generateRandomString(10)
 
-        // Load image into zoomable image view
-        Glide.with(applicationContext)
-            .load(imageURLToLoad)
-            .into(object: Target<Drawable> {
-                override fun onLoadStarted(placeholder: Drawable?) {
-                    TODO("Not yet implemented")
-                }
-
-                override fun onLoadFailed(errorDrawable: Drawable?) {
-                    TODO("Not yet implemented")
-                }
-
-                override fun getSize(cb: SizeReadyCallback) {
-                    TODO("Not yet implemented")
-                }
-
-                override fun getRequest(): Request? {
-                    TODO("Not yet implemented")
-                }
-
-                override fun onStop() {
-                    TODO("Not yet implemented")
-                }
-
-                override fun setRequest(request: Request?) {
-                    TODO("Not yet implemented")
-                }
-
-                override fun removeCallback(cb: SizeReadyCallback) {
-                    TODO("Not yet implemented")
-                }
-
-                override fun onLoadCleared(placeholder: Drawable?) {
-                    TODO("Not yet implemented")
-                }
-
-                override fun onStart() {
-                    TODO("Not yet implemented")
-                }
-
-                override fun onDestroy() {
-                    TODO("Not yet implemented")
-                }
-
-                override fun onResourceReady(
-                    resource: Drawable,
-                    transition: Transition<in Drawable>?
-                ) {
-                    val bitmap = resource.toBitmap()
-                    Toast.makeText(applicationContext, "Saving image...", Toast.LENGTH_SHORT).show()
-                    saveImage(bitmap, dir, fileName)
-                }
-
-            })
+        Toast.makeText(applicationContext, "Saving image...", Toast.LENGTH_SHORT).show()
+        saveImage(imageBitmapToBeSaved, fileName)
     }
 
-    fun saveImage (image: Bitmap, storageDir: File, imageFileName: String) {
-        var successDirCreated = false
+    private fun saveImage(image: Bitmap, imageName: String): String? {
+        var savedImagePath: String? = null
+        val imageFileName = "JPEG_$imageName.jpg"
+        val storageDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                .toString() + "/Cuckoo"
+        )
+        var success = true
         if (!storageDir.exists()) {
-            successDirCreated = storageDir.mkdir()
+            success = storageDir.mkdirs()
         }
-        if (successDirCreated) {
+        if (success) {
             val imageFile = File(storageDir, imageFileName)
-            val savedImagePath = imageFile.absolutePath
+            savedImagePath = imageFile.absolutePath
             try {
-                val fOut = FileOutputStream(imageFile)
+                val fOut: OutputStream = FileOutputStream(imageFile)
                 image.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
                 fOut.close()
                 Toast.makeText(applicationContext, "Image Saved!", Toast.LENGTH_SHORT).show()
-            } catch (exception: Exception) {
-                print(exception.stackTrace)
+            } catch (e: Exception) {
+                e.printStackTrace()
                 Toast.makeText(applicationContext, "Error while saving image!", Toast.LENGTH_SHORT).show()
             }
+
+            // Add the image to the system gallery
+            galleryAddPic(savedImagePath)
+        }
+        return savedImagePath
+    }
+
+    private fun galleryAddPic(imagePath: String?) {
+        imagePath?.let { path ->
+            val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+            val f = File(path)
+            val contentUri: Uri = Uri.fromFile(f)
+            mediaScanIntent.data = contentUri
+            sendBroadcast(mediaScanIntent)
         }
     }
 
@@ -190,4 +202,17 @@ class ZoomImage : AppCompatActivity() {
         }
     }
     //************************************************** END REQUEST PERMISSION **************************************************
+
+    // The function which will toggle show and hide image option layout
+    private fun toggleShowAndHideImageOptionLayout () {
+        // Toggle the boolean which keep track of show or hide image option layout
+        isShowingImageOptionLayout = !isShowingImageOptionLayout
+
+        // Based on the toggled boolean to determine if the layout should be shown or not
+        if (isShowingImageOptionLayout) {
+            downloadImageButton.visibility = View.VISIBLE
+        } else {
+            downloadImageButton.visibility = View.INVISIBLE
+        }
+    }
 }

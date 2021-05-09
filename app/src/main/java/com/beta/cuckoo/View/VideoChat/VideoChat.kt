@@ -276,6 +276,14 @@ class VideoChat : AppCompatActivity() {
             if (room.remoteParticipants.size == 0) {
                 // Get user id of the currently logged in user
                 userRepository.getInfoOfCurrentUser { userObject ->
+                    notificationRepository.sendNotificationToAUser(callReceiverUserId, "incoming-video-call", "${chatRoomName}-${userObject.getId()}") {
+                        // Show the is dialing signal
+                        dialStatus.text = "Ringing..."
+
+                        // Start playing the ringing sound
+                        mp.start()
+                    }
+                    /*
                     notificationRepository.sendDataNotificationToAUser(
                         callReceiverUserId,
                         "data",
@@ -287,6 +295,7 @@ class VideoChat : AppCompatActivity() {
                         // Start playing the ringing sound
                         mp.start()
                     }
+                    */
                 }
             } else {
                 // Otherwise, start the call

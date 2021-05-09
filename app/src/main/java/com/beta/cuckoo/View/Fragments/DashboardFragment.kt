@@ -1,5 +1,6 @@
 package com.beta.cuckoo.View.Fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,14 +8,16 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.cuckoo.Network.*
-import com.beta.cuckoo.Network.Posts.GetFirstImageURLOfPostService
 import com.beta.cuckoo.Interfaces.PostShowingInterface
 import com.beta.cuckoo.Model.CuckooPost
+import com.beta.cuckoo.Network.Posts.GetFirstImageURLOfPostService
+import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterCuckooPost
+import com.beta.cuckoo.View.MainMenu.MainMenu
+import com.beta.cuckoo.View.UserSearch.UserSearch
 import com.beta.cuckoo.ViewModel.PostViewModel
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import retrofit2.Call
@@ -48,7 +51,11 @@ class DashboardFragment : Fragment(), PostShowingInterface {
     // The notification repository
     private lateinit var notificationRepository: NotificationRepository
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         return inflater.inflate(R.layout.fragment_dashboard, container, false)
     }
 
@@ -86,7 +93,13 @@ class DashboardFragment : Fragment(), PostShowingInterface {
             userIdOfCurrentUser = userObject.getId()
 
             // Update the adapter
-            adapter = RecyclerViewAdapterCuckooPost(hbtGramPosts, this@DashboardFragment.requireActivity(), this@DashboardFragment, executorService, userObject)
+            adapter = RecyclerViewAdapterCuckooPost(
+                hbtGramPosts,
+                this@DashboardFragment.requireActivity(),
+                this@DashboardFragment,
+                executorService,
+                userObject
+            )
 
             // Add adapter to the RecyclerView
             hbtGramView.adapter = adapter
@@ -97,6 +110,22 @@ class DashboardFragment : Fragment(), PostShowingInterface {
 
         // Call the function to get posts for the user
         //getInfoOfCurrentUserAndLoadPosts()
+
+        // Set on click listener for the open menu button
+        openDrawerMenuButtonDashboard.setOnClickListener {
+            (activity as MainMenu).openDrawerMenu()
+        }
+
+        // Set on click listener for the search button
+        searchCuckooButton.setOnClickListener {
+            // Intent object
+            val intent = Intent(this.requireActivity(), UserSearch::class.java)
+
+            // Start the activity
+            this.requireActivity().startActivity(intent)
+
+            this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+        }
     }
 
     //*********************************** GET POSTS SEQUENCE ***********************************
@@ -108,9 +137,9 @@ class DashboardFragment : Fragment(), PostShowingInterface {
      */
 
     // The function to get all posts from the database for user
-    private fun getAllPost (userId: String) {
+    private fun getAllPost(userId: String) {
         // Call the function in the view model to start loading posts
-        postViewModel.loadPosts(userId) {postArray, newCurrentLocationInList ->
+        postViewModel.loadPosts(userId) { postArray, newCurrentLocationInList ->
             // Update new current location in list (location in list for next load)
             // If order in collection to load next series of post is null, let it be 0
             locationInListForNextLoad = newCurrentLocationInList
@@ -131,7 +160,7 @@ class DashboardFragment : Fragment(), PostShowingInterface {
     //*********************************** IMPLEMENT ABSTRACT FUNCTION OF THE INTERFACE TO LOAD MORE POSTS ***********************************
     override fun loadMorePosts() {
         // Call the function in the view model to load more posts
-        postViewModel.loadMorePosts(userIdOfCurrentUser, locationInListForNextLoad) {postArray, newCurrentLocationInList ->
+        postViewModel.loadMorePosts(userIdOfCurrentUser, locationInListForNextLoad) { postArray, newCurrentLocationInList ->
             // Update new current location in list (location in list for next load)
             // If order in collection to load next series of post is null, let it be 0
             locationInListForNextLoad = newCurrentLocationInList
@@ -147,16 +176,25 @@ class DashboardFragment : Fragment(), PostShowingInterface {
 
     //******************************** CREATE NOTIFICATION SEQUENCE (IMPLEMENTED FROM INTERFACE) ********************************
     // The function to create new notification. It should load first photo of post first
-    override fun createNotification (content: String, forUser: String, fromUser: String, image: String, postId: String) {
+    override fun createNotification(
+        content: String,
+        forUser: String,
+        fromUser: String,
+        image: String,
+        postId: String
+    ) {
         // Create the get first image URL service
-        val getFirstImageURLService: GetFirstImageURLOfPostService = RetrofitClientInstance.getRetrofitInstance(this.requireActivity())!!.create(
-            GetFirstImageURLOfPostService::class.java)
+        val getFirstImageURLService: GetFirstImageURLOfPostService = RetrofitClientInstance.getRetrofitInstance(
+            this.requireActivity()
+        )!!.create(
+            GetFirstImageURLOfPostService::class.java
+        )
 
         // Create the call object in order to perform the call
         val call: Call<Any> = getFirstImageURLService.getFirstPhotoURL(postId)
 
         // Perform the call
-        call.enqueue(object: Callback<Any> {
+        call.enqueue(object : Callback<Any> {
             override fun onFailure(call: Call<Any>, t: Throwable) {
                 print("Boom")
             }
@@ -181,7 +219,13 @@ class DashboardFragment : Fragment(), PostShowingInterface {
                         val firstImageURL = firstImageInfo["imageURL"] as String
 
                         // Call the function to actually create the notification
-                        notificationRepository.sendNotification(content, forUser, fromUser, firstImageURL, postId)
+                        notificationRepository.sendNotification(
+                            content,
+                            forUser,
+                            fromUser,
+                            firstImageURL,
+                            postId
+                        )
                     }
                 } else {
                     print("Something is not right")

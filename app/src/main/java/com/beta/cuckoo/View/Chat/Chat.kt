@@ -13,6 +13,7 @@ import com.beta.cuckoo.Model.Message
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
 import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
+import com.beta.cuckoo.Repository.UserRepositories.UserBlockRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterChat
 import com.beta.cuckoo.View.AudioChat.AudioChat
@@ -42,6 +43,9 @@ class Chat : AppCompatActivity() {
     // Notification repository
     private lateinit var notificationRepository: NotificationRepository
 
+    // User block repository
+    private lateinit var userBlockRepository: UserBlockRepository
+
     // These objects are used for socket.io
     //private lateinit var mSocket: Socket
     private val gson = Gson()
@@ -60,6 +64,12 @@ class Chat : AppCompatActivity() {
     // response and update it here
     private var chatRoomId = ""
 
+    // The variable which will keep track of if video or audio call is started or not
+    // in this activity here, we need to check if current is being blocked by receiver or not
+    // and current is blocking receiver or not. If both scenarios do not happen, we will need
+    // this variable to make this activity start the call once
+    private var isCallStarted = false
+
     override fun onBackPressed() {
         super.onBackPressed()
         this.finish()
@@ -77,6 +87,7 @@ class Chat : AppCompatActivity() {
         userRepository = UserRepository(executorService, applicationContext)
         messagRepository = MessageRepository(executorService, applicationContext)
         notificationRepository = NotificationRepository(executorService, applicationContext)
+        userBlockRepository = UserBlockRepository(executorService, applicationContext)
 
         // Instantiate message view model
         messageViewModel = MessageViewModel(applicationContext)
@@ -140,32 +151,34 @@ class Chat : AppCompatActivity() {
 
         // Set on click listener for the video chat button
         videoCallButton.setOnClickListener {
-            // The intent object
-            val intent = Intent(applicationContext, VideoChat::class.java)
-
-            // Let the video chat activity know who is the call receiver (message receiver here)
-            intent.putExtra("callReceiver", receiverUserId)
-
-            // Pass chat room id of the chat room between current user and other user to the next activity
-            intent.putExtra("chatRoomId", chatRoomId)
-
-            // Start the video chat activity
-            startActivity(intent)
+            // Check to see if chat room id is an empty string or not
+            // if it is, create a chat room before starting the call
+            if (chatRoomId == "") {
+                // Call the function to create chat room
+                createNewMessageRoom(receiverUserId) {
+                    // Start calling
+                    checkAndStartVideoCall()
+                }
+            } else {
+                // Start calling
+                checkAndStartVideoCall()
+            }
         }
 
         // Set on click listener for the audio chat button
         audioCallButton.setOnClickListener {
-            // The intent object
-            val intent = Intent(applicationContext, AudioChat::class.java)
-
-             // Let the audio chat activity know who is the call receiver (message receiver here in this activity)
-            intent.putExtra("callReceiver", receiverUserId)
-
-            // Pass chat room id of the chat room between current user and other user to the next activity
-            intent.putExtra("chatRoomId", chatRoomId)
-
-            // Start the audio chat activity
-            startActivity(intent)
+            // Check to see if chat room id is an empty string or not
+            // if it is, create a chat room before starting the call
+            if (chatRoomId == "") {
+                // Call the function to create chat room
+                createNewMessageRoom(receiverUserId) {
+                    // Start calling
+                    checkAndStartAudioCall()
+                }
+            } else {
+                // Start calling
+                checkAndStartAudioCall()
+            }
         }
 
         // Set on click listener for the message option button
@@ -425,6 +438,106 @@ class Chat : AppCompatActivity() {
         }
     }
     //************************* END SEND MESSAGE SEQUENCE *************************
+
+    //************************* CREATE NEW MESSAGE ROOM SEQUENCE *************************
+    // The function to create new message room between current user and other user
+    // and also wait until chat room is created before doing anything else
+    private fun createNewMessageRoom (otherUserId: String, callback: () -> Unit) {
+        // Call the function to get info of the currently logged in user
+        userRepository.getInfoOfCurrentUser { userObject ->
+            // Call the function to create new message room for the 2 users
+            messagRepository.createNewMessageRoom(userObject.getId(), otherUserId) { newlyCreatedChatRoomId ->
+                // Update the chat room id
+                chatRoomId = newlyCreatedChatRoomId
+
+                // Call the callback function when things are done
+                callback()
+            }
+        }
+    }
+    //************************* END CREATE NEW MESSAGE ROOM SEQUENCE *************************
+
+    //************************* START CALL SEQUENCE *************************
+    // The function to check and start video call
+    private fun checkAndStartVideoCall () {
+        // Check to see if receiver is being blocked or not
+        userRepository.getInfoOfCurrentUser { userObject ->
+            userBlockRepository.getBlockBetween2Users(receiverUserId, userObject.getId()) { isBlocked ->
+                // If receiver is being blocked, show the toast
+                if (isBlocked) {
+                    // Show alert to the user and let user know that call cannot be done
+                    Toast.makeText(applicationContext, "You are blocking receiver", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Check to see if receiver is blocking current user here or not
+                    userBlockRepository.getBlockBetween2Users(userObject.getId(), receiverUserId) { isBlocked ->
+                        if (isBlocked) {
+                            // Show alert to the user and let user know that call cannot be done
+                            Toast.makeText(applicationContext, "Call cannot be made at this time", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // Call the function and start the call
+                            startVideoCall()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // The function to start video call
+    private fun startVideoCall () {
+        // The intent object
+        val intent = Intent(applicationContext, VideoChat::class.java)
+
+        // Let the video chat activity know who is the call receiver (message receiver here)
+        intent.putExtra("callReceiver", receiverUserId)
+
+        // Pass chat room id of the chat room between current user and other user to the next activity
+        intent.putExtra("chatRoomId", chatRoomId)
+
+        // Start the video chat activity
+        startActivity(intent)
+    }
+
+    // The function to check and start audio call
+    private fun checkAndStartAudioCall () {
+        // Check to see if receiver is being blocked or not
+        userRepository.getInfoOfCurrentUser { userObject ->
+            userBlockRepository.getBlockBetween2Users(receiverUserId, userObject.getId()) { isBlocked ->
+                // If receiver is being blocked, show the toast
+                if (isBlocked) {
+                    // Show alert to the user and let user know that call cannot be done
+                    Toast.makeText(applicationContext, "You are blocking receiver", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Check to see if receiver is blocking current user here or not
+                    userBlockRepository.getBlockBetween2Users(userObject.getId(), receiverUserId) { isBlocked ->
+                        if (isBlocked) {
+                            // Show alert to the user and let user know that call cannot be done
+                            Toast.makeText(applicationContext, "Call cannot be made at this time", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // Call the function and start the call
+                            startAudioCall()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // The function to start audio call
+    private fun startAudioCall () {
+        // The intent object
+        val intent = Intent(applicationContext, AudioChat::class.java)
+
+        // Let the audio chat activity know who is the call receiver (message receiver here in this activity)
+        intent.putExtra("callReceiver", receiverUserId)
+
+        // Pass chat room id of the chat room between current user and other user to the next activity
+        intent.putExtra("chatRoomId", chatRoomId)
+
+        // Start the audio chat activity
+        startActivity(intent)
+    }
+    //************************* END START CALL SEQUENCE *************************
 
     //************************* SUPPLEMENTAL FUNCTIONS *************************
     // Go to end of the message show

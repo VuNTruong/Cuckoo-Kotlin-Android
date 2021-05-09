@@ -21,7 +21,8 @@
         android:roundIcon="@drawable/cuckoologo1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.ZoomImage"></activity>
+        <activity android:name=".View.UserSearch.UserSearch" />
+        <activity android:name=".View.ZoomImage" />
         <activity android:name=".View.Chat.ChatMessageOptions" />
         <activity android:name=".View.AudioChat.AudioChatIncomingCall" />
         <activity android:name=".View.AudioChat.AudioChat" />

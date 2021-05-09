@@ -27,6 +27,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Hide the action bar
+        supportActionBar!!.hide()
+
+        // Do the fade in and fade out transition to make it look better
+        overridePendingTransition(R.animator.fade_in, R.animator.fade_out)
+
         // Initiate the user repository
         userRepository = UserRepository(executorService, applicationContext)
 
