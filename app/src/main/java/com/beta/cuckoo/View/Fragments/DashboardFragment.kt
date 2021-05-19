@@ -16,6 +16,7 @@ import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterCuckooPost
+import com.beta.cuckoo.View.Chat.ChatMainMenu
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.View.UserSearch.UserSearch
 import com.beta.cuckoo.ViewModel.PostViewModel
@@ -116,6 +117,16 @@ class DashboardFragment : Fragment(), PostShowingInterface {
             (activity as MainMenu).openDrawerMenu()
         }
 
+        // Set on click listener for the message button
+        openChatMessageButtonDashboard.setOnClickListener {
+            // Go to the chat main menu
+            val intent = Intent(this.requireActivity(), ChatMainMenu::class.java)
+            this.requireActivity().startActivity(intent)
+
+            // Override the pending animation
+            this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+        }
+
         // Set on click listener for the search button
         searchCuckooButton.setOnClickListener {
             // Intent object
@@ -124,6 +135,7 @@ class DashboardFragment : Fragment(), PostShowingInterface {
             // Start the activity
             this.requireActivity().startActivity(intent)
 
+            // Override the pending transition
             this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
         }
     }

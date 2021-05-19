@@ -8,6 +8,6 @@ import retrofit2.http.POST
 interface SignUpService {
     @POST("/api/v1/users/signup")
     @FormUrlEncoded
-    fun signUp(@Field("email") email: String, @Field("password") password: String, @Field("passwordConfirm") passwordConfirm: String, @Field("firstName") firstName: String,
-               @Field("middleName") middleName: String, @Field("lastName") lastName: String, @Field("role") role: String, @Field("avatarURL") avatarURL: String, @Field("coverURL") coverURL: String): Call<Any>
+    fun signUp(@Field("email") email: String, @Field("password") password: String, @Field("passwordConfirm") passwordConfirm: String, @Field("fullName") fullName: String,
+               @Field("avatarURL") avatarURL: String, @Field("coverURL") coverURL: String): Call<Any>
 }

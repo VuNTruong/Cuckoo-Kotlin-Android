@@ -15,7 +15,7 @@ import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.PostRepositories.PostRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.PostDetail.PostDetail
-import com.beta.cuckoo.View.UserInfoView.ProfileDetail
+import com.beta.cuckoo.View.Profile.ProfileDetail
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 

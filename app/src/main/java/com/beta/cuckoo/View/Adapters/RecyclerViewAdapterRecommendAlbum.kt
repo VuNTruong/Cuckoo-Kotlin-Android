@@ -12,13 +12,13 @@ import com.beta.cuckoo.Model.CuckooPost
 import com.beta.cuckoo.Model.PostPhoto
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.PostRepositories.PostRepository
-import com.beta.cuckoo.View.Fragments.RecommendAlbumFragment
 import com.beta.cuckoo.View.PostDetail.PostDetail
+import com.beta.cuckoo.View.PostRecommend.PostRecommend
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import java.util.concurrent.Executor
 
-class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<PostPhoto>, activity: Activity, recommendAlbumFragment: RecommendAlbumFragment, executor: Executor): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<PostPhoto>, activity: Activity, recommendAlbumFragment: PostRecommend, executor: Executor): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Array of photos recommended for the user
     private val arrayOfPhotos = arrayOfPhotos
 

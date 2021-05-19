@@ -1,21 +1,20 @@
-package com.beta.cuckoo.View.Fragments
+package com.beta.cuckoo.View.Posts
 
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.cuckoo.Network.*
-import com.beta.cuckoo.Network.Notifications.CreateNotificationService
-import com.beta.cuckoo.Network.Posts.GetFirstImageURLOfPostService
 import com.beta.cuckoo.Interfaces.PostShowingInterface
 import com.beta.cuckoo.Model.CuckooPost
+import com.beta.cuckoo.Network.Notifications.CreateNotificationService
+import com.beta.cuckoo.Network.Posts.GetFirstImageURLOfPostService
+import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.PostRepositories.PostRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterCuckooPost
+import kotlinx.android.synthetic.main.activity_post_around.*
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -23,7 +22,7 @@ import retrofit2.Response
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class PostsAroundFragment : Fragment(), PostShowingInterface {
+class PostAround : AppCompatActivity(), PostShowingInterface {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -45,30 +44,34 @@ class PostsAroundFragment : Fragment(), PostShowingInterface {
     // The post repository
     private lateinit var postRepository: PostRepository
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_dashboard, container, false)
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_post_around)
+
+        // Hide the navigation bar
+        supportActionBar!!.hide()
+
+        // Set up on click listener for the back button
+        backButtonPostAround.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Instantiate the post repository
-        postRepository = PostRepository(executorService, this.requireContext())
-
-        // Show the loading layout and hide the recycler view at beginning
-        loadingLayoutHomePage.visibility = View.VISIBLE
-        hbtGramView.visibility = View.INVISIBLE
+        postRepository = PostRepository(executorService, applicationContext)
 
         // Instantiate the user info repository
-        userInfoRepository =
-            UserRepository(
-                executorService,
-                this.requireContext()
-            )
+        userInfoRepository = UserRepository(executorService, applicationContext)
 
         // Instantiate the recycler view
-        hbtGramView.layoutManager = LinearLayoutManager(this@PostsAroundFragment.context)
-        hbtGramView.itemAnimator = DefaultItemAnimator()
+        postAroundView.layoutManager = LinearLayoutManager(applicationContext)
+        postAroundView.itemAnimator = DefaultItemAnimator()
 
         // Call the function to get info of the currently logged in user
         userInfoRepository.getInfoOfCurrentUser { userObject ->
@@ -76,10 +79,10 @@ class PostsAroundFragment : Fragment(), PostShowingInterface {
             userIdOfCurrentUser = userObject.getId()
 
             // Update the adapter
-            adapter = RecyclerViewAdapterCuckooPost(hbtGramPosts, this@PostsAroundFragment.requireActivity(), this@PostsAroundFragment, executorService, userObject)
+            adapter = RecyclerViewAdapterCuckooPost(hbtGramPosts, this, this, executorService, userObject)
 
             // Add adapter to the RecyclerView
-            hbtGramView.adapter = adapter
+            postAroundView.adapter = adapter
 
             // Call the function to get posts around last updated location of the currently logged in user
             getPostsAroundCurrentUser()
@@ -105,11 +108,11 @@ class PostsAroundFragment : Fragment(), PostShowingInterface {
             hbtGramPosts.addAll(arrayOfPosts)
 
             // Update the RecyclerView
-            hbtGramView.adapter!!.notifyDataSetChanged()
+            postAroundView.adapter!!.notifyDataSetChanged()
 
             // Show the recycler view and hide the loading layout when done at beginning
-            loadingLayoutHomePage.visibility = View.INVISIBLE
-            hbtGramView.visibility = View.VISIBLE
+            //loadingLayoutHomePage.visibility = View.INVISIBLE
+            postAroundView.visibility = View.VISIBLE
         }
     }
     //*************************** END GET POSTS AROUND SEQUENCE ***************************
@@ -125,7 +128,7 @@ class PostsAroundFragment : Fragment(), PostShowingInterface {
     // The function to create new notification. It should load first photo of post first
     override fun createNotification (content: String, forUser: String, fromUser: String, image: String, postId: String) {
         // Create the get first image URL service
-        val getFirstImageURLService: GetFirstImageURLOfPostService = RetrofitClientInstance.getRetrofitInstance(this.requireActivity())!!.create(
+        val getFirstImageURLService: GetFirstImageURLOfPostService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
             GetFirstImageURLOfPostService::class.java)
 
         // Create the call object in order to perform the call
@@ -169,7 +172,7 @@ class PostsAroundFragment : Fragment(), PostShowingInterface {
     // The function to send notification
     private fun sendNotification (content: String, forUser: String, fromUser: String, image: String, postId: String) {
         // Create the create notification service
-        val createNotificationService: CreateNotificationService = RetrofitClientInstance.getRetrofitInstance(this.requireActivity())!!.create(
+        val createNotificationService: CreateNotificationService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
             CreateNotificationService::class.java)
 
         // Create the call object in order to perform the call

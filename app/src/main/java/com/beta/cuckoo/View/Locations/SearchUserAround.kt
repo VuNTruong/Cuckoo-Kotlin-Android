@@ -1,12 +1,9 @@
-package com.beta.cuckoo.View.Fragments
+package com.beta.cuckoo.View.Locations
 
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.View
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.Model.User
@@ -14,11 +11,13 @@ import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.LocationRepositories.LocationRepository
 import com.beta.cuckoo.Repository.UserRepositories.FollowRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterSearchUser
-import kotlinx.android.synthetic.main.fragment_search_friends.*
+import kotlinx.android.synthetic.main.activity_post_recommend.*
+import kotlinx.android.synthetic.main.activity_search_user_around.*
+import kotlinx.android.synthetic.main.activity_user_search.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class SearchUserAroundFragment : Fragment() {
+class SearchUserAround : AppCompatActivity() {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -34,28 +33,40 @@ class SearchUserAroundFragment : Fragment() {
     // Adapter for the RecyclerView
     private lateinit var adapter : RecyclerViewAdapterSearchUser
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_search_friends, container, false)
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_user_search)
+
+        // Hide the navigation bar
+        supportActionBar!!.hide()
+
+        // Set up on click listener for the back button
+        backButtonUserSearch.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Instantiate follow repository
-        followRepository = FollowRepository(executorService, this.requireContext())
+        followRepository = FollowRepository(executorService, applicationContext)
 
         // Instantiate location repository
-        locationRepository = LocationRepository(executorService, this.requireContext())
+        locationRepository = LocationRepository(executorService, applicationContext)
 
         // Instantiate the recycler view
-        searchFriendsView.layoutManager = LinearLayoutManager(this.requireContext())
-        searchFriendsView.itemAnimator = DefaultItemAnimator()
+        searchUserView.layoutManager = LinearLayoutManager(applicationContext)
+        searchUserView.itemAnimator = DefaultItemAnimator()
 
         // Call the function to get info of the currently logged in user and load list of users around
         searchUserAround("")
 
         // Add text watcher to the search text edit
-        searchFriendEditText.addTextChangedListener(textWatcher)
+        searchUserEditText.addTextChangedListener(textWatcher)
     }
 
     // The text watcher which will take action of when there is change in search text edit
@@ -81,10 +92,10 @@ class SearchUserAroundFragment : Fragment() {
             users = listOfUsers
 
             // Update the adapter
-            adapter = RecyclerViewAdapterSearchUser(users, this.requireActivity(), followRepository)
+            adapter = RecyclerViewAdapterSearchUser(users, this, followRepository)
 
             // Add adapter to the RecyclerView
-            searchFriendsView.adapter = adapter
+            searchUserView.adapter = adapter
         }
     }
     //************************************** END GET LIST OF USERS AROUND SEQUENCE **************************************

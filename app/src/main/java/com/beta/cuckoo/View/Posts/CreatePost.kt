@@ -1,24 +1,21 @@
-package com.beta.cuckoo.View.Fragments
+package com.beta.cuckoo.View.Posts
 
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.webkit.MimeTypeMap
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.PostRepositories.CreatePostRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterPostPhoto
-import kotlinx.android.synthetic.main.fragment_create_post.*
+import kotlinx.android.synthetic.main.activity_create_post.*
+import kotlinx.android.synthetic.main.activity_notification.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class CreatePostFragment : Fragment() {
+class CreatePost : AppCompatActivity() {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -31,22 +28,34 @@ class CreatePostFragment : Fragment() {
     // Array of selected images for the post
     private val selectedImages = ArrayList<Uri>()
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_create_post, container, false)
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_create_post)
+
+        // Hide the navigation bar
+        supportActionBar!!.hide()
+
+        // Set up on click listener for the back button
+        backButtonCreatePost.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Instantiate the post repository
-        createPostRepository = CreatePostRepository(executorService, this.requireContext())
+        createPostRepository = CreatePostRepository(executorService, applicationContext)
 
         // Initialize the RecyclerView
-        photoOfPostToCreate.layoutManager = LinearLayoutManager(this@CreatePostFragment.requireActivity())
+        photoOfPostToCreate.layoutManager = LinearLayoutManager(this)
         photoOfPostToCreate.itemAnimator = DefaultItemAnimator()
 
         // Update the adapter
-        adapter = RecyclerViewAdapterPostPhoto(selectedImages, this@CreatePostFragment.requireActivity(), this@CreatePostFragment)
+        adapter = RecyclerViewAdapterPostPhoto(selectedImages, this, this)
 
         // Add adapter to the RecyclerView
         photoOfPostToCreate.adapter = adapter
@@ -105,13 +114,6 @@ class CreatePostFragment : Fragment() {
 
         // Update the RecyclerView
         photoOfPostToCreate.adapter!!.notifyDataSetChanged()
-    }
-
-    // The function to get extension of the image
-    private fun getExtension(uri: Uri): String? {
-        val contentResolver = this@CreatePostFragment.requireContext().contentResolver
-        val mimeTypeMap = MimeTypeMap.getSingleton()
-        return mimeTypeMap.getExtensionFromMimeType(contentResolver.getType(uri))
     }
     //******************************* END CHOOSE IMAGE SEQUENCE *******************************
 

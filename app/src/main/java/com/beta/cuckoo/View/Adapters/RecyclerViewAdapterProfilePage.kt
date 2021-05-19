@@ -12,12 +12,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
-import com.beta.cuckoo.View.Fragments.ProfileFragment
+import com.beta.cuckoo.View.Profile.ProfileSetting
 import com.beta.cuckoo.View.UpdateUserInfo.UpdateAvatar
 import com.beta.cuckoo.View.UpdateUserInfo.UpdateCoverPhoto
 import com.bumptech.glide.Glide
 
-class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<String, Any>, activity: Activity, profileFragment: ProfileFragment, userRepository: UserRepository): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<String, Any>, activity: Activity, profileFragment: ProfileSetting, userRepository: UserRepository): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Activity of the parent activity
     private val activity = activity
 
@@ -130,7 +130,7 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
     }
 
     override fun getItemCount(): Int {
-        return 8
+        return 3
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -143,29 +143,9 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
                 // Second row will show the full name
                 (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getFullName(), R.drawable.nametagico, "fullName")
             }
-            2 -> {
+            else -> {
                 // Third row will show the email
                 (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getEmail(), R.drawable.ic_email_black_24dp, "email")
-            }
-            3 -> {
-                // Fourth row will show the phone number
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getPhoneNumber(), R.drawable.ic_phone_iphone_black_24dp, "phoneNumber")
-            }
-            4 -> {
-                // Fifth row will show the facebook id
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getFacebook(), R.drawable.facebooklogo, "facebook")
-            }
-            5  -> {
-                // Sixth row will show the instagram id
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getInstagram(), R.drawable.instalogo, "instagram")
-            }
-            6 -> {
-                // Seventh row will show show the twitter id
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getTwitter(), R.drawable.twitterlogo, "twitter")
-            }
-            else -> {
-                // Last row will show the zalo id
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getZalo(), R.drawable.zalologo, "zalo")
             }
         }
     }

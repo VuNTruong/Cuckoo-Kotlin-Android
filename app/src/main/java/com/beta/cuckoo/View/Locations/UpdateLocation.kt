@@ -92,6 +92,9 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
         mapViewUpdateLocation.onCreate(savedInstanceState)
         mapViewUpdateLocation.getMapAsync { mapboxMap ->
             mapboxMap.setStyle(Style.MAPBOX_STREETS) {
+                // Set the style property of the class to be the one that has just been created
+                style = it
+
                 // Set the mapbox property of the class to be the update location map view
                 mapbox = mapboxMap
 
@@ -194,7 +197,7 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
             // Create and customize the LocationComponent's options
             val customLocationComponentOptions = LocationComponentOptions.builder(this)
                 .trackingGesturesManagement(true)
-                .accuracyColor(ContextCompat.getColor(this, R.color.colorPrimary))
+                .accuracyColor(ContextCompat.getColor(this, R.color.mapbox_blue))
                 .build()
 
             val locationComponentActivationOptions = LocationComponentActivationOptions.builder(this, loadedMapStyle)
@@ -302,7 +305,7 @@ class UpdateLocation : AppCompatActivity(), PermissionsListener {
     }
     //--------------------------------- END SEQUENCE OF GETTING USER'S CURRENT LOCATION ---------------------------------
     // The function to update user's location
-    fun updateUserLocation (whatAreYouDoing: String, location: LatLng) {
+    private fun updateUserLocation (whatAreYouDoing: String, location: LatLng) {
         // Call the function to update location of the currently logged in user
         locationRepository.updateLocation(whatAreYouDoing, location)
     }

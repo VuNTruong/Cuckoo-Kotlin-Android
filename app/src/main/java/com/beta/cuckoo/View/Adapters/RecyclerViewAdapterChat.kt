@@ -1,6 +1,7 @@
 package com.beta.cuckoo.View.Adapters
 
 import android.app.Activity
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,9 +12,11 @@ import com.beta.cuckoo.Network.Messages.GetChatMessagePhotoService
 import com.beta.cuckoo.Network.User.GetUserInfoBasedOnIdService
 import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.Model.Message
+import com.beta.cuckoo.Model.MessagePhoto
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.View.ZoomImage
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import retrofit2.Call
@@ -65,7 +68,7 @@ class RecyclerViewAdapterChat (chatMessages: ArrayList<Message>, activity: Activ
             getUserInfoBasedOnId(message.getSender(), senderAvatar, senderFullName)
 
             // Call the function to load photo of the message into the image view
-            getMessagePhoto(message.getMessageId(), messagePhoto)
+            getMessagePhoto(message, messagePhoto)
         }
     }
 
@@ -84,15 +87,50 @@ class RecyclerViewAdapterChat (chatMessages: ArrayList<Message>, activity: Activ
     }
 
     // The function to load photo of the message based on message id
-    private fun getMessagePhoto (messageId: String, messagePhotoImageView: ImageView) {
+    private fun getMessagePhoto (messageObject: Message, messagePhotoImageView: ImageView) {
         // Call the function to get message photo of the message based on message id
-        messageRepository.getMessageImageBasedOnId(messageId) {messageImageURL ->
+        messageRepository.getMessageImageBasedOnId(messageObject.getMessageId()) {messagePhotoObject ->
             // Load image into the ImageView
             Glide.with(activity)
-                .load(messageImageURL)
+                .load(messagePhotoObject.getImageURL())
                 .into(messagePhotoImageView)
+
+            // Set on click listener for the image view so that it will take user to the
+            // zoom photo activity
+            messagePhotoImageView.setOnClickListener {
+                // Go to zoom activity
+                gotoZoom(messagePhotoObject)
+            }
         }
     }
+
+    //*********************************** ADDITIONAL FUNCTIONS ***********************************
+    // The function which will take user to the activity where user can zoom in and out an image
+    private fun gotoZoom (imageObject: MessagePhoto) {
+        if (imageObject.getImageURL() == "") {
+            return
+        }
+
+        // The intent object
+        val intent = Intent(activity, ZoomImage::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        // Let the activity know which image to load
+        intent.putExtra("imageURLToLoad", imageObject.getImageURL())
+
+        // Let the zoom activity know that image comes from message
+        intent.putExtra("imageComesFromMessage", true)
+
+        // Let the zoom activity know who is creator of the image
+        intent.putExtra("imageURLToLoad", imageObject.getImageURL())
+
+        // Let the zoom activity know message id of the message to which the image belongs to
+        intent.putExtra("messageId", imageObject.getMessageID())
+
+        // Start the activity
+        activity.startActivity(intent)
+    }
+    //*********************************** ADDITIONAL FUNCTIONS ***********************************
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         // The view object

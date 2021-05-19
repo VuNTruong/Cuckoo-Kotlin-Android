@@ -1,20 +1,16 @@
-package com.beta.cuckoo.View.Fragments
+package com.beta.cuckoo.View.Locations
 
 import android.content.Intent
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.R
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterLocationPage
-import com.beta.cuckoo.View.Locations.SeeUsersLocation
-import com.beta.cuckoo.View.Locations.UpdateLocation
-import kotlinx.android.synthetic.main.fragment_update_location.*
+import kotlinx.android.synthetic.main.activity_location_main_page.*
 
-class UpdateLocationFragment : Fragment() {
+class LocationMainPage : AppCompatActivity() {
     // Adapter for the RecyclerView
     private lateinit var adapter : RecyclerViewAdapterLocationPage
 
@@ -27,36 +23,33 @@ class UpdateLocationFragment : Fragment() {
     // Array of on click listener for the options
     private var optionOnClickListener = ArrayList<View.OnClickListener>()
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_update_location, container, false)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_location_main_page)
 
         // Instantiate the recycler view
-        locationPageOptionView.layoutManager = LinearLayoutManager(this.requireActivity())
+        locationPageOptionView.layoutManager = LinearLayoutManager(this)
         locationPageOptionView.itemAnimator = DefaultItemAnimator()
 
         // Add content to the option content array
-        optionContents.add("See friend's locations")
+        optionContents.add("Cuckoo map")
         optionIcons.add(R.drawable.see_friends_location)
         optionOnClickListener.add(View.OnClickListener {
             // Go to the activity where the user can see friends location
-            val intent = Intent(this.requireActivity(), SeeUsersLocation::class.java)
+            val intent = Intent(this, SeeUsersLocation::class.java)
 
             // Start the see friends location activity
-            this.requireActivity().startActivity(intent)
+            startActivity(intent)
         })
 
         optionContents.add("Update location")
         optionIcons.add(R.drawable.update_location)
         optionOnClickListener.add(View.OnClickListener {
             // Go to the activity where the user can update location
-            val intent = Intent(this.requireActivity(), UpdateLocation::class.java)
+            val intent = Intent(this, UpdateLocation::class.java)
 
             // Start the update location activity
-            this.requireActivity().startActivity(intent)
+            this.startActivity(intent)
         })
 
         // Update the adapter

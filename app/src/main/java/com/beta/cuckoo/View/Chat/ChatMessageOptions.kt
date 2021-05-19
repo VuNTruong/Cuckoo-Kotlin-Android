@@ -2,12 +2,15 @@ package com.beta.cuckoo.View.Chat
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.beta.cuckoo.Model.MessagePhoto
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserBlockRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterMessageOption
 import com.bumptech.glide.Glide
 import kotlinx.android.synthetic.main.activity_chat.*
@@ -30,7 +33,7 @@ class ChatMessageOptions : AppCompatActivity() {
     private lateinit var adapter: RecyclerViewAdapterMessageOption
 
     // Array of photo URLs of chat room
-    private var arrayOfPhotoURLsOfChatRoom = ArrayList<String>()
+    private var arrayOfPhotoURLsOfChatRoom = ArrayList<MessagePhoto>()
 
     // The message repository
     private lateinit var messageRepository: MessageRepository
@@ -40,6 +43,9 @@ class ChatMessageOptions : AppCompatActivity() {
 
     // The user block repository
     private lateinit var userBlockRepository: UserBlockRepository
+
+    // The user trust repository
+    private lateinit var userTrustRepository: UserTrustRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,9 +75,15 @@ class ChatMessageOptions : AppCompatActivity() {
         // Instantiate user block repository
         userBlockRepository = UserBlockRepository(executorService, applicationContext)
 
+        // Instantiate user trust repository
+        userTrustRepository = UserTrustRepository(executorService, applicationContext)
+
         // Instantiate the recycler view
         messageOptionsView.layoutManager = LinearLayoutManager(applicationContext)
         messageOptionsView.itemAnimator = DefaultItemAnimator()
+
+        // Call the function to check for trust between the 2 users
+        checkTrustStatusBetween2UsersAndAllowScreenShot(messageReceiverUserId)
 
         // Call the function to set up message options and load photo of chat room
         setUpMessageOptionsAndLoadPhotos()
@@ -85,10 +97,25 @@ class ChatMessageOptions : AppCompatActivity() {
             arrayOfPhotoURLsOfChatRoom = arrayOfPhotos
 
             // Update the Recycler View
-            adapter = RecyclerViewAdapterMessageOption(messageReceiverUserId, chatRoomId, applicationContext, userRepository, userBlockRepository, arrayOfPhotoURLsOfChatRoom)
+            adapter = RecyclerViewAdapterMessageOption(messageReceiverUserId, chatRoomId, this, userRepository, userBlockRepository, userTrustRepository, arrayOfPhotoURLsOfChatRoom)
 
             // Add adapter to the Recycler View
             messageOptionsView.adapter = adapter
         }
     }
+
+    //************************* CHECK FOR USER'S TRUST *************************
+    // The function to check and see if current user trusts user chatting with or not
+    private fun checkTrustStatusBetween2UsersAndAllowScreenShot (otherUserId: String) {
+        // If current user is not trusted by user chatting with, don't let the user take screenshot
+        userTrustRepository.checkTrustStatusBetweenOtherUserAndCurrentUser(otherUserId) {isTrusted ->
+            if (!isTrusted) {
+                // Prevent user from taking screenshot
+                window.setFlags(
+                    WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+    }
+    //************************* CHECK FOR USER'S TRUST *************************
 }

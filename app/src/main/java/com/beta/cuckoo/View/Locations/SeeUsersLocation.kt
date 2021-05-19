@@ -160,7 +160,7 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
             // Create and customize the LocationComponent's options
             val customLocationComponentOptions = LocationComponentOptions.builder(this)
                 .trackingGesturesManagement(true)
-                .accuracyColor(ContextCompat.getColor(this, R.color.colorPrimary))
+                .accuracyColor(ContextCompat.getColor(this, R.color.mapbox_blue))
                 .build()
 
             val locationComponentActivationOptions = LocationComponentActivationOptions.builder(this, loadedMapStyle)

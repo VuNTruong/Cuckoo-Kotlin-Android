@@ -3,6 +3,7 @@ package com.beta.cuckoo.View.PostDetail
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import android.widget.EditText
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -102,6 +103,19 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
             bottomSheet.show(supportFragmentManager, "TAG")
         }
 
+        // Call the function to check and see if post being shown here is created by currently logged in user or not
+        userRepository.getInfoOfCurrentUser { userObject ->
+            // If it is, show the post options menu button
+            if (userObject.getId() == selectedPostObject.getWriter()) {
+                // Show the post options menu button
+                postOptionsMenu.visibility = View.VISIBLE
+            } // Otherwise, hide it
+            else {
+                // Hide the post options menu button
+                postOptionsMenu.visibility = View.INVISIBLE
+            }
+        }
+
         // Get the selected post object from previous activity
         selectedPostObject = intent.getSerializableExtra("selectedPostObject") as CuckooPost
 
@@ -158,11 +172,11 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
         // New comment object from the server
         val commentObject: PostComment = gs.fromJson(it[0].toString(), PostComment::class.java)
 
+        // Add new comment to the array of comments
+        arrayOfComments.add(commentObject)
+
         // Since this will update the view, it MUST run on the UI thread
         runOnUiThread{
-            // Add new comment to the array of comments
-            arrayOfComments.add(commentObject)
-
             // Update the RecyclerView
             hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
         }
@@ -200,6 +214,14 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
             createNotification("commented", commentReceiverUserId, commentWriterId, photoObject.getImageURL(), selectedPostObject.getId())
             //-------------- Image for the notification --------------
 
+            // Emit event to the server and let the server know that new comment has been added
+            MainMenu.mSocket.emit("newComment", gs.toJson(hashMapOf(
+                "commentId" to "",
+                "writer" to commentWriterId,
+                "content" to commentContentToPostEditText.text.toString(),
+                "postId" to selectedPostObject.getId()
+            )))
+
             //-------------- Update the UI --------------
             // Create new comment object based on info of the newly created comment
             val newCommentObject = PostComment(commentContentToPostEditText.text.toString(), commentWriterId, "")
@@ -213,14 +235,6 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
             // Reload the RecyclerView
             hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
             //-------------- End update the UI --------------
-
-            // Emit event to the server and let the server know that new comment has been added
-            MainMenu.mSocket.emit("newComment", gs.toJson(hashMapOf(
-                "commentId" to "",
-                "writer" to commentWriterId,
-                "content" to commentContentToPostEditText.text.toString(),
-                "postId" to selectedPostObject.getId()
-            )))
         }
     }
     //*********************************** END CREATE NEW COMMENT SEQUENCE ***********************************
@@ -235,6 +249,9 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
 
             // Add adapter to the RecyclerView
             hbtGramPostDetailView.adapter = adapter
+
+            // Update array of images
+            this.arrayOfImages = arrayOfImages
 
             // Loop through list of photos of the post to update user photo label visit status
             for (i in 0 until arrayOfImages.size) {

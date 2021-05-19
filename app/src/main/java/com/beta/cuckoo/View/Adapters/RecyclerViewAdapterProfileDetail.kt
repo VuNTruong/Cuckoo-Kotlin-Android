@@ -20,7 +20,8 @@ import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Chat.Chat
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.View.PostDetail.PostDetail
-import com.beta.cuckoo.View.UserInfoView.ProfileDetail
+import com.beta.cuckoo.View.Profile.ProfileDetail
+import com.beta.cuckoo.View.Profile.ProfileSetting
 import com.beta.cuckoo.View.UserInfoView.UserShow
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
@@ -135,14 +136,8 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
         fun setUpEditProfileButton () {
             // Add on click listener to the edit profile button which will take user to the activity where the user can edit profile
             editProfileButton.setOnClickListener {
-                // Take user to the activity where the user can edit profile
-                // it is the main menu, but we will let the activity know that the previous activity is this one
-                val intent = Intent(activity, MainMenu::class.java)
-
-                // Pass name of this activity to the main menu so that the menu will know to load the profile settings
-                intent.putExtra("previousActivityName", "profileDetailPage")
-
-                // Start the activity
+                // Go to the activity where user can see profile settings
+                val intent = Intent(activity, ProfileSetting::class.java)
                 activity.startActivity(intent)
             }
         }

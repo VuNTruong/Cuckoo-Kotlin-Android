@@ -18,15 +18,15 @@ import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.PostRepositories.PostRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.PostDetail.PostDetail
-import com.beta.cuckoo.View.UserInfoView.ProfileDetail
+import com.beta.cuckoo.View.Profile.ProfileDetail
 import com.beta.cuckoo.View.UserInfoView.UserShow
 import com.beta.cuckoo.View.ZoomImage
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 import java.util.concurrent.ExecutorService
 
-class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImages: ArrayList<PostPhoto>,
-                                           arrayOfComments: ArrayList<PostComment>, hbtGramPostDetail: PostDetail,
+class RecyclerViewAdapterCuckooPostDetail (cuckooPost: CuckooPost, arrayOfImages: ArrayList<PostPhoto>,
+                                           arrayOfComments: ArrayList<PostComment>, cuckooPostDetail: PostDetail,
                                            activity: Activity, createNotificationInterface: CreateNotificationInterface, executorService: ExecutorService) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // The post repository
     private val postRepository: PostRepository = PostRepository(executorService, activity)
@@ -38,10 +38,10 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
     private val executorService = executorService
 
     // The selected HBTGram post object
-    private val hbtGramPost = hbtGramPost
+    private val CuckooPost = cuckooPost
 
     // Activity of the parent activity
-    private val hbtGramPostDetailActivity = hbtGramPostDetail
+    private val CuckooPostDetailActivity = cuckooPostDetail
 
     // Create notification interface
     private val createNotificationInterface = createNotificationInterface
@@ -57,7 +57,7 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
     val gs = Gson()
 
     // ViewHolder for the post detail header
-    inner class ViewHolderHBTGramPostDetailHeader internal constructor(itemView: View) :
+    inner class ViewHolderCuckooPostDetailHeader internal constructor(itemView: View) :
         RecyclerView.ViewHolder(itemView) {
         // Components from the layout
         private val postWriterAvatar : ImageView = itemView.findViewById(R.id.writerAvatarPostDetail)
@@ -65,42 +65,42 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
         private val dateCreated : TextView = itemView.findViewById(R.id.dateCreatedPostDetail)
 
         // The function to set up post detail header
-        fun setUpPostDetailHeader (hbtGramPost: CuckooPost) {
+        fun setUpPostDetailHeader (CuckooPost: CuckooPost) {
             // Call the function to get info of the post writer
-            getUserInfoBasedOnId(hbtGramPost.getWriter(), postWriterFullName, postWriterAvatar)
+            getUserInfoBasedOnId(CuckooPost.getWriter(), postWriterFullName, postWriterAvatar)
 
             // Load date created into the TextView
-            dateCreated.text = hbtGramPost.getDateCreated()
+            dateCreated.text = CuckooPost.getDateCreated()
 
             // Set on click listener for the full name text view and avatar image view
             // of the post writer so that it will take user to the activity where the user
             // can see profile detail of the post writer
             postWriterAvatar.setOnClickListener{
                 // Call the function
-                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPost.getWriter())
+                getUserInfoBasedOnIdAndGotoProfileDetail(CuckooPost.getWriter())
             }
             postWriterFullName.setOnClickListener {
                 // Call the function
-                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPost.getWriter())
+                getUserInfoBasedOnIdAndGotoProfileDetail(CuckooPost.getWriter())
             }
         }
     }
 
     // ViewHolder for the post content
-    inner class ViewHolderHBTGramPostDetailPostContent internal constructor(itemView: View) :
+    inner class ViewHolderCuckooPostDetailPostContent internal constructor(itemView: View) :
         RecyclerView.ViewHolder(itemView) {
         // Component from the layout
         private val postContent : TextView = itemView.findViewById(R.id.postContentPostDetail)
 
         // The function to set up post content
-        fun setUpPostContent (hbtGramPost: CuckooPost) {
+        fun setUpPostContent (CuckooPost: CuckooPost) {
             // Load post detail into the TextView
-            postContent.text = hbtGramPost.getContent()
+            postContent.text = CuckooPost.getContent()
         }
     }
 
     // ViewHolder for the post photos
-    inner class ViewHolderHBTGramPostPhotos internal constructor(itemView: View) :
+    inner class ViewHolderCuckooPostPhotos internal constructor(itemView: View) :
         RecyclerView.ViewHolder(itemView) {
         // Component from the layout
         private val postPhoto : ImageView = itemView.findViewById(R.id.postPhotoPostDetail)
@@ -108,7 +108,7 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
         // The function to set up post photo
         fun setUpPostPhoto (imageURL: String) {
             // Load that image into the ImageView
-            Glide.with(hbtGramPostDetailActivity)
+            Glide.with(CuckooPostDetailActivity)
                 .load(imageURL)
                 .into(postPhoto)
 
@@ -144,7 +144,7 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
             numOfLikesTextView.setOnClickListener {
                 // Take user to the activity where the user can see list of users who liked the post
                 // The intent object
-                val intent = Intent(hbtGramPostDetailActivity, UserShow::class.java)
+                val intent = Intent(CuckooPostDetailActivity, UserShow::class.java)
 
                 // Set post id to that activity and tell it to show list of likes of the post
                 intent.putExtra("whatToDo", "getListOfLikes")
@@ -152,7 +152,7 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
                 intent.putExtra("userId", "")
 
                 // Start the activity
-                hbtGramPostDetailActivity.startActivity(intent)
+                CuckooPostDetailActivity.startActivity(intent)
             }
 
             // Call the function to get number of likes of the post
@@ -173,29 +173,42 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
         private val openCommentOptionsMenuButton : ImageView = itemView.findViewById(R.id.openCommentOptionsCommentWithoutPhoto)
 
         // The function to set up comment
-        fun setUpComment (hbtGramPostComment: PostComment) {
+        fun setUpComment (CuckooPostComment: PostComment) {
             // Call the function to get info of the user
-            getUserInfoBasedOnId(hbtGramPostComment.getCommentWriter(), writerFullName, writerAvatar)
+            getUserInfoBasedOnId(CuckooPostComment.getCommentWriter(), writerFullName, writerAvatar)
+
+            // Call the function to check and see if comment at this row is created by current user or not
+            userInfoRepository.getInfoOfCurrentUser { userObject ->
+                // If it is, show the comment options menu
+                if (userObject.getId() == CuckooPostComment.getCommentWriter()) {
+                    // Show the menu button
+                    openCommentOptionsMenuButton.visibility = View.VISIBLE
+                } // Otherwise, hide it
+                else {
+                    // Hide the menu button
+                    openCommentOptionsMenuButton.visibility = View.INVISIBLE
+                }
+            }
 
             // Load content of the comment into the TextView
-            commentContent.text = hbtGramPostComment.getCommentContent()
+            commentContent.text = CuckooPostComment.getCommentContent()
 
             // Set on click listener for the full name text view and avatar image view of the post writer
             // so that it will take user to the activity where the user can see profile detail of the comment
             // writer
             writerAvatar.setOnClickListener {
                 // Call the function
-                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPostComment.getCommentWriter())
+                getUserInfoBasedOnIdAndGotoProfileDetail(CuckooPostComment.getCommentWriter())
             }
             writerFullName.setOnClickListener {
                 // Call the function
-                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPostComment.getCommentWriter())
+                getUserInfoBasedOnIdAndGotoProfileDetail(CuckooPostComment.getCommentWriter())
             }
 
             // Set on click listener for the open comment options menu button
             openCommentOptionsMenuButton.setOnClickListener {
                 // Call the function to open the menu
-                hbtGramPostDetailActivity.openCommentOptionsMenu(hbtGramPostComment.getIdComment())
+                CuckooPostDetailActivity.openCommentOptionsMenu(CuckooPostComment.getIdComment())
             }
         }
     }
@@ -210,29 +223,42 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
         private val openCommentOptionsMenuButton: ImageView = itemView.findViewById(R.id.openCommentOptionsCommentWithPhoto)
 
         // The function to set up comment with photo
-        fun setUpComment (hbtGramPostComment: PostComment) {
+        fun setUpComment (CuckooPostComment: PostComment) {
             // Call the function to get info of the comment writer
-            getUserInfoBasedOnId(hbtGramPostComment.getCommentWriter(), writerFullName, writerAvatar)
+            getUserInfoBasedOnId(CuckooPostComment.getCommentWriter(), writerFullName, writerAvatar)
 
             // Call the function to get photo of the comment
-            getPhotoOfComment(hbtGramPostComment.getIdComment(), commentPhoto)
+            getPhotoOfComment(CuckooPostComment.getIdComment(), commentPhoto)
+
+            // Call the function to check and see if comment at this row is created by current user or not
+            userInfoRepository.getInfoOfCurrentUser { userObject ->
+                // If it is, show the comment options menu
+                if (userObject.getId() == CuckooPostComment.getCommentWriter()) {
+                    // Show the menu button
+                    openCommentOptionsMenuButton.visibility = View.VISIBLE
+                } // Otherwise, hide it
+                else {
+                    // Hide the menu button
+                    openCommentOptionsMenuButton.visibility = View.INVISIBLE
+                }
+            }
 
             // Set on click listener for the full name text view and avatar image view of the post writer
             // so that it will take user to the activity where the user can see profile detail of the comment
             // writer
             writerAvatar.setOnClickListener {
                 // Call the function
-                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPostComment.getCommentWriter())
+                getUserInfoBasedOnIdAndGotoProfileDetail(CuckooPostComment.getCommentWriter())
             }
             writerFullName.setOnClickListener {
                 // Call the function
-                getUserInfoBasedOnIdAndGotoProfileDetail(hbtGramPostComment.getCommentWriter())
+                getUserInfoBasedOnIdAndGotoProfileDetail(CuckooPostComment.getCommentWriter())
             }
 
             // Set on click listener for the open comment options menu button
             openCommentOptionsMenuButton.setOnClickListener {
                 // Call the function to open the menu
-                hbtGramPostDetailActivity.openCommentOptionsMenu(hbtGramPostComment.getIdComment())
+                CuckooPostDetailActivity.openCommentOptionsMenu(CuckooPostComment.getIdComment())
             }
         }
     }
@@ -273,7 +299,7 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
             fullNameTextView.text = userObject.getFullName()
 
             // Load avatar info the ImageView
-            Glide.with(hbtGramPostDetailActivity)
+            Glide.with(CuckooPostDetailActivity)
                 .load(userObject.getAvatarURL())
                 .into(avatarImageView)
         }
@@ -285,7 +311,7 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
     fun getPhotoOfComment (commentId: String, commentPhotoImageView: ImageView) {
         // Call the function to get photo of the comment based on comment id
         postRepository.getPhotoOfComment(commentId) {commentPhotoURL: String ->
-            Glide.with(hbtGramPostDetailActivity)
+            Glide.with(CuckooPostDetailActivity)
                 .load(commentPhotoURL)
                 .into(commentPhotoImageView)
         }
@@ -328,13 +354,13 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
     // The function to take user to the activity where the user can see profile detail of user with specified id
     private fun gotoProfileDetail (userObject: User) {
         // The intent object
-        val intent = Intent(hbtGramPostDetailActivity, ProfileDetail::class.java)
+        val intent = Intent(CuckooPostDetailActivity, ProfileDetail::class.java)
 
         // Update user object property of the profile detail activity
         intent.putExtra("selectedUserObject", userObject)
 
         // Start the activity
-        hbtGramPostDetailActivity.startActivity(intent)
+        CuckooPostDetailActivity.startActivity(intent)
     }
     //******************************** END GET INFO OF USER BASED ON ID AND GO TO PROFILE DETAIL SEQUENCE ********************************
 
@@ -346,14 +372,18 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
         }
 
         // The intent object
-        val intent = Intent(hbtGramPostDetailActivity, ZoomImage::class.java)
+        val intent = Intent(CuckooPostDetailActivity, ZoomImage::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         // Let the activity know which image to load
         intent.putExtra("imageURLToLoad", imageURL)
 
+        // Let message id that the image belongs to to be blank
+        // because the activity does not need to know about this in this case
+        intent.putExtra("messageId", "")
+
         // Start the activity
-        hbtGramPostDetailActivity.startActivity(intent)
+        CuckooPostDetailActivity.startActivity(intent)
     }
     //*********************************** ADDITIONAL FUNCTIONS ***********************************
 
@@ -366,17 +396,17 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
             // View type 0 is for the header
             0 -> {
                 view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_header, parent, false)
-                return ViewHolderHBTGramPostDetailHeader(view)
+                return ViewHolderCuckooPostDetailHeader(view)
             }
             // View type 1 is for the post content
             1 -> {
                 view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_post_content, parent, false)
-                return ViewHolderHBTGramPostDetailPostContent(view)
+                return ViewHolderCuckooPostDetailPostContent(view)
             }
             // View type 2 is for the post photo
             2 -> {
                 view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_post_photo, parent, false)
-                return ViewHolderHBTGramPostPhotos(view)
+                return ViewHolderCuckooPostPhotos(view)
             }
             // View type 3 is for the number of comments and likes
             3 -> {
@@ -416,26 +446,26 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
         when {
             // Position 0 will show the header
             position == 0 -> {
-                (holder as ViewHolderHBTGramPostDetailHeader).setUpPostDetailHeader(hbtGramPost)
+                (holder as ViewHolderCuckooPostDetailHeader).setUpPostDetailHeader(CuckooPost)
             }
             // Position 1 will show the post detail
             position == 1 -> {
-                (holder as ViewHolderHBTGramPostDetailPostContent).setUpPostContent(hbtGramPost)
+                (holder as ViewHolderCuckooPostDetailPostContent).setUpPostContent(CuckooPost)
             }
             // From position 2, start showing the photos
             position >= 2 && position <= arrayOfImages.size + 1 -> {
                 // Convert the arrayOfImages[position - 2] object which is currently a linked tree map into a JSON string
                 val js = gs.toJson(arrayOfImages[position - 2])
 
-                // Convert the JSOn string back into HBTGramPostPhoto class
-                val hbtGramPostPhotoModel = gs.fromJson<PostPhoto>(js, PostPhoto::class.java)
+                // Convert the JSOn string back into CuckooPostPhoto class
+                val CuckooPostPhotoModel = gs.fromJson<PostPhoto>(js, PostPhoto::class.java)
 
                 // Call the function to set up view holder
-                (holder as ViewHolderHBTGramPostPhotos).setUpPostPhoto(hbtGramPostPhotoModel.getImageURL())
+                (holder as ViewHolderCuckooPostPhotos).setUpPostPhoto(CuckooPostPhotoModel.getImageURL())
             }
             // After that, show the number of comments and likes
             position == arrayOfImages.size + 2 -> {
-                (holder as ViewHolderNumOfLikesAndComments).setUpNumOfLikesAndComments(hbtGramPost)
+                (holder as ViewHolderNumOfLikesAndComments).setUpNumOfLikesAndComments(CuckooPost)
             }
             // The rest will show the comments
             else -> {
@@ -443,18 +473,18 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
                     // Convert the arrayOfComments[position - 3 - arrayOfImages.size] object which is currently a linked tree map into a JSON string
                     val jsComments = gs.toJson(arrayOfComments[position - 3 - arrayOfImages.size])
 
-                    // Convert the JSOn string back into HBTGramPostComment class
-                    val hbtGramPostCommentModel = gs.fromJson<PostComment>(jsComments, PostComment::class.java)
+                    // Convert the JSOn string back into CuckooPostComment class
+                    val CuckooPostCommentModel = gs.fromJson<PostComment>(jsComments, PostComment::class.java)
 
                     // Check to see if comment has photo or not
-                    if (hbtGramPostCommentModel.getCommentContent() == "image") {
+                    if (CuckooPostCommentModel.getCommentContent() == "image") {
                         // If content of the comment is "image", let the row show comment with photo
                         // Call the function to set up the view holder
-                        (holder as ViewHolderPostCommentsWithPhoto).setUpComment(hbtGramPostCommentModel)
+                        (holder as ViewHolderPostCommentsWithPhoto).setUpComment(CuckooPostCommentModel)
                     } // Otherwise, let the row show comment without photo
                     else {
                         // Call the function to set up the view holder
-                        (holder as ViewHolderPostComments).setUpComment(hbtGramPostCommentModel)
+                        (holder as ViewHolderPostComments).setUpComment(CuckooPostCommentModel)
                     }
                 } else {
                     (holder as ViewHolderNoComments).setUpBlankRow()
@@ -487,11 +517,11 @@ class RecyclerViewAdapterCuckooPostDetail (hbtGramPost: CuckooPost, arrayOfImage
                     // Convert the arrayOfComments[position - 3 - arrayOfImages.size] object which is currently a linked tree map into a JSON string
                     val jsComments = gs.toJson(arrayOfComments[position - 3 - arrayOfImages.size])
 
-                    // Convert the JSOn string back into HBTGramPostComment class
-                    val hbtGramPostCommentModel = gs.fromJson<PostComment>(jsComments, PostComment::class.java)
+                    // Convert the JSOn string back into CuckooPostComment class
+                    val CuckooPostCommentModel = gs.fromJson<PostComment>(jsComments, PostComment::class.java)
 
                     // Check to see if comment has photo or not
-                    if (hbtGramPostCommentModel.getCommentContent() == "image") {
+                    if (CuckooPostCommentModel.getCommentContent() == "image") {
                         5
                     } // Otherwise, let the row show comment without photo
                     else {

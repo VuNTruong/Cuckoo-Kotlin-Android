@@ -4,6 +4,7 @@ import android.content.Context
 import com.beta.cuckoo.Network.Messages.*
 import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.Model.Message
+import com.beta.cuckoo.Model.MessagePhoto
 import com.beta.cuckoo.Model.MessageRoom
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.bumptech.glide.Glide
@@ -177,6 +178,51 @@ class MessageRepository (executor: Executor, context: Context) {
         }
     }
 
+    // The function to get message object based on message id
+    fun getMessageObjectBasedOnMessageId (messageId: String, callback: (messageObject: Message) -> Unit) {
+        executor.execute {
+            // Create the get message object based on message id service
+            val getMessageObjectBasedOnMessageIdService: GetMessageObjectBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetMessageObjectBasedOnIdService::class.java
+            )
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getMessageObjectBasedOnMessageIdService.getMessageObjectBasedOnId(messageId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        // Body of the response
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get all messages from the data
+                        //val messages = (data["documents"] as ArrayList<Message>)[0]
+
+                        // Convert the user info data object which is currently a linked tree map into a JSON string
+                        val js = gson.toJson((data["documents"] as ArrayList<Message>)[0])
+
+                        // Convert the JSON string back into Message class
+                        val messageModel = gson.fromJson<Message>(js, Message::class.java)
+
+                        // Return array of messages via callback function
+                        callback(messageModel)
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Something is not right")
+                }
+            })
+        }
+    }
+
     // The function to send message from a currently logged in user to the specified message receiver
     fun sendMessage (messageRoomId: String, messageReceiverUserId: String, messageContent: String, callback: (messageSentFirstTime: Boolean, messageObject: Message, chatRoomId: String, currentUserId: String, messageSentStatus: String) -> Unit) {
         executor.execute {
@@ -261,7 +307,7 @@ class MessageRepository (executor: Executor, context: Context) {
     }
 
     // The function to get message image based on message id
-    fun getMessageImageBasedOnId (messageId: String, callback: (messageImageURL: String) -> Unit) {
+    fun getMessageImageBasedOnId (messageId: String, callback: (messageImage: MessagePhoto) -> Unit) {
         executor.execute {
             // Create the get message photo based on message id service
             val getMessagePhotoBasedOnMessageIdService : GetChatMessagePhotoService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
@@ -288,11 +334,17 @@ class MessageRepository (executor: Executor, context: Context) {
                         // Get image info from the data
                         val imageInfo = (data["documents"] as List<Map<String, Any>>)[0]
 
+                        // Convert the data object which is currently a linked tree map into a JSON string
+                        val js = gson.toJson((data["documents"] as List<Map<String, Any>>)[0])
+
+                        // Convert the JSOn string back into MessagePhoto class
+                        val messagePhotoModel = gson.fromJson<MessagePhoto>(js, MessagePhoto::class.java)
+
                         // Get image URL of the message photo
-                        val imageURL = imageInfo["imageURL"] as String
+                        //val imageURL = imageInfo["imageURL"] as String
 
                         // Return image URL to the view via callback function
-                        callback(imageURL)
+                        callback(messagePhotoModel)
                     }
                 }
             })
@@ -357,7 +409,7 @@ class MessageRepository (executor: Executor, context: Context) {
     }
 
     // The function to get list of photos in chat room with specified id
-    fun getPhotosOfChatRoom (chatRoomId: String, callback: (arrayOfPhotos: ArrayList<String>) -> Unit) {
+    fun getPhotosOfChatRoom (chatRoomId: String, callback: (arrayOfPhotos: ArrayList<MessagePhoto>) -> Unit) {
         executor.execute {
             // Create the get photos of chat room service
             val getPhotosOfChatRoomService: GetMessagePhotosOfChatRoomService =
@@ -382,7 +434,7 @@ class MessageRepository (executor: Executor, context: Context) {
                         val responseBody = response.body() as Map<String, Any>
 
                         // Get data of the response (array of photo URL between users)
-                        val arrayOfPhotoURL = responseBody["data"] as ArrayList<String>
+                        val arrayOfPhotoURL = responseBody["data"] as ArrayList<MessagePhoto>
 
                         // Return array of photo URL to view via callback function
                         callback(arrayOfPhotoURL)

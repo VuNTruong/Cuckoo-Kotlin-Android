@@ -145,8 +145,8 @@ class PhotoRepository (executor: Executor, context: Context) {
                         // Call the function to upload info of the labeled image to the database
                         uploadLabeledImageInfoToDatabase(imageID, text)
                     }
-                }.addOnFailureListener {
-                    print("Task failed")
+                }.addOnFailureListener {it ->
+                    print("Task failed $it")
                 }
         }
     }

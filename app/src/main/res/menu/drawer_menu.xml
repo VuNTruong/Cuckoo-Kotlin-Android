@@ -34,10 +34,6 @@
 
     <item android:title="Make friends">
         <menu>
-            <item android:id="@+id/nav_search_friend"
-                android:icon="@drawable/ic_search_black_24dp"
-                android:title="Search friends"/>
-
             <item android:id="@+id/nav_personal_profile_page"
                 android:icon="@drawable/ic_person_pin_black_24dp"
                 android:title="My personal profile page"/>

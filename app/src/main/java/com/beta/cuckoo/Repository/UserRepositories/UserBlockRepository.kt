@@ -67,7 +67,7 @@ class UserBlockRepository (executor: Executor, context: Context) {
     }
 
     // The function to create a new user block
-    fun createNewUserBlock (user: String, blockedBy: String, blockType: String, callback: (isCreated: Boolean) -> Unit) {
+    private fun createNewUserBlock (user: String, blockedBy: String, blockType: String, callback: (isCreated: Boolean) -> Unit) {
         executor.execute {
             // Create the create new user block service
             val createNewUserBlockService: CreateNewUserBlockService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
@@ -96,7 +96,7 @@ class UserBlockRepository (executor: Executor, context: Context) {
     }
 
     // The function to delete a user block between the 2 users
-    fun deleteABlockBetween2users (userGetBlocked: String, blockingUser: String, callback: (isDeleted: Boolean) -> Unit) {
+    private fun deleteABlockBetween2users (userGetBlocked: String, blockingUser: String, callback: (isDeleted: Boolean) -> Unit) {
         executor.execute {
             // Create the delete a block between 2 users service
             val deleteAUserBlockService: DeleteAUserBlockService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(

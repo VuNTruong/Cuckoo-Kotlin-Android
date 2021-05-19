@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
+import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.Utils.AdditionalAssets
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -23,19 +25,33 @@ import kotlinx.android.synthetic.main.activity_zoom_image.*
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class ZoomImage : AppCompatActivity() {
+    // Executor service to perform works in the background
+    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
     // Image bitmap of the image to be saved
     private lateinit var imageBitmapToBeSaved: Bitmap
 
     // Image URL of the image to load at this activity
     private lateinit var imageURLToLoad: String
 
-    // The variable which will keep track of if the image option layout is being shown or not
-    private var isShowingImageOptionLayout = false
-
     // Additional assets
     private lateinit var additionalAssets: AdditionalAssets
+
+    // The variable to check and see if image to be loaded come from message or not
+    private var imageComesFromMessage: Boolean = false
+
+    // Message id that the image belongs to (in case image comes from message)
+    private lateinit var messageId: String
+
+    // User trust repository
+    private lateinit var userTrustRepository: UserTrustRepository
+
+    // Message repository
+    private lateinit var messageRepository: MessageRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,8 +63,20 @@ class ZoomImage : AppCompatActivity() {
         // Instantiate additional assets
         additionalAssets = AdditionalAssets(applicationContext)
 
+        // Get image origin from the previous activity
+        imageComesFromMessage = intent.getBooleanExtra("imageComesFromMessage", false)
+
+        // Get message id that the image belongs to from previous activity
+        messageId = intent.getStringExtra("messageId")!!
+
         // Get image URL to load from the previous activity
         imageURLToLoad = intent.getStringExtra("imageURLToLoad")!!
+
+        // Instantiate user trust repository
+        userTrustRepository = UserTrustRepository(executorService, applicationContext)
+
+        // Instantiate message repository
+        messageRepository = MessageRepository(executorService, applicationContext)
 
         // Call the function to request for permission to download image
         requestPermissionForExternalStorage()
@@ -81,19 +109,10 @@ class ZoomImage : AppCompatActivity() {
             })
             .into(largeImage)
 
-        // Hide the image option layout initially
-        //imageOptionLayout.visibility = View.INVISIBLE
-
-        // Set on click listener for the image option layout
-        imageOptionLayout.setOnClickListener {
-            // Call the function to toggle the layout
-            toggleShowAndHideImageOptionLayout()
-        }
-
         // Set on click listener for the download button
         downloadImageButton.setOnClickListener {
-            // Call the function to start downloading
-            downloadImage()
+            // Call the function to check for user's trust and start downloading
+            checkForUserTrustAndAllowDownload(messageId)
         }
     }
 
@@ -203,16 +222,23 @@ class ZoomImage : AppCompatActivity() {
     }
     //************************************************** END REQUEST PERMISSION **************************************************
 
-    // The function which will toggle show and hide image option layout
-    private fun toggleShowAndHideImageOptionLayout () {
-        // Toggle the boolean which keep track of show or hide image option layout
-        isShowingImageOptionLayout = !isShowingImageOptionLayout
-
-        // Based on the toggled boolean to determine if the layout should be shown or not
-        if (isShowingImageOptionLayout) {
-            downloadImageButton.visibility = View.VISIBLE
-        } else {
-            downloadImageButton.visibility = View.INVISIBLE
+    //************************************************** CHECK FOR USER'S TRUST **************************************************
+    // The function to check and see if user whose picture being shown trust currently logged in user or not
+    // Get message object of the message that comes with photo being shown here
+    fun checkForUserTrustAndAllowDownload (messageId: String) {
+        // Call the function to get message object of the message that contains the image that is being shown
+        messageRepository.getMessageObjectBasedOnMessageId(messageId) {messageObject ->
+            // Call the function to check and if user whose picture being shown trust currently logged in user or not
+            userTrustRepository.checkTrustStatusBetweenOtherUserAndCurrentUser(messageObject.getSender()) {isTrusted ->
+                // If trusted, allow user to download the image
+                if (isTrusted) {
+                    downloadImage()
+                } // Otherwise, let the user know that image cannot be downloaded
+                else {
+                    Toast.makeText(applicationContext, "Image cannot be downloaded at this time", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
+    //************************************************** END CHECK FOR USER'S TRUST **************************************************
 }

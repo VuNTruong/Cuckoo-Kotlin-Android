@@ -12,7 +12,6 @@ import com.beta.cuckoo.Repository.UserRepositories.FollowRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterSearchUser
 import com.beta.cuckoo.ViewModel.UserViewModel
 import kotlinx.android.synthetic.main.activity_user_search.*
-import kotlinx.android.synthetic.main.fragment_search_friends.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 

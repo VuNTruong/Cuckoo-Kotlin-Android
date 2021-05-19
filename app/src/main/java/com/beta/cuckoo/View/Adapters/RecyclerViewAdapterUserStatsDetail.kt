@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.beta.cuckoo.Model.*
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
-import com.beta.cuckoo.View.UserInfoView.ProfileDetail
+import com.beta.cuckoo.View.Profile.ProfileDetail
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
 

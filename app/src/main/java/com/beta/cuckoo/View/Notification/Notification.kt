@@ -1,10 +1,7 @@
-package com.beta.cuckoo.View.Fragments
+package com.beta.cuckoo.View.Notification
 
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.Interfaces.LoadMorePostsInterface
@@ -12,11 +9,11 @@ import com.beta.cuckoo.Model.Notification
 import com.beta.cuckoo.R
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterNotification
 import com.beta.cuckoo.ViewModel.NotificationViewModel
-import kotlinx.android.synthetic.main.fragment_notification.*
+import kotlinx.android.synthetic.main.activity_notification.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class NotificationFragment: Fragment(), LoadMorePostsInterface {
+class Notification : AppCompatActivity(), LoadMorePostsInterface {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -27,27 +24,39 @@ class NotificationFragment: Fragment(), LoadMorePostsInterface {
     private var arrayOfNotifications = ArrayList<Notification>()
 
     // Adapter for the recycler view
-    private var adapter: RecyclerViewAdapterNotification ?= null
+    private var adapter: RecyclerViewAdapterNotification?= null
 
     // Current location in list of the user (use this so that server will know from where to load notifications)
     private var currentLocationInList = 0
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_notification, container, false)
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_notification)
+
+        // Hide the navigation bar
+        supportActionBar!!.hide()
+
+        // Set up on click listener for the back button
+        backButtonNotificationCenter.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Instantiate the notification view model
-        notificationViewModel = NotificationViewModel(this.requireContext())
+        notificationViewModel = NotificationViewModel(applicationContext)
 
         // Instantiate the recycler view
-        notificationView.layoutManager = LinearLayoutManager(this.activity)
+        notificationView.layoutManager = LinearLayoutManager(this)
         notificationView.itemAnimator = DefaultItemAnimator()
 
         // Update the adapter
-        adapter = RecyclerViewAdapterNotification(arrayOfNotifications, this.requireActivity(), this, executorService)
+        adapter = RecyclerViewAdapterNotification(arrayOfNotifications, this, this, executorService)
 
         // Add adapter to the RecyclerView
         notificationView.adapter = adapter

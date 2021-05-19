@@ -1,21 +1,21 @@
 package com.beta.cuckoo.Repository.UserRepositories
 
 import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
-import android.preference.PreferenceManager
 import android.widget.Toast
 import com.beta.cuckoo.Network.*
 import com.beta.cuckoo.Network.Follows.GeteFollowerService
 import com.beta.cuckoo.Network.User.*
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.Network.Follows.GetFollowingService
-import com.beta.cuckoo.View.WelcomeView.MainActivity
+import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
+import com.google.gson.JsonElement
 import com.mapbox.mapboxsdk.geometry.LatLng
+import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.HashMap
 import java.util.concurrent.Executor
 
 class UserRepository (executor: Executor, context: Context) {
@@ -24,6 +24,9 @@ class UserRepository (executor: Executor, context: Context) {
 
     // Context of the parent activity
     private val context = context
+
+    // Instance of FirebaseAuth
+    private val mAuth = FirebaseAuth.getInstance()
 
     // Create the GSON object
     val gs = Gson()
@@ -213,18 +216,14 @@ class UserRepository (executor: Executor, context: Context) {
     }
 
     // The function to sign a user up
-    fun signUp (fullName: String, email: String, password: String, confirmPassword: String, callback: (signUpSuccess: Boolean) -> Unit) {
+    fun signUp (fullName: String, email: String, password: String, confirmPassword: String, callback: (signUpSuccess: Boolean, errorMessage: String) -> Unit) {
         executor.execute{
-            // Split full name into array
-            val arrayOfFullName = fullName.split(" ").toTypedArray()
-
             // Create the sign up service
             val signUpService : SignUpService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
                 SignUpService::class.java)
 
             // The call object which will then be used to perform the API call
-            val call: Call<Any> = signUpService.signUp(email, password,
-                confirmPassword, arrayOfFullName[0], arrayOfFullName[1], arrayOfFullName[arrayOfFullName.size - 1], "user", "avatar", "cover")
+            val call: Call<Any> = signUpService.signUp(email, password, confirmPassword, fullName, "avatar", "cover")
 
             // Perform the API call
             call.enqueue(object: Callback<Any> {
@@ -234,15 +233,21 @@ class UserRepository (executor: Executor, context: Context) {
                 }
 
                 override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // Get body of the response
-                    val body = response.body()
-
-                    // If body is not null, sign up is success
-                    if (body != null) {
+                    // If status of the call is 200, it means that sign up is done,
+                    // let the view know that and pass nothing as error message
+                    if (response.code() == 200) {
                         // Let the view model know that sign up is success via callback function
-                        callback(true)
-                    } else {
-                        callback(false)
+                        callback(true, "")
+                    } // Otherwise, show error
+                    else {
+                        // Get error body
+                        val errorBody = response.errorBody()
+
+                        // Parse error body into hash map
+                        val errorHashMap = Gson().fromJson(errorBody!!.string(), HashMap::class.java)
+
+                        // Let the view model know that sign up is not done via callback function
+                        callback(false, errorHashMap["data"] as String)
                     }
                 }
             })
@@ -251,6 +256,12 @@ class UserRepository (executor: Executor, context: Context) {
 
     // The function to sign out
     fun signOut (callback: () -> Unit) {
+        // Sign the current user out
+        mAuth.signOut()
+
+        // Let the view know that sign out is done via callback function
+        callback()
+        /*
         // Create the post service
         val postService: LogoutPostDataService = RetrofitClientInstance.getRetrofitInstance(context)!!
             .create(LogoutPostDataService::class.java)
@@ -277,6 +288,7 @@ class UserRepository (executor: Executor, context: Context) {
                 }
             }
         })
+         */
     }
 
     // The function to get last updated location of the currently logged in user
@@ -464,11 +476,6 @@ class UserRepository (executor: Executor, context: Context) {
                 val call: Call<Any> = updateUserInfoService.updateUserInfo(
                     mapOfFields["avatarURL"] as String,
                     mapOfFields["coverURL"] as String,
-                    mapOfFields["phoneNumber"] as String,
-                    mapOfFields["facebook"] as String,
-                    mapOfFields["instagram"] as String,
-                    mapOfFields["twitter"] as String,
-                    mapOfFields["zalo"] as String,
                     userObject.getId()
                 )
 

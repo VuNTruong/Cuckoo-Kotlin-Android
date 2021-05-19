@@ -92,7 +92,7 @@
             android:id="@+id/numOfFollowersView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="30dp"
+            android:layout_marginStart="20dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@+id/constraintLayout16"
             app:layout_constraintTop_toTopOf="parent">
@@ -133,7 +133,7 @@
             android:id="@+id/numOfFollowingsView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="30dp"
+            android:layout_marginStart="20dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@+id/numOfFollowersView"
             app:layout_constraintTop_toTopOf="parent">

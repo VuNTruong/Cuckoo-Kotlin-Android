@@ -8,9 +8,9 @@ import android.view.View
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.cuckoo.R
-import com.beta.cuckoo.View.Fragments.CreatePostFragment
+import com.beta.cuckoo.View.Posts.CreatePost
 
-class RecyclerViewAdapterPostPhoto (arrayOfSelectedPictures: ArrayList<Uri>, activity: Activity, createPostFragment: CreatePostFragment) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterPostPhoto (arrayOfSelectedPictures: ArrayList<Uri>, activity: Activity, createPostFragment: CreatePost) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Array of selected pictures
     private val arrayOfSelectedPictures = arrayOfSelectedPictures
 

@@ -1,4 +1,4 @@
-package com.beta.cuckoo.View.UserInfoView
+package com.beta.cuckoo.View.Profile
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -49,7 +49,7 @@ class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
     private lateinit var adapter: RecyclerViewAdapterProfileDetail
 
     // User object of the user
-    private var userObject = User("", "", "", "", "", "", "", "","", "", "", "", "")
+    private var userObject = User("", "", "", "", "", "")
 
     // Array of images
     private var arrayOfImages = ArrayList<PostPhoto>()

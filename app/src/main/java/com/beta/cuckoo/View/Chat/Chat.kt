@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -15,6 +16,7 @@ import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
 import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserBlockRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterChat
 import com.beta.cuckoo.View.AudioChat.AudioChat
 import com.beta.cuckoo.View.MainMenu.MainMenu
@@ -45,6 +47,9 @@ class Chat : AppCompatActivity() {
 
     // User block repository
     private lateinit var userBlockRepository: UserBlockRepository
+
+    // User trust repository
+    private lateinit var userTrustRepository: UserTrustRepository
 
     // These objects are used for socket.io
     //private lateinit var mSocket: Socket
@@ -88,6 +93,7 @@ class Chat : AppCompatActivity() {
         messagRepository = MessageRepository(executorService, applicationContext)
         notificationRepository = NotificationRepository(executorService, applicationContext)
         userBlockRepository = UserBlockRepository(executorService, applicationContext)
+        userTrustRepository = UserTrustRepository(executorService, applicationContext)
 
         // Instantiate message view model
         messageViewModel = MessageViewModel(applicationContext)
@@ -114,6 +120,9 @@ class Chat : AppCompatActivity() {
         if (chatRoomId != "") {
             setUpSocketIO()
         }
+
+        // Call the function to check for trust status between the 2 users
+        checkTrustStatusBetween2UsersAndAllowScreenShot(receiverUserId)
 
         // Set on click listener for the send image button
         sendImageButtonChatActivity.setOnClickListener {
@@ -545,4 +554,20 @@ class Chat : AppCompatActivity() {
         // The function to roll to the end of the message view
         messageView.scrollToPosition(chatMessages.size - 1)
     }
+
+    //************************* CHECK FOR USER'S TRUST *************************
+    // The function to check and see if current user trusts user chatting with or not
+    private fun checkTrustStatusBetween2UsersAndAllowScreenShot (otherUserId: String) {
+        // If current user is not trusted by user chatting with, don't let the user take screenshot
+        userTrustRepository.checkTrustStatusBetweenOtherUserAndCurrentUser(otherUserId) {isTrusted ->
+            // If there is no trust, don't let current user take screenshot
+            if (!isTrusted) {
+                // Prevent user from taking screenshot
+                window.setFlags(
+                    WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+    }
+    //************************* CHECK FOR USER'S TRUST *************************
 }

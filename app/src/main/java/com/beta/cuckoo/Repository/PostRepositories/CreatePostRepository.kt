@@ -37,7 +37,7 @@ class CreatePostRepository (executor: Executor, context: Context) {
                 val createPostService: CreateNewPostService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(CreateNewPostService::class.java)
 
                 // The call object which will then be used to perform the API call
-                val call: Call<Any> = createPostService.createNewHBTGramPost(postContent, userObject.getId(), numOfImages)
+                val call: Call<Any> = createPostService.createNewPost(postContent, userObject.getId(), numOfImages)
 
                 // Perform the API call
                 call.enqueue(object: Callback<Any> {

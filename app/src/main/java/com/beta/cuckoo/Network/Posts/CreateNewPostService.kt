@@ -8,5 +8,5 @@ import retrofit2.http.POST
 interface CreateNewPostService {
     @POST("/api/v1/cuckooPost")
     @FormUrlEncoded
-    fun createNewHBTGramPost(@Field("content") content: String, @Field("writer") writer: String, @Field("numOfImages") numOfImages: Int): Call<Any>
+    fun createNewPost(@Field("content") content: String, @Field("writer") writer: String, @Field("numOfImages") numOfImages: Int): Call<Any>
 }

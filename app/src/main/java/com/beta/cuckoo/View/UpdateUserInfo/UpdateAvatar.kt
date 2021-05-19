@@ -100,12 +100,7 @@ class UpdateAvatar : AppCompatActivity() {
             mapOfFields = hashMapOf(
                 "userId" to userObject.getId(),
                 "avatarURL" to userObject.getAvatarURL(),
-                "coverURL" to userObject.getCoverURL(),
-                "phoneNumber" to userObject.getPhoneNumber(),
-                "facebook" to userObject.getFacebook(),
-                "instagram" to userObject.getInstagram(),
-                "twitter" to userObject.getTwitter(),
-                "zalo" to userObject.getZalo()
+                "coverURL" to userObject.getCoverURL()
             )
 
             // Load current avatar into the ImageView

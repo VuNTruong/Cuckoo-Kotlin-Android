@@ -21,6 +21,16 @@
         android:roundIcon="@drawable/cuckoologo1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <activity android:name=".View.UserInfoView.ActivitySummary"></activity>
+        <activity android:name=".View.Locations.SearchUserAround" />
+        <activity android:name=".View.Locations.LocationMainPage" />
+        <activity android:name=".View.PostRecommend.PostRecommend" />
+        <activity android:name=".View.Posts.PostAround" />
+        <activity android:name=".View.Notification.Notification" />
+        <activity android:name=".View.Posts.CreatePost" />
+        <activity android:name=".View.Profile.ProfileSetting" />
+        <activity android:name=".View.Chat.ChatMainMenu" />
+        <activity android:name=".View.WelcomeView.SignUpSuccessActivity" />
         <activity android:name=".View.UserSearch.UserSearch" />
         <activity android:name=".View.ZoomImage" />
         <activity android:name=".View.Chat.ChatMessageOptions" />
@@ -80,7 +90,7 @@
             android:value="@integer/google_play_services_version" />
 
         <activity android:name=".View.ExploreLocation" />
-        <activity android:name=".View.UserInfoView.ProfileDetail" />
+        <activity android:name=".View.Profile.ProfileDetail" />
         <activity android:name=".View.Chat.SearchUserToChatWith" />
         <activity android:name=".View.Chat.ChatSendImage" />
         <activity
@@ -94,7 +104,7 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity android:name=".View.PostDetail.PostDetail" />
         <activity android:name=".View.WelcomeView.LoginActivity" />
-        <activity android:name=".View.WelcomeView.MainActivity" />
+        <activity android:name=".View.WelcomeView.WelcomeActivity" />
     </application>
 
 </manifest>

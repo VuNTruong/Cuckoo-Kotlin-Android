@@ -1,26 +1,36 @@
 package com.beta.cuckoo.View.Adapters
 
-import android.content.Context
+import android.app.Activity
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
+import com.beta.cuckoo.Model.Message
+import com.beta.cuckoo.Model.MessagePhoto
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.UserRepositories.UserBlockRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.View.AudioChat.AudioChat
-import com.beta.cuckoo.View.UserInfoView.ProfileDetail
+import com.beta.cuckoo.View.Profile.ProfileDetail
 import com.beta.cuckoo.View.VideoChat.VideoChat
 import com.beta.cuckoo.View.ZoomImage
 import com.bumptech.glide.Glide
+import com.google.gson.Gson
 
-class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomId: String, context: Context, userRepository: UserRepository, userBlockRepository: UserBlockRepository,
-                                        arrayOfMessagePhotos: ArrayList<String>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+class RecyclerViewAdapterMessageOption(
+    messageReceiverUserId: String,
+    chatRoomId: String,
+    context: Activity,
+    userRepository: UserRepository,
+    userBlockRepository: UserBlockRepository,
+    userTrustRepository: UserTrustRepository,
+    arrayOfMessagePhotos: ArrayList<MessagePhoto>
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // User id of the message receiver
     private val messageReceiverUserId = messageReceiverUserId
 
@@ -33,11 +43,17 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
     // Context of parent activity
     private val context = context
 
+    // Create the GSON object
+    val gs = Gson()
+
     // User repository
     private val userRepository = userRepository
 
     // User block repository
     private val userBlockRepository = userBlockRepository
+
+    // User trust repository
+    private val userTrustRepository = userTrustRepository
 
     //*********************************** VIEW HOLDERS FOR THE RECYCLER VIEW ***********************************
     // ViewHolder for the message option menu header
@@ -46,14 +62,15 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
         // Components from the layout
         private val messageReceiverAvatar : ImageView = itemView.findViewById(R.id.messageReceiverAvatarMessageOption)
         private val messageReceiverFullName : TextView = itemView.findViewById(R.id.messageReceiverFullNameMessageOption)
+        private val trustModeSwitch : Switch = itemView.findViewById(R.id.turnOnTrustModeSwitch)
         private val profileButton : ConstraintLayout = itemView.findViewById(R.id.profileButtonMessageOptions)
         private val videoCallButton : ConstraintLayout = itemView.findViewById(R.id.videoCallButtonMessageOption)
         private val audioCallButton : ConstraintLayout = itemView.findViewById(R.id.audioCallButtonMessageOption)
 
         // The function to set up message option header row
-        fun setUpHeaderRow (userId: String) {
+        fun setUpHeaderRow(userId: String) {
             // Call the function to load info of user based on user id
-            userRepository.getUserInfoBasedOnId(userId) {userObject ->
+            userRepository.getUserInfoBasedOnId(userId) { userObject ->
                 // Load user avatar into the image view
                 Glide.with(context)
                     .load(userObject.getAvatarURL())
@@ -63,10 +80,64 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
                 messageReceiverFullName.text = userObject.getFullName()
             }
 
+            // Call the function to get trust status between current user and user at this activity
+            userTrustRepository.checkTrustStatusBetweenCurrentUserAndOtherUser(userId) { isTrusted ->
+                trustModeSwitch.isChecked = isTrusted
+            }
+
+            /*
+            // Ask the user to make sure that user really wants to delete post
+            // build alert dialog
+            val dialogBuilder = AlertDialog.Builder(context)
+            dialogBuilder.setMessage("Are you sure that you want to turn on trust mode?")
+                // User say yes
+                .setPositiveButton("Yes") { _, _ ->
+                    // Create a trust
+                    userTrustRepository.createATrustBetweenCurrentUserAndOtherUser(userId) {isCreated ->
+                        // If trust is created, change text of the switch to be on
+                        if (isCreated) {
+                            trustModeSwitch.text = "On"
+                        }
+                    }
+                }
+                // User say no
+                .setNegativeButton("Hang on!") { _, _ ->
+                    // Bring the switch back to uncheck
+                    trustModeSwitch.isChecked = false
+                    isDone = true
+                }
+
+            val alert = dialogBuilder.create()
+            alert.setTitle("Turn on trust mode")
+            alert.show()
+             */
+
+            // Set switch listener for the switch so that the switch can listen to changes
+            trustModeSwitch.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { _, isChecked ->
+                // If the switch is turned on, call the function to create a trust between the 2 users
+                if (isChecked) {
+                    // Create a trust
+                    userTrustRepository.createATrustBetweenCurrentUserAndOtherUser(userId) {isCreated ->
+                        // If trust is created, change text of the switch to be on
+                        if (isCreated) {
+                            trustModeSwitch.text = "On"
+                        }
+                    }
+                } // If the switch is turned off, call the function to remove a trust between the 2 users
+                else {
+                    userTrustRepository.deleteATrustBetweenCurrentUserAndOtherUser(userId) {isDeleted ->
+                        // If trust is removed, change text of the switch to be off
+                        if (isDeleted) {
+                            trustModeSwitch.text = "Off"
+                        }
+                    }
+                }
+            })
+
             // Set up on click listener for the profile button
             profileButton.setOnClickListener {
                 // Call the function to get user object of user with specified user id
-                userRepository.getUserInfoBasedOnId(messageReceiverUserId) {userObject ->
+                userRepository.getUserInfoBasedOnId(messageReceiverUserId) { userObject ->
                     // The intent object
                     val intent = Intent(context, ProfileDetail::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -122,7 +193,11 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
         private val menuItemDescription : TextView = itemView.findViewById(R.id.menuItemDescription)
 
         // The function to set up menu option row
-        fun setUpMenuOptionRow (menuItemDescriptionParam: String, menuItemIconParam: Int, itemOnClickListener: View.OnClickListener) {
+        fun setUpMenuOptionRow(
+            menuItemDescriptionParam: String,
+            menuItemIconParam: Int,
+            itemOnClickListener: View.OnClickListener
+        ) {
             // Load item description into the text view
             menuItemDescription.text = menuItemDescriptionParam
 
@@ -144,38 +219,43 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
         private val image4ImageView: ImageView = itemView.findViewById(R.id.image4ProfileDetail)
 
         // The function to set up user album row
-        fun setUpUserAlbumRow (image1URL: String, image2URL: String, image3URL: String, image4URL: String) {
+        fun setUpUserAlbumRow(
+            image1: MessagePhoto,
+            image2: MessagePhoto,
+            image3: MessagePhoto,
+            image4: MessagePhoto
+        ) {
             // Load images into the ImageView
-            if (image1URL != "") {
-                Glide.with(context).load(image1URL).into(image1ImageView)
+            if (image1.getImageURL() != "") {
+                Glide.with(context).load(image1.getImageURL()).into(image1ImageView)
             }
-            if (image2URL != "") {
-                Glide.with(context).load(image2URL).into(image2ImageView)
+            if (image2.getImageURL() != "") {
+                Glide.with(context).load(image2.getImageURL()).into(image2ImageView)
             }
-            if (image3URL != "") {
-                Glide.with(context).load(image3URL).into(image3ImageView)
+            if (image3.getImageURL() != "") {
+                Glide.with(context).load(image3.getImageURL()).into(image3ImageView)
             }
-            if (image4URL != "") {
-                Glide.with(context).load(image4URL).into(image4ImageView)
+            if (image4.getImageURL() != "") {
+                Glide.with(context).load(image4.getImageURL()).into(image4ImageView)
             }
 
             // Set on click listener for the image view so that it will take user to the activity where the user
             // can see zoomable image
             image1ImageView.setOnClickListener {
                 // Call the function
-                gotoZoom(image1URL)
+                gotoZoom(image1)
             }
             image2ImageView.setOnClickListener {
                 // Call the function
-                gotoZoom(image2URL)
+                gotoZoom(image2)
             }
             image3ImageView.setOnClickListener {
                 // Call the function
-                gotoZoom(image3URL)
+                gotoZoom(image3)
             }
             image4ImageView.setOnClickListener {
                 // Call the function
-                gotoZoom(image4URL)
+                gotoZoom(image4)
             }
         }
     }
@@ -183,8 +263,8 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
 
     //*********************************** ADDITIONAL FUNCTIONS ***********************************
     // The function which will take user to the activity where user can zoom in and out an image
-    fun gotoZoom (imageURL: String) {
-        if (imageURL == "") {
+    fun gotoZoom(imageObject: MessagePhoto) {
+        if (imageObject.getImageURL() == "") {
             return
         }
 
@@ -193,7 +273,13 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         // Let the activity know which image to load
-        intent.putExtra("imageURLToLoad", imageURL)
+        intent.putExtra("imageURLToLoad", imageObject.getImageURL())
+
+        // Let the zoom activity know that image to be loaded comes from message
+        intent.putExtra("imageComesFromMessage", true)
+
+        // Let the zoom activity know message id of the message that goes with the image
+        intent.putExtra("messageId", imageObject.getMessageID())
 
         // Start the activity
         context.startActivity(intent)
@@ -263,7 +349,10 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
         // Next row will be the delete conversation button
         else if (position == 1) {
             // Call the function to set up delete button
-            (holder as ViewHolderMessageOptionMoreOptions).setUpMenuOptionRow("Delete conversation", R.drawable.ic_baseline_delete_24, View.OnClickListener { })
+            (holder as ViewHolderMessageOptionMoreOptions).setUpMenuOptionRow(
+                "Delete conversation",
+                R.drawable.ic_baseline_delete_24,
+                View.OnClickListener { })
         }
         // Next row will be the block button
         else if (position == 2) {
@@ -272,7 +361,7 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
 
             // Call the function to check for block status between the currently logged in user and user with specified user
             // id in this activity
-            userBlockRepository.checkBlockStatusBetweenCurrentUserAndOtherUser(messageReceiverUserId) {isBlocked ->
+            userBlockRepository.checkBlockStatusBetweenCurrentUserAndOtherUser(messageReceiverUserId) { isBlocked ->
                 // If user is not block, show the "Block" button
                 blockButtonContent = if (!isBlocked) {
                     "Block"
@@ -281,70 +370,111 @@ class RecyclerViewAdapterMessageOption (messageReceiverUserId: String, chatRoomI
                 }
 
                 // Call the function to set up block button
-                (holder as ViewHolderMessageOptionMoreOptions).setUpMenuOptionRow(blockButtonContent, R.drawable.ic_baseline_block_24, View.OnClickListener {
-                    // If content of the block button is "Block", call the function to block a user
-                    if (blockButtonContent == "Block") {
-                        userBlockRepository.createABlockBetweenCurrentUserAndOtherUser(
-                            messageReceiverUserId,
-                            "message"
-                        ) { isBlocked ->
-                            if (isBlocked) {
-                                this.notifyDataSetChanged()
-                                Toast.makeText(context, "User is blocked", Toast.LENGTH_SHORT).show()
+                (holder as ViewHolderMessageOptionMoreOptions).setUpMenuOptionRow(
+                    blockButtonContent,
+                    R.drawable.ic_baseline_block_24,
+                    View.OnClickListener {
+                        // If content of the block button is "Block", call the function to block a user
+                        if (blockButtonContent == "Block") {
+                            userBlockRepository.createABlockBetweenCurrentUserAndOtherUser(
+                                messageReceiverUserId,
+                                "message"
+                            ) { isBlocked ->
+                                if (isBlocked) {
+                                    this.notifyDataSetChanged()
+                                    Toast.makeText(context, "User is blocked", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                            }
+                        } else {
+                            userBlockRepository.deleteABlockBetweenCurrentUserAndOtherUser(
+                                messageReceiverUserId
+                            ) { isDeleted ->
+                                if (isDeleted) {
+                                    this.notifyDataSetChanged()
+                                    Toast.makeText(context, "User is unblocked", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
                             }
                         }
-                    } else {
-                        userBlockRepository.deleteABlockBetweenCurrentUserAndOtherUser(
-                            messageReceiverUserId
-                        ) {isDeleted ->
-                            if (isDeleted) {
-                                this.notifyDataSetChanged()
-                                Toast.makeText(context, "User is unblocked", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                })
+                    })
             }
         }
         // The rest will show the user album
         else {
+            // Blank message photo object which will be used when image is not presented
+            val blankMessagePhoto = MessagePhoto("", "", "")
+
             // Check to see how many images remaining in the array
             if (arrayOfMessagePhotos.size - (position - 3) * 4 >= 4) {
                 // Get the images
-                val image1 = arrayOfMessagePhotos[(position - 3) * 4]
-                val image2 = arrayOfMessagePhotos[(position - 3) * 4 + 1]
-                val image3 = arrayOfMessagePhotos[(position - 3) * 4 + 2]
-                val image4 = arrayOfMessagePhotos[(position - 3) * 4 + 3]
+                // Convert the data object which is currently a linked tree map into a JSON string
+                val jsImage1 = gs.toJson((position - 3) * 4)
+                val jsImage2 = gs.toJson((position - 3) * 4 + 1)
+                val jsImage3 = gs.toJson((position - 3) * 4 + 2)
+                val jsImage4 = gs.toJson((position - 3) * 4 + 3)
+
+                // Convert the JSOn string back into MessagePhoto class
+                val image1Model = gs.fromJson<MessagePhoto>(jsImage1, MessagePhoto::class.java)
+                val image2Model = gs.fromJson<MessagePhoto>(jsImage2, MessagePhoto::class.java)
+                val image3Model = gs.fromJson<MessagePhoto>(jsImage3, MessagePhoto::class.java)
+                val image4Model = gs.fromJson<MessagePhoto>(jsImage4, MessagePhoto::class.java)
 
                 // If the remaining number of images is greater than or equal to 4, load all images into image view
-                (holder as ViewHolderMessageOptionMessagePhoto).setUpUserAlbumRow(image1, image2, image3, image4)
+                (holder as ViewHolderMessageOptionMessagePhoto).setUpUserAlbumRow(
+                    image1Model,
+                    image2Model,
+                    image3Model,
+                    image4Model
+                )
             } // If the remaining number of images in the array is less than 4, just load the remaining in and leave the rest blank
             else {
                 // Based on the remaining number of images to decide
                 when {
                     arrayOfMessagePhotos.size - ((position - 3) * 4) == 3 -> {
                         // Get the images
-                        val image1 = arrayOfMessagePhotos[(position - 3) * 4]
-                        val image2 = arrayOfMessagePhotos[(position - 3) * 4 + 1]
-                        val image3 = arrayOfMessagePhotos[(position - 3) * 4 + 2]
+                        // Convert the data object which is currently a linked tree map into a JSON string
+                        val jsImage1 = gs.toJson((position - 3) * 4)
+                        val jsImage2 = gs.toJson((position - 3) * 4 + 1)
+                        val jsImage3 = gs.toJson((position - 3) * 4 + 2)
 
-                        (holder as ViewHolderMessageOptionMessagePhoto).setUpUserAlbumRow(image1, image2,
-                            image3, "")
+                        // Convert the JSOn string back into MessagePhoto class
+                        val image1Model = gs.fromJson<MessagePhoto>(jsImage1, MessagePhoto::class.java)
+                        val image2Model = gs.fromJson<MessagePhoto>(jsImage2, MessagePhoto::class.java)
+                        val image3Model = gs.fromJson<MessagePhoto>(jsImage3, MessagePhoto::class.java)
+
+                        (holder as ViewHolderMessageOptionMessagePhoto).setUpUserAlbumRow(
+                            image1Model, image2Model,
+                            image3Model, blankMessagePhoto
+                        )
                     }
                     arrayOfMessagePhotos.size - ((position - 3) * 4) == 2 -> {
                         // Get the images
-                        val image1 = arrayOfMessagePhotos[(position - 3) * 4]
-                        val image2 = arrayOfMessagePhotos[(position - 3) * 4 + 1]
+                        // Convert the data object which is currently a linked tree map into a JSON string
+                        val jsImage1 = gs.toJson((position - 3) * 4)
+                        val jsImage2 = gs.toJson((position - 3) * 4 + 1)
 
-                        (holder as ViewHolderMessageOptionMessagePhoto).setUpUserAlbumRow(image1, image2,
-                            "", "")
+                        // Convert the JSOn string back into MessagePhoto class
+                        val image1Model = gs.fromJson<MessagePhoto>(jsImage1, MessagePhoto::class.java)
+                        val image2Model = gs.fromJson<MessagePhoto>(jsImage2, MessagePhoto::class.java)
+
+                        (holder as ViewHolderMessageOptionMessagePhoto).setUpUserAlbumRow(
+                            image1Model, image2Model,
+                            blankMessagePhoto, blankMessagePhoto
+                        )
                     }
                     arrayOfMessagePhotos.size - ((position - 3) * 4) == 1 -> {
                         // Get the images
-                        val image1 = arrayOfMessagePhotos[(position - 3) * 4]
+                        // Convert the data object which is currently a linked tree map into a JSON string
+                        val jsImage1 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4])
 
-                        (holder as ViewHolderMessageOptionMessagePhoto).setUpUserAlbumRow(image1,
-                            "", "", "")
+                        // Convert the JSOn string back into MessagePhoto class
+                        val image1Model = gs.fromJson<MessagePhoto>(jsImage1, MessagePhoto::class.java)
+
+                        (holder as ViewHolderMessageOptionMessagePhoto).setUpUserAlbumRow(
+                            image1Model,
+                            blankMessagePhoto, blankMessagePhoto, blankMessagePhoto
+                        )
                     }
                 }
             }

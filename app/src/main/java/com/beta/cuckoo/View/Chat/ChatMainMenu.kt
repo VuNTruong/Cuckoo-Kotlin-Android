@@ -1,23 +1,19 @@
-package com.beta.cuckoo.View.Fragments
+package com.beta.cuckoo.View.Chat
 
 import android.content.Intent
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.View
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.Model.MessageRoom
 import com.beta.cuckoo.R
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterMessageRoom
-import com.beta.cuckoo.View.Chat.SearchUserToChatWith
 import com.beta.cuckoo.ViewModel.MessageViewModel
-import kotlinx.android.synthetic.main.fragment_chat.*
+import kotlinx.android.synthetic.main.activity_chat_main_menu.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class ChatFragment : Fragment() {
+class ChatMainMenu : AppCompatActivity() {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -30,24 +26,36 @@ class ChatFragment : Fragment() {
     // Adapter for the RecyclerView
     private lateinit var adapter : RecyclerViewAdapterMessageRoom
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_chat, container, false)
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_chat_main_menu)
+
+        // Hide the navigation bar
+        supportActionBar!!.hide()
+
+        // Set up on click listener for the back button
+        backButtonChatMainMenu.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Instantiate the notification repository
-        messageRepository = MessageViewModel(this.requireContext())
+        messageRepository = MessageViewModel(applicationContext)
 
         // Instantiate the recycler view
-        messageRoomView.layoutManager = LinearLayoutManager(this@ChatFragment.requireActivity())
+        messageRoomView.layoutManager = LinearLayoutManager(this)
         messageRoomView.itemAnimator = DefaultItemAnimator()
 
         // Set up on click listener for the create new message button
         createNewMessageButton.setOnClickListener {
             // Take user to the activity where the user can search for user and send message to that one
-            val intent = Intent(this@ChatFragment.requireActivity(), SearchUserToChatWith::class.java)
+            val intent = Intent(this, SearchUserToChatWith::class.java)
             startActivity(intent)
         }
 
@@ -64,7 +72,7 @@ class ChatFragment : Fragment() {
             arrayOfMessageRooms = messageRooms
 
             // Update the adapter
-            adapter = RecyclerViewAdapterMessageRoom(arrayOfMessageRooms, this@ChatFragment.requireActivity(), executorService)
+            adapter = RecyclerViewAdapterMessageRoom(arrayOfMessageRooms, this, executorService)
 
             // Add adapter to the RecyclerView
             messageRoomView.adapter = adapter
