@@ -2,8 +2,11 @@ package com.beta.cuckoo.Model
 
 import com.google.gson.annotations.SerializedName
 
-class PostPhoto (imageURL: String, postId: String) {
+class PostPhoto (imageURL: String, postId: String, _id: String) {
     // Info of the image
+    @SerializedName("_id")
+    private val postPhotoID = _id
+
     @SerializedName("imageURL")
     private val imageURL = imageURL
 
@@ -16,6 +19,10 @@ class PostPhoto (imageURL: String, postId: String) {
     }
 
     fun getPhotoId() : String {
+        return postPhotoID
+    }
+
+    fun getPostId() : String {
         return postId
     }
 }

@@ -454,8 +454,8 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
                 // If the remaining number of images is greater than or equal to 4, load all images into image view
                 (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
                     hbtGramPostPhotoModelImage3.getImageURL(), hbtGramPostPhotoModelImage4.getImageURL(),
-                    hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(),
-                    hbtGramPostPhotoModelImage3.getPhotoId(), hbtGramPostPhotoModelImage4.getPhotoId())
+                    hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(),
+                    hbtGramPostPhotoModelImage3.getPostId(), hbtGramPostPhotoModelImage4.getPostId())
             } // If the remaining number of images in the array is less than 4, just load the remaining in and leave the rest blank
             else {
                 // Based on the remaining number of images to decide
@@ -473,7 +473,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(),
                             hbtGramPostPhotoModelImage3.getImageURL(), "",
-                            hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(), hbtGramPostPhotoModelImage3.getPhotoId(), "")
+                            hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(), hbtGramPostPhotoModelImage3.getPostId(), "")
                     }
                     arrayOfPhotos.size - ((position - 2) * 4) == 2 -> {
                         // Convert objects of the arrayOfComments array which is currently a linked tree map into a JSON string
@@ -485,7 +485,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
                         val hbtGramPostPhotoModelImage2 = gs.fromJson<PostPhoto>(jsImage2, PostPhoto::class.java)
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), hbtGramPostPhotoModelImage2.getImageURL(), "", "",
-                            hbtGramPostPhotoModelImage1.getPhotoId(), hbtGramPostPhotoModelImage2.getPhotoId(), "", "")
+                            hbtGramPostPhotoModelImage1.getPostId(), hbtGramPostPhotoModelImage2.getPostId(), "", "")
                     }
                     arrayOfPhotos.size - ((position - 2) * 4) == 1 -> {
                         // Convert objects of the arrayOfComments array which is currently a linked tree map into a JSON string
@@ -495,7 +495,7 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
                         val hbtGramPostPhotoModelImage1 = gs.fromJson<PostPhoto>(jsImage1, PostPhoto::class.java)
 
                         (holder as ViewHolderUserAlbum).setUpUserAlbumRow(hbtGramPostPhotoModelImage1.getImageURL(), "", "", "",
-                            hbtGramPostPhotoModelImage1.getPhotoId(), "", "", "")
+                            hbtGramPostPhotoModelImage1.getPostId(), "", "", "")
                     }
                 }
             }

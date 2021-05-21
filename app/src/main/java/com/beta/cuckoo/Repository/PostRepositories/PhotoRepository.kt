@@ -70,7 +70,7 @@ class PhotoRepository (executor: Executor, context: Context) {
                         // Loop through list of photo labels to update photo label visit status for the current user
                         for (imageLabel in imageLabelsLinkedTreeMap) {
                             // Convert the image label object which is currently a linked tree map into a JSON string
-                            val jsPhotoLabel = gs.toJson(data)
+                            val jsPhotoLabel = gs.toJson(imageLabel)
 
                             // Convert the JSON string back into User class
                             val photoLabelObject = gs.fromJson<PostPhotoLabel>(jsPhotoLabel, PostPhotoLabel::class.java)

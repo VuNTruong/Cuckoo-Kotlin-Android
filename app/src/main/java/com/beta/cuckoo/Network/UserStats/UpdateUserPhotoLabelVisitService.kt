@@ -5,6 +5,6 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface UpdateUserPhotoLabelVisitService {
-    @POST("/api/v1/cuckooPostPhoto/createOrUpdateCuckooPhotoLabelVisit")
-    fun updatePhotoLabelVisit(@Query("userId") userId: String, @Query("photoLabel") photoLabel: String): Call<Any>
+    @POST("/api/v1/cuckooPostPhotoLabel/updatePhotoLabelVisit")
+    fun updatePhotoLabelVisit(@Query("visitorUserId") userId: String, @Query("visitedPhotoLabel") photoLabel: String): Call<Any>
 }
