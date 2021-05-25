@@ -44,9 +44,20 @@ class SplashScreen : AppCompatActivity() {
 
     // The function to check if current token is still valid or not
     private fun checkToken () {
+        // Go to the main activity
+        val intent = Intent(applicationContext, MainMenu::class.java)
+        startActivity(intent)
+
+        // Do the fade in and fade out transition to make it look better
+        overridePendingTransition(R.animator.fade_in, R.animator.fade_out)
+
+        // Finish this activity
+        this.finish()
+
         // Get the shared preference (memory) instance
         val memory = PreferenceManager.getDefaultSharedPreferences(applicationContext).edit()
 
+        /*
         // Check to see if there is a current user object or not
         if (mAuth.currentUser != null) {
             // Get Firebase Auth token of the user
@@ -82,5 +93,7 @@ class SplashScreen : AppCompatActivity() {
             // Do the fade in and fade out transition to make it look better
             overridePendingTransition(R.animator.fade_in, R.animator.fade_out)
         }
+
+         */
     }
 }

@@ -21,7 +21,10 @@
         android:roundIcon="@drawable/cuckoologo1"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".View.UserInfoView.ActivitySummary"></activity>
+        <activity android:name=".View.Authentication.ForgotPassword"></activity>
+        <activity android:name=".View.Authentication.ChangeEmail" />
+        <activity android:name=".View.Authentication.ChangePassword" />
+        <activity android:name=".View.UserInfoView.ActivitySummary" />
         <activity android:name=".View.Locations.SearchUserAround" />
         <activity android:name=".View.Locations.LocationMainPage" />
         <activity android:name=".View.PostRecommend.PostRecommend" />

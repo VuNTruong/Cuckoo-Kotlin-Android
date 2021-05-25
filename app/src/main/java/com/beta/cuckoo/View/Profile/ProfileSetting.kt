@@ -1,5 +1,6 @@
 package com.beta.cuckoo.View.Profile
 
+import android.accounts.AuthenticatorException
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -7,6 +8,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.AuthenticationRepositories.AuthenticationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterProfilePage
 import kotlinx.android.synthetic.main.activity_profile_setting.*
@@ -47,6 +49,7 @@ class ProfileSetting : AppCompatActivity() {
             this.finish()
             overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
         }
+
         // Instantiate user repository
         userRepository = UserRepository(executorService, applicationContext)
 
@@ -71,10 +74,20 @@ class ProfileSetting : AppCompatActivity() {
 
     // THe function to get info of the currently logged in user
     fun getCurrentUserInfo () {
+        // Update the adapter
+        adapter = RecyclerViewAdapterProfilePage(currentUserObject, mapOfFields, this, this, userRepository)
+
+        // Add adapter to the RecyclerView
+        profileSettingView.adapter = adapter
+
+        // Show the user layout and hide the loading layout
+        profileSettingView.visibility = View.VISIBLE
+        loadingLayoutProfileSetting.visibility = View.INVISIBLE
+
         // Call the function to get info of the currently logged in user
         userRepository.getInfoOfCurrentUser { userObject ->
             // Update the user object out of those info
-            currentUserObject = userObject
+            //currentUserObject = userObject
 
             // Update the map of fields which will be used for user info update
             mapOfFields = hashMapOf(
@@ -83,7 +96,7 @@ class ProfileSetting : AppCompatActivity() {
             )
 
             // Update the adapter
-            adapter = RecyclerViewAdapterProfilePage(currentUserObject, mapOfFields, this, this, userRepository)
+            adapter = RecyclerViewAdapterProfilePage(userObject, mapOfFields, this, this, userRepository)
 
             // Add adapter to the RecyclerView
             profileSettingView.adapter = adapter

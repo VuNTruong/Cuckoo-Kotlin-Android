@@ -12,10 +12,7 @@ import com.beta.cuckoo.Repository.UserRepositories.UserBlockRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterMessageOption
-import com.bumptech.glide.Glide
-import kotlinx.android.synthetic.main.activity_chat.*
 import kotlinx.android.synthetic.main.activity_chat_message_options.*
-import kotlinx.android.synthetic.main.message_option_header.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 

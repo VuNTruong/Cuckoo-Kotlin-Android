@@ -11,7 +11,10 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.AuthenticationRepositories.AuthenticationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.View.Authentication.ChangeEmail
+import com.beta.cuckoo.View.Authentication.ChangePassword
 import com.beta.cuckoo.View.Profile.ProfileSetting
 import com.beta.cuckoo.View.UpdateUserInfo.UpdateAvatar
 import com.beta.cuckoo.View.UpdateUserInfo.UpdateCoverPhoto
@@ -77,23 +80,62 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
         private val submitUpdateProfileSettingItemButton : ImageView = itemView.findViewById(R.id.submitUpdateProfileSettingItemButton)
 
         // The function to set up profile setting item
-        fun setUpProfileSettingItem (profileSettingItemContentParam: String, profileSettingItemIconParam: Int, fieldToUpdate: String) {
+        fun setUpProfileSettingItem (profileSettingItemDescription: String, profileSettingItemContentParam: String, profileSettingItemIconParam: Int, fieldToUpdate: String) {
             // Load info at this row into the EditText
             enterUpdateProfileSettingItemEditText.setText(profileSettingItemContentParam)
 
             // Load profile setting item content into the TextView
-            profileSettingItemContent.text = profileSettingItemContentParam
+            profileSettingItemContent.text = profileSettingItemDescription
 
             // Load profile setting icon into the ImageView
             profileSettingItemIcon.setImageResource(profileSettingItemIconParam)
 
+            // If field to update is email or password, take user to the activity where user can change those
+            // when tapped
+            // Also, set them to be uneditable
+            if (fieldToUpdate == "password") {
+                enterUpdateProfileSettingItemEditText.setOnClickListener {
+                    // Take user to te activity where user can update password
+                    val intent = Intent(activity, ChangePassword::class.java)
+                    activity.startActivity(intent)
+                    activity.overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+                }
+            }
+            if (fieldToUpdate == "email") {
+                enterUpdateProfileSettingItemEditText.setOnClickListener {
+                    // Take user to the activity where user can update email
+                    val intent = Intent(activity, ChangeEmail::class.java)
+                    activity.startActivity(intent)
+                    activity.overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+                }
+            }
+
             // Set up event listener for the submit update button
             submitUpdateProfileSettingItemButton.setOnClickListener {
-                // Call the function to update item
-                mapOfFields[fieldToUpdate] = enterUpdateProfileSettingItemEditText.text.toString()
+                // Check and see which field is going to be updated
+                // If the field to update is the full name, just do it as usual as this one does not need to go through
+                // authentication
+                when (fieldToUpdate) {
+                    "fullName" -> {
+                        // Call the function to update item
+                        mapOfFields[fieldToUpdate] = enterUpdateProfileSettingItemEditText.text.toString()
 
-                // Call the function to update user info
-                updateCurrentUserInfo()
+                        // Call the function to update user info
+                        updateCurrentUserInfo()
+                    } // If the field to update is password, take user to the activity where user can update password
+                    "password" -> {
+                        // Take user to te activity where user can update password
+                        val intent = Intent(activity, ChangePassword::class.java)
+                        activity.startActivity(intent)
+                        activity.overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+                    } // If the field to update is email, take user to the activity where user can update email
+                    "email" -> {
+                        // Take user to the activity where user can update email
+                        val intent = Intent(activity, ChangeEmail::class.java)
+                        activity.startActivity(intent)
+                        activity.overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+                    }
+                }
             }
         }
     }
@@ -102,8 +144,11 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
     fun updateCurrentUserInfo () {
         // Call the function to update user info of the currently logged in user
         userRepository.updateCurrentUserInfo(mapOfFields) {done ->
-            // Update the user info again
-            profileFragment.updateUserInfo()
+            // If the current user info was updated, update the UI as well
+            if (done) {
+                // Update the user info again
+                profileFragment.updateUserInfo()
+            }
         }
     }
 
@@ -130,7 +175,7 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
     }
 
     override fun getItemCount(): Int {
-        return 3
+        return 4
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -141,11 +186,14 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
             }
             1 -> {
                 // Second row will show the full name
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getFullName(), R.drawable.nametagico, "fullName")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Name", userObject.getFullName(), R.drawable.nametagico, "fullName")
             }
-            else -> {
+            2 -> {
                 // Third row will show the email
-                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem(userObject.getEmail(), R.drawable.ic_email_black_24dp, "email")
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Email", userObject.getEmail(), R.drawable.ic_email_black_24dp, "email")
+            } else -> {
+                // Last row will show the password
+                (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Password", "***********", R.drawable.ic_baseline_lock_24, "password")
             }
         }
     }
