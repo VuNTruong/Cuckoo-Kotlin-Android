@@ -1,6 +1,7 @@
 package com.beta.cuckoo.Repository.AuthenticationRepositories
 
 import android.content.Context
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import java.util.concurrent.Executor
 
@@ -59,18 +60,28 @@ class AuthenticationRepository (executor: Executor, context: Context) {
     }
 
     // The function to update user's email
-    fun updateEmail (email: String, callback: (isUpdated: Boolean, errorMessage: String) -> Unit) {
+    fun updateEmail (emailConfirmChangeEmail: String, passwordConfirmChangeEmail: String, email: String, callback: (isUpdated: Boolean, errorMessage: String) -> Unit) {
         executor.execute {
-            // Call the function to update email for the user
-            mAuth.currentUser!!.updateEmail(email)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        // Let the view know that email was updated via callback function
-                        callback(true, "")
-                    } else {
-                        // Let the view know that email was not updated via callback function
-                        callback(false, "Something wrong, please try again")
-                    }
+            // Call the function to re authenticate user
+            mAuth.currentUser!!.reauthenticate(EmailAuthProvider.getCredential(emailConfirmChangeEmail, passwordConfirmChangeEmail))
+                .addOnCompleteListener {
+                    val newEmail = email
+
+                    // Call the function to update email for the user
+                    mAuth.currentUser!!.updateEmail(email)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                // Let the view know that email was updated via callback function
+                                callback(true, "")
+                            } else {
+                                // Let the view know that email was not updated via callback function
+                                callback(false, "Something wrong, please try again")
+                            }
+                        }
+                }
+                .addOnFailureListener {
+                    // Let the view know that email was not updated via callback function
+                    callback(false, "Wrong login credentials entered")
                 }
         }
     }

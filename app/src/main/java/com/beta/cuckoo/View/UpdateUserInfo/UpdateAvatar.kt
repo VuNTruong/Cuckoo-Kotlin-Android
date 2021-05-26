@@ -98,6 +98,7 @@ class UpdateAvatar : AppCompatActivity() {
         userRepository.getInfoOfCurrentUser { userObject ->
             // Build the map of fields
             mapOfFields = hashMapOf(
+                "email" to userObject.getEmail(),
                 "userId" to userObject.getId(),
                 "avatarURL" to userObject.getAvatarURL(),
                 "coverURL" to userObject.getCoverURL()
