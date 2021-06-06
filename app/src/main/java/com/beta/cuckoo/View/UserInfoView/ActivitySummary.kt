@@ -35,6 +35,9 @@ class ActivitySummary : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_summary)
 
+        // Show the action bar
+        supportActionBar!!.hide()
+
         // Set up on click listener for the back button
         backButtonActivitySummary.setOnClickListener {
             this.finish()

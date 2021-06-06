@@ -9,5 +9,5 @@ import retrofit2.http.Query
 interface UpdateUserInfoService {
     @PATCH("/api/v1/users/updateMe")
     @FormUrlEncoded
-    fun updateUserInfo(@Field("email") email: String, @Field("avatarURL") avatarURL: String, @Field("coverURL") coverURL: String, @Query("userId") userId: String): Call<Any>
+    fun updateUserInfo(@Field("fullName") fullName: String, @Field("email") email: String, @Field("avatarURL") avatarURL: String, @Field("coverURL") coverURL: String, @Query("userId") userId: String): Call<Any>
 }

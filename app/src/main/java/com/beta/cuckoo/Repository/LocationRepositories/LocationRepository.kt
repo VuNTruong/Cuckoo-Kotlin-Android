@@ -4,10 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.Network.RetrofitClientInstance
-import com.beta.cuckoo.Network.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.cuckoo.Network.User.GetUserInfoBasedOnIdService
-import com.beta.cuckoo.Network.User.GetUserWithinARadiusService
-import com.beta.cuckoo.Network.User.UpdateUserLocationService
+import com.beta.cuckoo.Network.User.*
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.mapbox.mapboxsdk.geometry.LatLng
 import retrofit2.Call
@@ -212,6 +209,76 @@ class LocationRepository (executor: Executor, context: Context) {
                     }
                 }
             })
+        }
+    }
+
+    // The function to get location enable status of the currently logged in user
+    fun getLocationEnableStatusOfCurrentUser (callback: (locationEnable: String) -> Unit) {
+        executor.execute {
+            // Create the get current user info service
+            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetCurrentlyLoggedInUserInfoService::class.java)
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+            // Perform the call
+            call.enqueue(object: Callback<Any> {
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Boom")
+                }
+
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty it means that the token is valid
+                    if (response.body() != null) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get user location enable status of the user from the data
+                        val locationEnableStatus = data["locationEnabled"] as String
+
+                        // Return location enabled status of the user via callback function
+                        callback(locationEnableStatus)
+                    } else {
+                        print("Something is not right")
+                    }
+                }
+            })
+        }
+    }
+
+    // The function to update location enable status of the currently logged in user
+    fun updateLocationEnableStatusOfCurrentUser (locationEnableStatusToUpdate: String, callback: (isUpdated: Boolean) -> Unit) {
+        executor.execute {
+            // Call the function to get info of the currently logged in user
+            userRepository.getInfoOfCurrentUser { userObject ->
+                // Create the update location enable service
+                val updateLocationEnableService: UpdateLocationEnableService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    UpdateLocationEnableService::class.java)
+
+                // Create the call object in order to perform the call
+                val call: Call<Any> = updateLocationEnableService.updateLocationEnable(locationEnableStatusToUpdate, userObject.getId())
+
+                // Perform the call
+                call.enqueue(object: Callback<Any> {
+                    override fun onFailure(call: Call<Any>, t: Throwable) {
+                        print("Something is not right")
+                    }
+
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                        // If the response body is not empty it means that the token is valid
+                        if (response.body() != null) {
+                            // Let the view know that location enable status was updated via callback function
+                            callback(true)
+                        } else {
+                            print("Something is not right")
+                        }
+                    }
+                })
+            }
         }
     }
 }

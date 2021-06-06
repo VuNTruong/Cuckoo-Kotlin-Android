@@ -474,6 +474,7 @@ class UserRepository (executor: Executor, context: Context) {
 
                 // Create the call object in order to perform the call
                 val call: Call<Any> = updateUserInfoService.updateUserInfo(
+                    mapOfFields["fullName"] as String,
                     mapOfFields["email"] as String,
                     mapOfFields["avatarURL"] as String,
                     mapOfFields["coverURL"] as String,

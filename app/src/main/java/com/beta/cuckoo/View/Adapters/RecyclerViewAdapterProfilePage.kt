@@ -5,13 +5,12 @@ import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.TextView
+import android.widget.*
 import androidx.recyclerview.widget.RecyclerView
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.AuthenticationRepositories.AuthenticationRepository
+import com.beta.cuckoo.Repository.LocationRepositories.LocationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Authentication.ChangeEmail
 import com.beta.cuckoo.View.Authentication.ChangePassword
@@ -19,8 +18,9 @@ import com.beta.cuckoo.View.Profile.ProfileSetting
 import com.beta.cuckoo.View.UpdateUserInfo.UpdateAvatar
 import com.beta.cuckoo.View.UpdateUserInfo.UpdateCoverPhoto
 import com.bumptech.glide.Glide
+import org.jetbrains.anko.find
 
-class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<String, Any>, activity: Activity, profileFragment: ProfileSetting, userRepository: UserRepository): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<String, Any>, activity: Activity, profileFragment: ProfileSetting, userRepository: UserRepository, locationRepository: LocationRepository): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Activity of the parent activity
     private val activity = activity
 
@@ -35,6 +35,9 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
 
     // User repository
     private val userRepository = userRepository
+
+    // Location repository
+    private val locationRepository = locationRepository
 
     // ViewHolder for the profile setting page header
     inner class ViewHolderProfileSettingPageHeader internal constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -140,6 +143,47 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
         }
     }
 
+    // ViewHolder for the profile setting item
+    inner class ViewHolderUpdateLocationEnable internal constructor(itemView: View) :
+        RecyclerView.ViewHolder(itemView) {
+        // Components from the layout
+        private val locationEnableSwitch: Switch = itemView.findViewById(R.id.enableLocationSwitch)
+
+        // The function to set up location enable switch
+        fun setUpLocationEnableSwitch () {
+            // Call the function to get location enable status of the currently logged in user
+            locationRepository.getLocationEnableStatusOfCurrentUser { locationEnable ->
+                if (locationEnable == "Enabled") {
+                    locationEnableSwitch.isChecked = true
+                    locationEnableSwitch.text = "On"
+                }
+            }
+
+            // Set switch listener for the switch so that the switch can listen to changes
+            locationEnableSwitch.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { _, isChecked ->
+                // If the switch is turned on, call the function to create a trust between the 2 users
+                if (isChecked) {
+                    // Enable location
+                    locationRepository.updateLocationEnableStatusOfCurrentUser("Enabled") {isUpdated ->
+                        // If location is enabled, change status of the switch to be "On"
+                        if (isUpdated) {
+                            locationEnableSwitch.text = "On"
+                        }
+                    }
+                } // If the switch is turned off, call the function to remove a trust between the 2 users
+                else {
+                    // Disable location
+                    locationRepository.updateLocationEnableStatusOfCurrentUser("Disabled") {isUpdated ->
+                        // If location is disabled, change status of the switch to be "Off"
+                        if (isUpdated) {
+                            locationEnableSwitch.text = "Off"
+                        }
+                    }
+                }
+            })
+        }
+    }
+
     // The function to update info of the currently logged in user
     fun updateCurrentUserInfo () {
         // Call the function to update user info of the currently logged in user
@@ -154,28 +198,37 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         // The view object
-        val view : View
+        val view: View
 
         // Base on view type to return the right view holder
         // View type 0 is for the header
-        return if (viewType == 0) {
-            view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.profile_page_header, parent, false)
+        return when (viewType) {
+            0 -> {
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.profile_page_header, parent, false)
 
-            // Return the view holder
-            ViewHolderProfileSettingPageHeader(view)
-        } // View type 1 is for the profile setting item
-        else {
-            view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.profile_page_item, parent, false)
+                // Return the view holder
+                ViewHolderProfileSettingPageHeader(view)
+            } // View type 1 is for the profile setting item
+            1 -> {
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.profile_page_item, parent, false)
 
-            // Return the view holder
-            ViewHolderProfileSettingItem(view)
+                // Return the view holder
+                ViewHolderProfileSettingItem(view)
+            } // View type 2 is for the location update switch
+            else -> {
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.profile_page_item_update_location_enable, parent, false)
+
+                // Return the view holder
+                ViewHolderUpdateLocationEnable(view)
+            }
         }
     }
 
     override fun getItemCount(): Int {
-        return 4
+        return 5
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -191,20 +244,29 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
             2 -> {
                 // Third row will show the email
                 (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Email", userObject.getEmail(), R.drawable.ic_email_black_24dp, "email")
-            } else -> {
-                // Last row will show the password
+            } 3 -> {
+                // Third row will show the password
                 (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Password", "***********", R.drawable.ic_baseline_lock_24, "password")
+            } else -> {
+                // Last row will be the enable location switch
+                (holder as ViewHolderUpdateLocationEnable).setUpLocationEnableSwitch()
             }
         }
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (position == 0) {
-            // First row should be the header
-            0
-        } else {
-            // The rest will just be profile setting item
-            1
+        return when (position) {
+            0 -> {
+                // First row of the RecyclerView should show the header
+                0
+            } // From 1 to 3 will be basic info
+            in 1..3 -> {
+                1
+            }
+            // Last row will be the update location enable switch
+            else -> {
+                2
+            }
         }
     }
 }

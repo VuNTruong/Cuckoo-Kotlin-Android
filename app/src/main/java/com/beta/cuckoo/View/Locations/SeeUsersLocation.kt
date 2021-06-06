@@ -97,12 +97,12 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
 
     // The function to get info of the current user
     private fun getInfoOfCurrentUserAndFriendsLocation (mapbox: MapboxMap) {
-        // Call the function to get list of followings of the currently logged in user
-        followRepository.getLisOfFollowingsOfCurrentUser { arrayOfUserId ->
-            // Loop through the list of followings to obtain list of user id of users to whom the current user is following
-            for (followingUserId in arrayOfUserId) {
-                // Call the function to pin users to whom the current user is following on the map
-                loadUserInfoBasedOnId(followingUserId, mapbox)
+        // Call the function to get list of 2 ways follow of the currently logged in user
+        followRepository.getListOf2WaysFollowOfCurrentUser { arrayOfUserId ->
+            // Loop through the list of 2 ways follow of current user to get list of user id and pin them on the map
+            for (userIdToPin in arrayOfUserId) {
+                // Call the function to pin users on the map
+                loadUserInfoBasedOnId(userIdToPin, mapbox)
             }
         }
     }
@@ -118,6 +118,8 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
 
     // The function to pin the users
     private fun pinUser (location: LatLng, title: String, mapbox: MapboxMap) {
+        val locationToPin = location
+
         // Add pin at the user location
         mapbox.addMarker(
             MarkerOptions()

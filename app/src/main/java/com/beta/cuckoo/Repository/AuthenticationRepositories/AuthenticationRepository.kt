@@ -16,7 +16,7 @@ class AuthenticationRepository (executor: Executor, context: Context) {
     private val mAuth = FirebaseAuth.getInstance()
 
     // The function to update password of the user
-    fun updatePassword (newPassword: String, passwordConfirm: String, callback: (isUpdated: Boolean, errorMessage: String) -> Unit) {
+    fun updatePassword (emailConfirmChangePassword: String, passwordConfirmChangePassword: String, newPassword: String, passwordConfirm: String, callback: (isUpdated: Boolean, errorMessage: String) -> Unit) {
         // Check to see if password and password confirm matches or not
         if (newPassword != passwordConfirm) {
             // If they are different, let the view know that password was not updated via callback function
@@ -28,16 +28,27 @@ class AuthenticationRepository (executor: Executor, context: Context) {
         }
 
         executor.execute {
-            // Call the function to update password
-            mAuth.currentUser!!.updatePassword(newPassword)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        // Let the view know that password was updated via callback function
-                        callback(true, "")
-                    } else {
-                        // Let the view know that password was not updated
-                        callback(false, "Something wrong, please try again")
-                    }
+            // Call the function to re authenticate user
+            mAuth.currentUser!!.reauthenticate(EmailAuthProvider.getCredential(emailConfirmChangePassword, passwordConfirmChangePassword))
+                .addOnCompleteListener {
+                    // Call the function to update password
+                    mAuth.currentUser!!.updatePassword(newPassword)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                // Let the view know that password was updated via callback function
+                                callback(true, "")
+                            } else {
+                                // Let the view know that password was not updated
+                                callback(false, "Something wrong, please try again")
+                            }
+                        }.addOnFailureListener {exception ->
+                            // Let the view know that password was not updated via callback function
+                            callback(false, exception.localizedMessage!!)
+                        }
+                }
+                .addOnFailureListener {
+                    // Let the view know that password was not updated via callback function
+                    callback(false, "Wrong login credentials entered")
                 }
         }
     }
@@ -56,6 +67,10 @@ class AuthenticationRepository (executor: Executor, context: Context) {
                         callback(false, "Something wrong, please try again")
                     }
                 }
+                .addOnFailureListener {exception ->
+                    // Let the view know that password reset email was not sent via callback function
+                    callback(false, exception.localizedMessage!!)
+                }
         }
     }
 
@@ -65,8 +80,6 @@ class AuthenticationRepository (executor: Executor, context: Context) {
             // Call the function to re authenticate user
             mAuth.currentUser!!.reauthenticate(EmailAuthProvider.getCredential(emailConfirmChangeEmail, passwordConfirmChangeEmail))
                 .addOnCompleteListener {
-                    val newEmail = email
-
                     // Call the function to update email for the user
                     mAuth.currentUser!!.updateEmail(email)
                         .addOnCompleteListener { task ->
@@ -77,6 +90,10 @@ class AuthenticationRepository (executor: Executor, context: Context) {
                                 // Let the view know that email was not updated via callback function
                                 callback(false, "Something wrong, please try again")
                             }
+                        }
+                        .addOnFailureListener {exception ->
+                            // Let the view know that email was not updated via callback function
+                            callback(false, exception.localizedMessage!!)
                         }
                 }
                 .addOnFailureListener {

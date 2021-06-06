@@ -8,6 +8,7 @@ import android.preference.PreferenceManager
 import android.widget.Toast
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.View.Authentication.ForgotPassword
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -63,6 +64,13 @@ class LoginActivity : AppCompatActivity() {
         submitLoginButton.setOnClickListener {
             // Call the function to perform the login operation
             login(emailTextField.text.toString(), passwordTextField.text.toString())
+        }
+
+        // Set up on click listener for the forgot password button
+        forgotPasswordButton.setOnClickListener {
+            // Start the forgot password activity
+            val intent = Intent(this, ForgotPassword::class.java)
+            startActivity(intent)
         }
     }
 

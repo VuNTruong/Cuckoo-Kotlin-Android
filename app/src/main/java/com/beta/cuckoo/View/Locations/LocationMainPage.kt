@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.R
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterLocationPage
 import kotlinx.android.synthetic.main.activity_location_main_page.*
+import kotlinx.android.synthetic.main.activity_see_friends_location.*
 
 class LocationMainPage : AppCompatActivity() {
     // Adapter for the RecyclerView
@@ -23,9 +24,24 @@ class LocationMainPage : AppCompatActivity() {
     // Array of on click listener for the options
     private var optionOnClickListener = ArrayList<View.OnClickListener>()
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        this.finish()
+        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_location_main_page)
+
+        // Hide the action bar
+        supportActionBar!!.hide()
+
+        // Set on click listener for the back button
+        backButtonLocationCenter.setOnClickListener {
+            this.finish()
+            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
+        }
 
         // Instantiate the recycler view
         locationPageOptionView.layoutManager = LinearLayoutManager(this)

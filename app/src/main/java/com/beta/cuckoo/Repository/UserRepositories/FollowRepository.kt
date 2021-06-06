@@ -182,6 +182,40 @@ class FollowRepository (executor: Executor, context: Context) {
         }
     }
 
+    // The function to get list of 2 ways follow of currently logged in user
+    fun getListOf2WaysFollowOfCurrentUser (callback: (arrayOfUserId: ArrayList<String>) -> Unit) {
+        executor.execute {
+            // Call the function to get info of the currently logged in user
+            userRepository.getInfoOfCurrentUser { userObject ->
+                // Create the service for getting array of 2 ways follow of currently logged in user
+                val getListOf2WaysFollowService: GetListOfUsersToBePinnedOnMap = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    GetListOfUsersToBePinnedOnMap::class.java
+                )
+
+                // Create the call object to perform the call
+                val call: Call<Any> = getListOf2WaysFollowService.getListOf2WaysFollow(userObject.getId())
+
+                // Perform the call
+                call.enqueue(object : Callback<Any> {
+                    override fun onFailure(call: Call<Any>, t: Throwable) {
+                        print("There seem to be an error")
+                    }
+
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from response body (list of 2 ways follow)
+                        val data = responseBody["data"] as ArrayList<String>
+
+                        // Return array of users of 2 ways follow via callback function
+                        callback(data)
+                    }
+                })
+            }
+        }
+    }
+
     // The function to get list of followers of the currently logged in user
     fun getListOfFollowersOfCurrentUser (callback: (arrayOfUserId: ArrayList<String>) -> Unit) {
         executor.execute {

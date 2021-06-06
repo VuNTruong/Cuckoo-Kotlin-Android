@@ -409,10 +409,10 @@ class RecyclerViewAdapterMessageOption(
             if (arrayOfMessagePhotos.size - (position - 3) * 4 >= 4) {
                 // Get the images
                 // Convert the data object which is currently a linked tree map into a JSON string
-                val jsImage1 = gs.toJson((position - 3) * 4)
-                val jsImage2 = gs.toJson((position - 3) * 4 + 1)
-                val jsImage3 = gs.toJson((position - 3) * 4 + 2)
-                val jsImage4 = gs.toJson((position - 3) * 4 + 3)
+                val jsImage1 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4])
+                val jsImage2 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4 + 1])
+                val jsImage3 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4 + 2])
+                val jsImage4 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4 + 3])
 
                 // Convert the JSOn string back into MessagePhoto class
                 val image1Model = gs.fromJson<MessagePhoto>(jsImage1, MessagePhoto::class.java)
@@ -434,9 +434,9 @@ class RecyclerViewAdapterMessageOption(
                     arrayOfMessagePhotos.size - ((position - 3) * 4) == 3 -> {
                         // Get the images
                         // Convert the data object which is currently a linked tree map into a JSON string
-                        val jsImage1 = gs.toJson((position - 3) * 4)
-                        val jsImage2 = gs.toJson((position - 3) * 4 + 1)
-                        val jsImage3 = gs.toJson((position - 3) * 4 + 2)
+                        val jsImage1 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4])
+                        val jsImage2 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4 + 1])
+                        val jsImage3 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4 + 2])
 
                         // Convert the JSOn string back into MessagePhoto class
                         val image1Model = gs.fromJson<MessagePhoto>(jsImage1, MessagePhoto::class.java)
@@ -451,8 +451,8 @@ class RecyclerViewAdapterMessageOption(
                     arrayOfMessagePhotos.size - ((position - 3) * 4) == 2 -> {
                         // Get the images
                         // Convert the data object which is currently a linked tree map into a JSON string
-                        val jsImage1 = gs.toJson((position - 3) * 4)
-                        val jsImage2 = gs.toJson((position - 3) * 4 + 1)
+                        val jsImage1 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4])
+                        val jsImage2 = gs.toJson(arrayOfMessagePhotos[(position - 3) * 4 + 1])
 
                         // Convert the JSOn string back into MessagePhoto class
                         val image1Model = gs.fromJson<MessagePhoto>(jsImage1, MessagePhoto::class.java)

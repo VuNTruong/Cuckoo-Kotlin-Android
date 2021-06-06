@@ -42,14 +42,14 @@ class ChangePassword : AppCompatActivity() {
         // Set on click listener for the update password button
         changePasswordButton.setOnClickListener {
             // Call the function to update password
-            updatePassword(enterNewPasswordField.text.toString(), confirmNewPassword.text.toString())
+            updatePassword(enterEmailChangePassword.text.toString(), enterPasswordChangePassword.text.toString(), enterNewPasswordField.text.toString(), confirmNewPassword.text.toString())
         }
     }
 
     // The function to update password
-    private fun updatePassword (newPassword: String, passwordConfirm: String) {
+    private fun updatePassword (emailConfirmChangePassword: String, passwordConfirmChangePassword: String, newPassword: String, passwordConfirm: String) {
         // Call the function to update password
-        authenticationRepository.updatePassword(newPassword, passwordConfirm) {isUpdated, errorMessage ->
+        authenticationRepository.updatePassword(emailConfirmChangePassword, passwordConfirmChangePassword, newPassword, passwordConfirm) {isUpdated, errorMessage ->
             // If the password is updated, let the user know
             if (isUpdated) {
                 // Show toast to the user
