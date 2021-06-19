@@ -1,5 +1,6 @@
 package com.beta.cuckoo.View.Posts
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -11,9 +12,11 @@ import com.beta.cuckoo.Network.Notifications.CreateNotificationService
 import com.beta.cuckoo.Network.Posts.GetFirstImageURLOfPostService
 import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.LocationRepositories.LocationRepository
 import com.beta.cuckoo.Repository.PostRepositories.PostRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterCuckooPost
+import com.beta.cuckoo.View.Profile.ProfileSetting
 import kotlinx.android.synthetic.main.activity_post_around.*
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import retrofit2.Call
@@ -28,6 +31,9 @@ class PostAround : AppCompatActivity(), PostShowingInterface {
 
     // The user repository
     private lateinit var userInfoRepository: UserRepository
+
+    // The location repository
+    private lateinit var locationRepository: LocationRepository
 
     // Array of HBTGram posts nearby
     private var hbtGramPosts = ArrayList<CuckooPost>()
@@ -69,23 +75,47 @@ class PostAround : AppCompatActivity(), PostShowingInterface {
         // Instantiate the user info repository
         userInfoRepository = UserRepository(executorService, applicationContext)
 
+        // Instantiate location repository
+        locationRepository = LocationRepository(executorService, applicationContext)
+
         // Instantiate the recycler view
         postAroundView.layoutManager = LinearLayoutManager(applicationContext)
         postAroundView.itemAnimator = DefaultItemAnimator()
 
-        // Call the function to get info of the currently logged in user
-        userInfoRepository.getInfoOfCurrentUser { userObject ->
-            // Update current user info in this activity
-            userIdOfCurrentUser = userObject.getId()
+        // Call the function to check and see if user enable location or not
+        locationRepository.getLocationEnableStatusOfCurrentUser { locationEnable ->
+            // If location is enabled, show posts around user
+            if (locationEnable == "Enabled") {
+                // Show the post view and hide the turn on location view
+                turnOnLocationLayout.visibility = View.INVISIBLE
+                postAroundView.visibility = View.VISIBLE
 
-            // Update the adapter
-            adapter = RecyclerViewAdapterCuckooPost(hbtGramPosts, this, this, executorService, userObject)
+                // Call the function to get info of the currently logged in user
+                userInfoRepository.getInfoOfCurrentUser { userObject ->
+                    // Update current user info in this activity
+                    userIdOfCurrentUser = userObject.getId()
 
-            // Add adapter to the RecyclerView
-            postAroundView.adapter = adapter
+                    // Update the adapter
+                    adapter = RecyclerViewAdapterCuckooPost(hbtGramPosts, this, this, executorService, userObject)
 
-            // Call the function to get posts around last updated location of the currently logged in user
-            getPostsAroundCurrentUser()
+                    // Add adapter to the RecyclerView
+                    postAroundView.adapter = adapter
+
+                    // Call the function to get posts around last updated location of the currently logged in user
+                    getPostsAroundCurrentUser()
+                }
+            } // Otherwise, show the layout and let the user know that user need to turn on location
+            else {
+                // Show the turn on location view and hide the post view
+                turnOnLocationLayout.visibility = View.VISIBLE
+                postAroundView.visibility = View.INVISIBLE
+
+                // Set up on click listener for the go to settings button
+                gotoAccountSettingsButton.setOnClickListener {
+                    val intent = Intent(applicationContext, ProfileSetting::class.java)
+                    startActivity(intent)
+                }
+            }
         }
     }
 

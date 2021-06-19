@@ -51,7 +51,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:fontFamily="sans-serif-light"
-        android:text="Maybe you have a better profile picture. Upload it here, show your friends how good it is"
+        android:text="Pick your profile picture and update it"
         android:textSize="13dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,11 +60,12 @@
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/userAvatarUpdateAvatar"
         android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:layout_height="0dp"
         android:layout_marginTop="20dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView9" />
+        app:layout_constraintTop_toBottomOf="@+id/textView9"
+        app:layout_constraintDimensionRatio="H,2:2"/>
 
     <Button
         android:id="@+id/chooseNewImageButton"

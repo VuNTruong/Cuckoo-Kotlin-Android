@@ -69,6 +69,7 @@ class ChangeEmail : AppCompatActivity() {
         userRepository.getInfoOfCurrentUser { userObject ->
             // Build the map of fields
             mapOfFields = hashMapOf(
+                "fullName" to userObject.getFullName(),
                 "email" to userObject.getEmail(),
                 "userId" to userObject.getId(),
                 "avatarURL" to userObject.getAvatarURL(),

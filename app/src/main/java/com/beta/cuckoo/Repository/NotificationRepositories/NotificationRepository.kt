@@ -241,6 +241,27 @@ class NotificationRepository (executor: Executor, context: Context) {
         }
     }
 
+    // The function to create new notification object inside the database
+    fun createNotificationObjectInDatabase (content: String, forUser: String, fromUser: String, image: String, postId: String, callback: () -> Unit) {
+        // Create the create notification service
+        val createNotificationService: CreateNotificationService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+            CreateNotificationService::class.java)
+
+        // Create the call object in order to perform the call
+        val call: Call<Any> = createNotificationService.createNewNotification(content, forUser, fromUser, image, postId)
+
+        // Perform the call
+        call.enqueue(object: Callback<Any> {
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                print("Boom")
+            }
+
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                callback()
+            }
+        })
+    }
+
     // The function to check and create new notification socket object
     fun checkAndCreateNewNotificationSocketObject (userId: String, socketId: String, callback: () -> Unit) {
         executor.execute {

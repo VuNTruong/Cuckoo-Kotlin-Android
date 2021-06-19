@@ -9,25 +9,23 @@ import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
-import android.webkit.PermissionRequest
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.Repository.VideoChatRepository.VideoChatRepository
+import com.beta.cuckoo.Utils.CameraCapturerCompat
 import com.bumptech.glide.Glide
 import com.twilio.video.*
 import kotlinx.android.synthetic.main.activity_video_chat.*
-import kotlinx.android.synthetic.main.profile_page_item.*
 import tvi.webrtc.Camera1Enumerator
-import tvi.webrtc.Camera2Capturer
-import tvi.webrtc.Camera2Enumerator
 import java.lang.IllegalStateException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.jar.Manifest
 
 class VideoChat : AppCompatActivity() {
     // Executor service to perform works in the background
@@ -51,6 +49,9 @@ class VideoChat : AppCompatActivity() {
     // Notification repository
     private lateinit var notificationRepository: NotificationRepository
 
+    // User trust repository
+    private lateinit var userTrustRepository: UserTrustRepository
+
     // Create an audio track
     private var enable = true
     private lateinit var localAudioTrack: LocalAudioTrack
@@ -72,11 +73,13 @@ class VideoChat : AppCompatActivity() {
         requireNotNull(cameraId)
     }
 
+    // Camera capturer
+    private val cameraCapturerCompat by lazy {
+        CameraCapturerCompat(this, CameraCapturerCompat.Source.FRONT_CAMERA)
+    }
+
     // Local video track
     private lateinit var localVideoTrack: LocalVideoTrack
-
-    // The function which will keep track of which camera is being used
-    private var isUsingCamera = "back"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -122,6 +125,7 @@ class VideoChat : AppCompatActivity() {
         // Initially, show the is calling layout
         isCallingLayout.visibility = View.VISIBLE
         inCallLayout.visibility = View.INVISIBLE
+        localVideoView.visibility = View.INVISIBLE
 
         // Instantiate video chat repository
         videoChatRepository = VideoChatRepository(executorService, applicationContext)
@@ -131,6 +135,12 @@ class VideoChat : AppCompatActivity() {
 
         // Instantiate user repository
         userRepository = UserRepository(executorService, applicationContext)
+
+        // Instantiate user trust repository
+        userTrustRepository = UserTrustRepository(executorService, applicationContext)
+
+        // Call the function to check for user's trust
+        checkTrustStatusBetween2UsersAndAllowScreenShot(callReceiverUserId)
 
         // Set up on click listener for the rotate camera button
         rotateCameraButton.setOnClickListener {
@@ -181,15 +191,12 @@ class VideoChat : AppCompatActivity() {
     //************************************************** VIDEO CHATTING TOOLS **************************************************
     // The function to switch camera
     private fun switchCamera () {
-        // Check to see which one is being used and switch it
-        if (isUsingCamera == "front") {
-            isUsingCamera = "back"
-        } else if (isUsingCamera == "back") {
-            isUsingCamera = "front"
-        }
+        // Create the camera source
+        val cameraSource = cameraCapturerCompat.cameraSource
 
-        // Call the function to set up camera again
-        rotateCameraAndReset()
+        // Call the function to switch camera
+        cameraCapturerCompat.switchCamera()
+        localVideoView.mirror = cameraSource == CameraCapturerCompat.Source.BACK_CAMERA
     }
 
     // The function to connect to a chat room
@@ -301,6 +308,7 @@ class VideoChat : AppCompatActivity() {
                 // Otherwise, start the call
                 inCallLayout.visibility = View.VISIBLE
                 isCallingLayout.visibility = View.INVISIBLE
+                localVideoView.visibility = View.VISIBLE
             }
         }
 
@@ -417,6 +425,7 @@ class VideoChat : AppCompatActivity() {
             // Hide the is dialing layout
             inCallLayout.visibility = View.VISIBLE
             isCallingLayout.visibility = View.INVISIBLE
+            localVideoView.visibility = View.VISIBLE
 
             // Start showing video
             remoteVideoView.mirror = false
@@ -590,98 +599,14 @@ class VideoChat : AppCompatActivity() {
 
     // The function to set up camera capturing session
     private fun setUpCameraCapture () {
-        if (isUsingCamera == "front") {
-            if (frontCameraId != "") {
-                // Create the CameraCapturer with the front camera
-                val cameraCapturer = CameraCapturer(applicationContext, frontCameraId)
+        // Set up local video track
+        localVideoTrack = LocalVideoTrack.create(applicationContext, enable, cameraCapturerCompat)!!
 
-                // Create a video track
-                localVideoTrack =
-                    LocalVideoTrack.create(applicationContext, enable, cameraCapturer)!!
-
-                // Front camera should be mirrored
-                localVideoView.mirror = true
-
-                // Render a local video track to preview camera
-                localVideoTrack.addSink(localVideoView)
-                localVideoTrack.addSink(localVideoViewIsDialing)
-            }
-        } else {
-            if (backCameraId != "") {
-                // Create the CameraCapturer with the back camera
-                val cameraCapturer = CameraCapturer(applicationContext, backCameraId)
-
-                // Create a video track
-                localVideoTrack = LocalVideoTrack.create(applicationContext, enable, cameraCapturer)!!
-
-                // Back camera should not be mirrored
-                localVideoView.mirror = false
-
-                // Render a local video track to preview camera
-                localVideoTrack.addSink(localVideoView)
-                localVideoTrack.addSink(localVideoViewIsDialing)
-            }
-        }
+        // Render a local video track to preview camera
+        localVideoTrack.addSink(localVideoView)
+        localVideoTrack.addSink(localVideoViewIsDialing)
     }
     //************************************************** END INITIAL SET UP **************************************************
-
-    //************************************************** ROTATE CAMERA **************************************************
-    // The function to rotate camera and set things up again
-    private fun rotateCameraAndReset () {
-        if (isUsingCamera == "front") {
-            if (frontCameraId != "") {
-                // Create the CameraCapturer with the front camera
-                val cameraCapturer = CameraCapturer(applicationContext, frontCameraId)
-
-                // Create a video track
-                localVideoTrack =
-                    LocalVideoTrack.create(applicationContext, enable, cameraCapturer)!!
-
-                // Front camera should be mirrored
-                localVideoView.mirror = true
-
-                // Render a local video track to preview camera
-                localVideoTrack.addSink(localVideoView)
-                localVideoTrack.addSink(localVideoViewIsDialing)
-
-                userRepository.getInfoOfCurrentUser { userObject ->
-                    connectToAChatRoom(chatRoomName, userObject.getId())
-                }
-            }
-        } else {
-            if (backCameraId != "") {
-                // Create the CameraCapturer with the back camera
-                val cameraCapturer = CameraCapturer(applicationContext, backCameraId)
-
-                // Create a video track
-                localVideoTrack = LocalVideoTrack.create(applicationContext, enable, cameraCapturer)!!
-
-                // Back camera should not be mirrored
-                localVideoView.mirror = false
-
-                // Render a local video track to preview camera
-                localVideoTrack.addSink(localVideoView)
-                localVideoTrack.addSink(localVideoViewIsDialing)
-
-                userRepository.getInfoOfCurrentUser { userObject ->
-                    connectToAChatRoom(chatRoomName, userObject.getId())
-                }
-
-                localVideoTrack.let {
-                    val enable = !it.isEnabled
-                    it.enable(enable)
-
-                    val icon = if (enable)
-                        R.drawable.ic_baseline_videocam_24
-                    else
-                        R.drawable.ic_baseline_videocam_off_24
-                    cameraSwitchButton.setImageDrawable(ContextCompat.getDrawable(
-                        applicationContext, icon))
-                }
-            }
-        }
-    }
-    //************************************************** ROTATE CAMERA **************************************************
 
     //************************************************** MIC AND VIDEO SWITCH **************************************************
     // The function to switch mic off and on
@@ -712,4 +637,20 @@ class VideoChat : AppCompatActivity() {
         }
     }
     //************************************************** END MIC AND VIDEO SWITCH **************************************************
+
+    //************************* CHECK FOR USER'S TRUST *************************
+    // The function to check and see if current user trusts user chatting with or not
+    private fun checkTrustStatusBetween2UsersAndAllowScreenShot (otherUserId: String) {
+        // If current user is not trusted by user chatting with, don't let the user take screenshot
+        userTrustRepository.checkTrustStatusBetweenOtherUserAndCurrentUser(otherUserId) {isTrusted ->
+            // If there is no trust, don't let current user take screenshot
+            if (!isTrusted) {
+                // Prevent user from taking screenshot
+                window.setFlags(
+                    WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+    }
+    //************************* CHECK FOR USER'S TRUST *************************
 }

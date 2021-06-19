@@ -6,16 +6,26 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.View
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.beta.cuckoo.Repository.UserStatsRepositories.UserStatsRepository
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.View.WelcomeView.WelcomeActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_splash_screen.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class SplashScreen : AppCompatActivity() {
+    // Executor service to perform works in the background
+    //private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
+
     // Instance of the FirebaseAuth
     private val mAuth = FirebaseAuth.getInstance()
+
+    // User stats repository
+    //private lateinit var userStatsRepository: UserStatsRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,6 +36,9 @@ class SplashScreen : AppCompatActivity() {
 
         // Hide the splash loading layout
         splashLoadingLayout.visibility = View.INVISIBLE
+
+        // Instantiate the user stats repository
+        //userStatsRepository = UserStatsRepository(executorService, applicationContext)
 
         // Do the fade in and fade out transition to make it look better
         overridePendingTransition(R.animator.fade_in, R.animator.fade_out)
@@ -44,16 +57,6 @@ class SplashScreen : AppCompatActivity() {
 
     // The function to check if current token is still valid or not
     private fun checkToken () {
-        // Go to the main activity
-        val intent = Intent(applicationContext, MainMenu::class.java)
-        startActivity(intent)
-
-        // Do the fade in and fade out transition to make it look better
-        overridePendingTransition(R.animator.fade_in, R.animator.fade_out)
-
-        // Finish this activity
-        this.finish()
-
         // Get the shared preference (memory) instance
         val memory = PreferenceManager.getDefaultSharedPreferences(applicationContext).edit()
 
@@ -91,6 +94,9 @@ class SplashScreen : AppCompatActivity() {
 
             // Do the fade in and fade out transition to make it look better
             overridePendingTransition(R.animator.fade_in, R.animator.fade_out)
+
+            // Finish this activity
+            this.finish()
         }
     }
 }

@@ -230,7 +230,7 @@ class RecyclerViewAdapterNotification (arrayOfNotifications: ArrayList<Notificat
         } // View type 2 is for the load more button
         else {
             view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.hbt_gram_post_item_load_more, parent, false)
+                .inflate(R.layout.post_item_load_more, parent, false)
 
             // Return the view holder
             ViewHolderHBTGramLoadMoreNotifications(view)

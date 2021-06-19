@@ -3,14 +3,18 @@ package com.beta.cuckoo.View.Menus
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.ProgressDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.cardview.widget.CardView
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.PostRepositories.PostRepository
+import com.beta.cuckoo.View.Posts.UpdatePost
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.android.synthetic.main.post_option_menu_item.*
 import java.util.concurrent.Executor
 
 class PostOptionsMenu (parentActivity: Activity, postId: String, executor: Executor) : BottomSheetDialogFragment() {
@@ -35,6 +39,9 @@ class PostOptionsMenu (parentActivity: Activity, postId: String, executor: Execu
 
         // The delete post button
         val deletePostButton: CardView = view.findViewById(R.id.deletePostButton)
+
+        // The edit post button
+        val editPostButton: CardView = view.findViewById(R.id.editPostButton)
 
         // Handle on click listener for the delete button
         deletePostButton.setOnClickListener {
@@ -63,6 +70,21 @@ class PostOptionsMenu (parentActivity: Activity, postId: String, executor: Execu
             alert.show()
         }
 
+        // Handle on click listener for the edit button
+        editPostButton.setOnClickListener {
+            // Dismiss the menu
+            this.dismiss()
+
+            // Take user to the activity where user can update post
+            val intent = Intent(parentActivity, UpdatePost::class.java)
+
+            // Let the activity know which post to update
+            intent.putExtra("postId", postId)
+
+            // Start the activity
+            parentActivity.startActivity(intent)
+        }
+
         // Return the view
         return view
     }
@@ -88,7 +110,7 @@ class PostOptionsMenu (parentActivity: Activity, postId: String, executor: Execu
                 val dialogBuilder = AlertDialog.Builder(parentActivity)
 
                 // set message of alert dialog
-                dialogBuilder.setMessage("Post has been deleted")
+                dialogBuilder.setMessage("Conversation has been deleted")
                     // if the dialog is cancelable
                     .setCancelable(false)
                     // positive button text and action
@@ -103,6 +125,8 @@ class PostOptionsMenu (parentActivity: Activity, postId: String, executor: Execu
                 alert.setTitle("Success!")
                 // show alert dialog
                 alert.show()
+            } else {
+                progress.dismiss()
             }
         }
     }

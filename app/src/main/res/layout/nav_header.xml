@@ -6,7 +6,7 @@
     android:background="@color/colorPrimary">
 
     <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/userAvatarDrawerMenu"
+        android:id="@+id/userAvatarSideMenu"
         android:layout_width="70dp"
         android:layout_height="70dp"
         android:layout_marginStart="10dp"
@@ -15,7 +15,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/userFullNameDrawerMenu"
+        android:id="@+id/userFullNameSideMenu"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
@@ -27,10 +27,10 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/userAvatarDrawerMenu" />
+        app:layout_constraintTop_toBottomOf="@+id/userAvatarSideMenu" />
 
     <TextView
-        android:id="@+id/userEmailDrawerMenu"
+        android:id="@+id/userEmailSideMenu"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
@@ -43,7 +43,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/userFullNameDrawerMenu" />
+        app:layout_constraintTop_toBottomOf="@+id/userFullNameSideMenu" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -20,6 +20,7 @@ import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterChat
 import com.beta.cuckoo.View.AudioChat.AudioChat
 import com.beta.cuckoo.View.MainMenu.MainMenu
+import com.beta.cuckoo.View.Menus.ChatSendImageMenu
 import com.beta.cuckoo.View.VideoChat.VideoChat
 import com.beta.cuckoo.ViewModel.MessageViewModel
 import com.bumptech.glide.Glide
@@ -52,7 +53,6 @@ class Chat : AppCompatActivity() {
     private lateinit var userTrustRepository: UserTrustRepository
 
     // These objects are used for socket.io
-    //private lateinit var mSocket: Socket
     private val gson = Gson()
 
     // Array of chat messages
@@ -87,6 +87,9 @@ class Chat : AppCompatActivity() {
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Set this up so that keyboard won't push the whole layout up
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
         // Instantiate repositories
         userRepository = UserRepository(executorService, applicationContext)
@@ -126,17 +129,11 @@ class Chat : AppCompatActivity() {
 
         // Set on click listener for the send image button
         sendImageButtonChatActivity.setOnClickListener {
-            // Take user to the activity where the user can pick which photo to send
-            val intent = Intent(applicationContext, ChatSendImage::class.java)
+            // The bottom sheet object (chat send image menu)
+            val bottomSheet = ChatSendImageMenu(this, receiverUserId, chatRoomId)
 
-            // Pass user id of the message receiver to the next activity as well
-            intent.putExtra("messageReceiverUserId", receiverUserId)
-
-            // Pass chat room id of the chat room between current user and other user to the next activity
-            intent.putExtra("chatRoomId", chatRoomId)
-
-            // Start the activity
-            startActivity(intent)
+            // Show the menu
+            bottomSheet.show(supportFragmentManager, "TAG")
         }
 
         // Let the is typing view to be invisible initially
@@ -415,7 +412,8 @@ class Chat : AppCompatActivity() {
                         "chatRoomId" to chatRoomId
                     )))
 
-                    notificationRepository.sendNotificationToAUser(receiverUserId, "New message", messageContentToSend.text.toString()) { }
+                    // Send the notification to receiver
+                    notificationRepository.sendNotificationToAUser(receiverUserId, "message", messageContentToSend.text.toString()) { }
 
                     // Emit event to the server so that the server will let other user in the chat room know that
                     // current user is done typing

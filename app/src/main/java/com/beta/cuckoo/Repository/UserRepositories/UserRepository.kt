@@ -478,6 +478,7 @@ class UserRepository (executor: Executor, context: Context) {
                     mapOfFields["email"] as String,
                     mapOfFields["avatarURL"] as String,
                     mapOfFields["coverURL"] as String,
+                    mapOfFields["bio"] as String,
                     userObject.getId()
                 )
 
@@ -503,6 +504,118 @@ class UserRepository (executor: Executor, context: Context) {
                             // Let the view know that user info was updated via callback function
                             callback(true)
                         }
+                    }
+                })
+            }
+        }
+    }
+
+    // The function to get private profile status of the currently logged in user
+    fun getPrivateProfileStatusOfCurrentUser (callback: (privateProfile: String) -> Unit) {
+        executor.execute {
+            // Create the get current user info service
+            val getCurrentlyLoggedInUserInfoService: GetCurrentlyLoggedInUserInfoService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetCurrentlyLoggedInUserInfoService::class.java
+            )
+
+            // Create the call object in order to perform the call
+            val call: Call<Any> = getCurrentlyLoggedInUserInfoService.getCurrentUserInfo()
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not empty, it means that user info has been retrieved
+                    if (response.body() != null) {
+                        // Body of the request
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get user private profile status of user from the data
+                        val privateProfileStatus = data["privateProfile"] as String
+
+                        // Return private profile status of the user via callback function
+                        callback(privateProfileStatus)
+                    }
+                }
+
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("There seem to be an error")
+                }
+            })
+        }
+    }
+
+    // The function to get private profile status of user with specified user id
+    fun getPrivateProfileStatusOfUser (userId: String, callback: (privateProfile: String) -> Unit) {
+        executor.execute {
+            // Create the get user info based on id service
+            val getUserInfoBasedOnIdService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                GetUserInfoBasedOnIdService::class.java
+            )
+
+            // Create the call object to perform the call
+            val call: Call<Any> = getUserInfoBasedOnIdService.getUserInfoBasedOnId(userId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not null, it means that user private profile status has been retrieved
+                    if (response.body() != null) {
+                        // Body of the response
+                        val responseBody = response.body() as Map<String, Any>
+
+                        // Get data from the response body
+                        val data = responseBody["data"] as Map<String, Any>
+
+                        // Get user info from the received data
+                        val userInfo = (data["documents"] as List<Map<String, Any>>)[0]
+
+                        // Get private profile status of the user
+                        val privateProfileStatus = userInfo["privateProfile"] as String
+
+                        // Return private profile status of the user via callback function
+                        callback(privateProfileStatus)
+                    }
+                }
+
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Something is not right")
+                }
+            })
+        }
+    }
+
+    // The function to update private profile status of the currently logged in user
+    fun updatePrivateProfileStatusOfCurrentUser (privateProfileStatus: String, callback: (isUpdated: Boolean) -> Unit) {
+        executor.execute {
+            // Call the function to get info of the currently logged in user
+            getInfoOfCurrentUser { userObject ->
+                // Create the update private profile status service
+                val updatePrivateProfileStatusService: UpdateUserPrivateProfileStatusService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    UpdateUserPrivateProfileStatusService::class.java
+                )
+
+                // Create the call object to perform the call
+                val call: Call<Any> = updatePrivateProfileStatusService.updateUserPrivateProfileStatus(privateProfileStatus, userObject.getId())
+
+                // Perform the call
+                call.enqueue(object : Callback<Any> {
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                        // If the response body is not empty, it means that status has been updated
+                        if (response.body() != null) {
+                            // Let the view know that status has been updated via callback function
+                            callback(true)
+                        } else {
+                            callback(false)
+                            print("Something is not right")
+                        }
+                    }
+
+                    override fun onFailure(call: Call<Any>, t: Throwable) {
+                        callback(false)
+                        print("Something is not right")
                     }
                 })
             }

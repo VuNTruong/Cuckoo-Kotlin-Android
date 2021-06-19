@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.beta.cuckoo.Interfaces.ChatMessageOptionsInterface
 import com.beta.cuckoo.Model.MessagePhoto
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
@@ -12,11 +13,12 @@ import com.beta.cuckoo.Repository.UserRepositories.UserBlockRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterMessageOption
+import com.beta.cuckoo.View.Menus.TrustModeLearnMoreMenu
 import kotlinx.android.synthetic.main.activity_chat_message_options.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class ChatMessageOptions : AppCompatActivity() {
+class ChatMessageOptions : AppCompatActivity(), ChatMessageOptionsInterface {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -44,6 +46,7 @@ class ChatMessageOptions : AppCompatActivity() {
     // The user trust repository
     private lateinit var userTrustRepository: UserTrustRepository
 
+    // The message repository
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat_message_options)
@@ -94,7 +97,7 @@ class ChatMessageOptions : AppCompatActivity() {
             arrayOfPhotoURLsOfChatRoom = arrayOfPhotos
 
             // Update the Recycler View
-            adapter = RecyclerViewAdapterMessageOption(messageReceiverUserId, chatRoomId, this, userRepository, userBlockRepository, userTrustRepository, arrayOfPhotoURLsOfChatRoom)
+            adapter = RecyclerViewAdapterMessageOption(messageReceiverUserId, chatRoomId, this, userRepository, userBlockRepository, userTrustRepository, messageRepository, this, arrayOfPhotoURLsOfChatRoom)
 
             // Add adapter to the Recycler View
             messageOptionsView.adapter = adapter
@@ -115,4 +118,13 @@ class ChatMessageOptions : AppCompatActivity() {
         }
     }
     //************************* CHECK FOR USER'S TRUST *************************
+
+    // The function to open learn more menu
+    override fun openLearnMore () {
+        // The bottom sheet object
+        val bottomSheet = TrustModeLearnMoreMenu()
+
+        // Show the menu
+        bottomSheet.show(supportFragmentManager, "TAG")
+    }
 }

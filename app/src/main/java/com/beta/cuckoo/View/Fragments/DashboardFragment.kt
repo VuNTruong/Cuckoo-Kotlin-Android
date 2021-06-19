@@ -17,7 +17,12 @@ import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepositor
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterCuckooPost
 import com.beta.cuckoo.View.Chat.ChatMainMenu
+import com.beta.cuckoo.View.Locations.LocationMainPage
 import com.beta.cuckoo.View.MainMenu.MainMenu
+import com.beta.cuckoo.View.Notification.Notification
+import com.beta.cuckoo.View.PostRecommend.PostRecommend
+import com.beta.cuckoo.View.Posts.CreatePost
+import com.beta.cuckoo.View.Posts.PostAround
 import com.beta.cuckoo.View.UserSearch.UserSearch
 import com.beta.cuckoo.ViewModel.PostViewModel
 import kotlinx.android.synthetic.main.fragment_dashboard.*
@@ -138,6 +143,68 @@ class DashboardFragment : Fragment(), PostShowingInterface {
             // Override the pending transition
             this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
         }
+
+        //******************************** BOTTOM NAVIGATION ITEMS ********************************
+        // Set on click listener for the add post button
+        addPostButton.setOnClickListener {
+            // Intent object
+            val intent = Intent(this.requireActivity(), CreatePost::class.java)
+
+            // Start the activity
+            this.requireActivity().startActivity(intent)
+
+            // Override the pending transition
+            this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+        }
+
+        // Set on click listener for the location button
+        locationButton.setOnClickListener {
+            // Intent object
+            val intent = Intent(this.requireActivity(), LocationMainPage::class.java)
+
+            // Start the activity
+            this.requireActivity().startActivity(intent)
+
+            // Override the pending transition
+            this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+        }
+
+        // Set on click listener for the post around button
+        seePostAroundButton.setOnClickListener {
+            // Intent object
+            val intent = Intent(this.requireActivity(), PostAround::class.java)
+
+            // Start the activity
+            this.requireActivity().startActivity(intent)
+
+            // Override the pending transition
+            this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+        }
+
+        // Set on click listener for the explore button
+        exploreButton.setOnClickListener {
+            // Intent object
+            val intent = Intent(this.requireActivity(), PostRecommend::class.java)
+
+            // Start the activity
+            this.requireActivity().startActivity(intent)
+
+            // Override the pending transition
+            this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+        }
+
+        // Set on click listener for the notification button
+        seeNotificationsButton.setOnClickListener {
+            // Intent object
+            val intent = Intent(this.requireActivity(), Notification::class.java)
+
+            // Start the activity
+            this.requireActivity().startActivity(intent)
+
+            // Override the pending transition
+            this.requireActivity().overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
+        }
+        //******************************** BOTTOM NAVIGATION ITEMS ********************************
     }
 
     //*********************************** GET POSTS SEQUENCE ***********************************

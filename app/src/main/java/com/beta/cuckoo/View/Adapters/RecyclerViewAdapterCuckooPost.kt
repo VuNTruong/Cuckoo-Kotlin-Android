@@ -267,14 +267,14 @@ class RecyclerViewAdapterCuckooPost (hbtGramPostObjects: ArrayList<CuckooPost>, 
         // If view type is 0, show the post
         return if (viewType == 0) {
             view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.hbt_gram_post_item, parent, false)
+                .inflate(R.layout.post_item, parent, false)
 
             // Return the ViewHolder
             ViewHolderHBTGramPost(view)
         } // If it is 1, show the load more row
         else {
             view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.hbt_gram_post_item_load_more, parent, false)
+                .inflate(R.layout.post_item_load_more, parent, false)
 
             // Return the ViewHolder
             ViewHolderHBTGramLoadMorePost(view)

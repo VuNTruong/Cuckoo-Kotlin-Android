@@ -7,8 +7,8 @@
 
     <ImageView
         android:id="@+id/postPhotoView"
-        android:layout_width="0dp"
-        android:layout_height="250dp"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
@@ -18,7 +18,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@color/color1" />
+        app:srcCompat="@color/color1"
+        app:layout_constraintDimensionRatio="H,3:2"/>
 
     <ImageView
         android:id="@+id/removePhotoButton"
@@ -29,4 +30,5 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/ic_close_black_24dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

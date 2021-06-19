@@ -6,6 +6,7 @@ import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.Model.Message
 import com.beta.cuckoo.Model.MessagePhoto
 import com.beta.cuckoo.Model.MessageRoom
+import com.beta.cuckoo.Network.VideoChat.DeleteVideoChatRoomService
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
@@ -481,6 +482,36 @@ class MessageRepository (executor: Executor, context: Context) {
                     } else {
                         print("Something is not right")
                     }
+                }
+            })
+        }
+    }
+
+    // The function to delete a chat room with specified chat room id
+    fun deleteChatRoom (chatRoomId: String, callback: (isDeleted: Boolean) -> Unit) {
+        executor.execute {
+            // Create the delete chat room service
+            val deleteChatRoomService: DeleteChatRoomService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(DeleteChatRoomService::class.java)
+
+            // Create the call object to perform the call
+            val call: Call<Any> = deleteChatRoomService.deleteChatRoom(chatRoomId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If response body is not null, it means that chat room has been removed
+                    if (response.body() != null) {
+                        // Let view know that chat room has been removed via callback function
+                        callback(true)
+                    } // Otherwise, let the view know that chat room has not been deleted
+                    else {
+                        callback(false)
+                    }
+                }
+
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Something is not right")
+                    callback(false)
                 }
             })
         }

@@ -1,32 +1,27 @@
-package com.beta.cuckoo.View.PostDetail
+package com.beta.cuckoo.View.Menus
 
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.webkit.MimeTypeMap
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageView
 import android.widget.Toast
-import com.beta.cuckoo.Network.LikesAndComments.CreateNewPostCommentPhotoService
-import com.beta.cuckoo.Network.LikesAndComments.CreateNewPostCommentService
-import com.beta.cuckoo.Network.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.cuckoo.Network.RetrofitClientInstance
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.PostRepositories.PostCommentRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.Utils.AdditionalAssets
 import com.beta.cuckoo.View.MainMenu.MainMenu
-import com.google.firebase.storage.FirebaseStorage
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.gson.Gson
-import kotlinx.android.synthetic.main.activity_hbtgram_post_detail_comment_send_image.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.math.floor
 
-class PostDetailCommentSendImage : AppCompatActivity() {
+class PostDetailSendImageMenu (parentActivity: Activity, postId: String) : BottomSheetDialogFragment() {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -39,78 +34,97 @@ class PostDetailCommentSendImage : AppCompatActivity() {
     // Additional assets
     private lateinit var additionalAssets: AdditionalAssets
 
-    // Instance of the FirebaseStorage
-    private val storage = FirebaseStorage.getInstance()
-
-    // These objects are used for socket.io
-    //private lateinit var mSocket: Socket
-    private val gson = Gson()
+    // Post id of post which will take the comment
+    private val postId = postId
 
     // Image Uri of the selected image
     private var imageURI: Uri? = null
 
-    // Post id of the post currently work with
-    private var postId = ""
+    // Parent activity
+    private val parentActivity = parentActivity
 
-    override fun onBackPressed() {
-        super.onBackPressed()
-        this.finish()
-        overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
-    }
+    // These objects are used for socket.io
+    private val gson = Gson()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_hbtgram_post_detail_comment_send_image)
+    //***************************** COMPONENTS FROM THE LAYOUT *****************************
+    // The send image button
+    private lateinit var sendImageButton: Button
 
-        // Hide the action bar
-        supportActionBar!!.hide()
+    // The choose image button
+    private lateinit var chooseImageButton: Button
 
-        // Instantiate additional assets
-        additionalAssets = AdditionalAssets(applicationContext)
+    // Image view which will be used to preview image to be sent
+    private lateinit var imageToSend: ImageView
 
-        // Instantiate the post comment repository
-        postCommentRepository = PostCommentRepository(executorService, applicationContext)
+    // The sending layout
+    private lateinit var sendingLayout: ConstraintLayout
+    //***************************** END COMPONENTS FROM THE LAYOUT *****************************
 
-        // Instantiate the user repository
-        userRepository = UserRepository(executorService, applicationContext)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        // The view object
+        val view = inflater.inflate(R.layout.pick_image_to_send_menu_item_post_detail, container, false)
 
-        // Set on click listener for the back button
-        backButtonPostDetailCommentSendImage.setOnClickListener {
-            this.finish()
-            overridePendingTransition(R.animator.slide_in_left, R.animator.slide_out_right)
-        }
+        //***************************** INSTANTIATE COMPONENTS FROM THE LAYOUT *****************************
+        // Instantiate the send button
+        sendImageButton = view.findViewById(R.id.sendImageButtonPostDetail)
 
-        // Get post id of the post currently working with from the previous activity
-        postId = intent.getStringExtra("postId")!!
+        // Instantiate the choose image button
+        chooseImageButton = view.findViewById(R.id.galleryImageButtonPostDetail)
 
-        // Call the function to set up socket.io
-        setUpSocket()
+        // Instantiate the image view which will be used to preview image to be sent
+        imageToSend = view.findViewById(R.id.imageToSendPostDetail)
 
-        // Call the function to open file chooser at beginning the activity launch
-        fileChooser()
+        // Instantiate the sending layout
+        sendingLayout = view.findViewById(R.id.isSendingLayoutSendPostDetailImage)
+        //***************************** END INSTANTIATE COMPONENTS FROM THE LAYOUT *****************************
 
-        // Add event listener for the choose photo button
-        chooseOtherCommentImageToSendButton.setOnClickListener{
-            // Call the function to open the file chooser so that user can chooser other image to send
+        //***************************** SET ON CLICK LISTENER FOR BUTTONS IN LAYOUT *****************************
+        // Set on click listener for the choose image button
+        chooseImageButton.setOnClickListener {
+            // Call the function which will let the user choose image to sent
             fileChooser()
         }
 
-        // Add event listener for the send image button
-        sendCommentImageButton.setOnClickListener {
-            // Call the function to send image for the comment
-            createCommentWithPhoto()
-        }
-    }
+        // Set on click listener for the send image button
+        sendImageButton.setOnClickListener {
+            // If user has not selected an image, show toast and let the user know
+            if (imageURI == null) {
+                // Show toast to the user
+                Toast.makeText(parentActivity, "Please select an image", Toast.LENGTH_SHORT).show()
+            } // Otherwise, start sending the image
+            else {
+                // Show the is sending layout
+                sendingLayout.visibility = View.VISIBLE
 
-    //************************ DO THINGS WITH THE SOCKET.IO ************************
-    // The function to start setting up socket.io
-    private fun setUpSocket () {
+                // Call the function which will let the user send image
+                createCommentWithPhoto()
+            }
+        }
+        //***************************** END SET ON CLICK LISTENER FOR BUTTONS IN LAYOUT *****************************
+
+        // Instantiate additional assets
+        additionalAssets = AdditionalAssets(parentActivity)
+
+        // Instantiate the post comment repository
+        postCommentRepository = PostCommentRepository(executorService, parentActivity)
+
+        // Instantiate the user repository
+        userRepository = UserRepository(executorService, parentActivity)
+
         // Bring user into the chat room between this user and the selected user
         MainMenu.mSocket.emit("jumpInPostDetailRoom", gson.toJson(hashMapOf(
             "postId" to postId
         )))
+
+        // Call the function to let user choose image to send initially
+        fileChooser()
+
+        // Hide the is sending layout initially
+        sendingLayout.visibility = View.INVISIBLE
+
+        // Return the view
+        return view
     }
-    //************************ END WORKING WITH SOCKET.IO ************************
 
     //********************************************* IMAGE CHOOSING SEQUENCE *********************************************
     /*
@@ -140,7 +154,7 @@ class PostDetailCommentSendImage : AppCompatActivity() {
         // Show selected image on the preview image view
         if (resultCode == Activity.RESULT_OK && data != null && data.data != null) {
             imageURI = data.data
-            previewCommentImageToSend.setImageURI(imageURI)
+            imageToSend.setImageURI(imageURI)
         }
     }
     //********************************************* END IMAGE CHOOSING SEQUENCE *********************************************
@@ -203,8 +217,8 @@ class PostDetailCommentSendImage : AppCompatActivity() {
                         "postId" to postId
                     )))
 
-                    // After that, finish this activity
-                    this@PostDetailCommentSendImage.finish()
+                    // After that, hide the menu
+                    this.dismiss()
                 }
             }
         }

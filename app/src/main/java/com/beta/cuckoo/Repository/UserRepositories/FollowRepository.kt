@@ -132,6 +132,44 @@ class FollowRepository (executor: Executor, context: Context) {
         }
     }
 
+    // The function to check and see if user with specified user id follows the currently logged in user or not
+    fun checkFollowStatusBetweenSpecifiedUserAndCurrentUser (userId: String, callback: (followStatus: String) -> Unit) {
+        executor.execute {
+            // Call the function to get info of the currently logged in user
+            userRepository.getInfoOfCurrentUser { userObject ->
+                // Create the get follow status service
+                val getFollowStatusService: GetFollowStatusService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    GetFollowStatusService::class.java)
+
+                // Create the call object in order to perform the call
+                val call: Call<Any> = getFollowStatusService.getFollowStatus(userId, userObject.getId())
+
+                // Perform the call
+                call.enqueue(object: Callback<Any> {
+                    override fun onFailure(call: Call<Any>, t: Throwable) {
+                        print("There seem to be an error ${t.stackTrace}")
+                    }
+
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                        // If the response body is not empty it means that the token is valid
+                        if (response.body() != null) {
+                            // Body of the request
+                            val responseBody = response.body() as Map<String, Any>
+
+                            // Get data from the response body (follow status)
+                            val data = responseBody["data"] as String
+
+                            // Return follow status via callback function
+                            callback(data)
+                        } else {
+                            print("Something is not right")
+                        }
+                    }
+                })
+            }
+        }
+    }
+
     // The function to get list of followings of the currently logged in user
     fun getLisOfFollowingsOfCurrentUser (callback: (arrayOfUserId: ArrayList<String>) -> Unit) {
         executor.execute {

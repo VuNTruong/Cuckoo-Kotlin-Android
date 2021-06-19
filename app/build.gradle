@@ -46,6 +46,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth:16.0.5'
     implementation 'com.google.android.gms:play-services-maps:17.0.0'
     implementation 'com.google.firebase:firebase-ml-vision:18.0.1'
+    implementation 'com.burhanrashid52:photoeditor:1.1.4'
+    api 'com.theartofdev.edmodo:android-image-cropper:2.8.+'
     implementation 'com.twilio:video-android:6.0.0'
     implementation 'com.google.firebase:firebase-messaging:17.3.4'
     testImplementation 'junit:junit:4.12'

@@ -1,37 +1,33 @@
 package com.beta.cuckoo.View.PostDetail
 
-import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import android.widget.EditText
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.beta.cuckoo.Network.*
-import com.beta.cuckoo.Network.Notifications.CreateNotificationService
-import com.beta.cuckoo.Interfaces.CreateNotificationInterface
 import com.beta.cuckoo.Model.CuckooPost
 import com.beta.cuckoo.Model.PostComment
 import com.beta.cuckoo.Model.PostPhoto
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.PostRepositories.PhotoRepository
 import com.beta.cuckoo.Repository.PostRepositories.PostRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterCuckooPostDetail
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.View.Menus.CommentOptionsMenu
+import com.beta.cuckoo.View.Menus.PostDetailSendImageMenu
 import com.beta.cuckoo.View.Menus.PostOptionsMenu
 import com.beta.cuckoo.ViewModel.PostViewModel
 import com.google.gson.Gson
 import io.socket.emitter.Emitter
-import kotlinx.android.synthetic.main.activity_hbtgram_post_detail.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.android.synthetic.main.activity_post_detail.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class PostDetail : AppCompatActivity(), CreateNotificationInterface {
+class PostDetail : AppCompatActivity() {
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -46,6 +42,9 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
 
     // The photo repository
     private lateinit var photoRepository: PhotoRepository
+
+    // Notification repository
+    private lateinit var notificationRepository: NotificationRepository
 
     // Adapter for the RecyclerView
     private var adapter: RecyclerViewAdapterCuckooPostDetail?= null
@@ -71,10 +70,13 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_hbtgram_post_detail)
+        setContentView(R.layout.activity_post_detail)
 
         // Hide the action bar
         supportActionBar!!.hide()
+
+        // Set this up so that keyboard won't push the whole layout up
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
         // Instantiate the user repository
         userRepository = UserRepository(executorService, applicationContext)
@@ -84,6 +86,9 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
 
         // Instantiate the photo repository
         photoRepository = PhotoRepository(executorService, applicationContext)
+
+        // Instantiate notification repository
+        notificationRepository = NotificationRepository(executorService, applicationContext)
 
         // Instantiate the post view model
         postViewModel = PostViewModel(applicationContext)
@@ -120,8 +125,8 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
         selectedPostObject = intent.getSerializableExtra("selectedPostObject") as CuckooPost
 
         // Instantiate the recycler view
-        hbtGramPostDetailView.layoutManager = LinearLayoutManager(applicationContext)
-        hbtGramPostDetailView.itemAnimator = DefaultItemAnimator()
+        postDetailView.layoutManager = LinearLayoutManager(applicationContext)
+        postDetailView.itemAnimator = DefaultItemAnimator()
 
         // Set up on click listener for the post comment button
         postCommentButtonPostDetail.setOnClickListener {
@@ -131,15 +136,11 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
 
         // Set up on click listener for the send image as comment button
         selectPictureForCommentButton.setOnClickListener {
-            // Start the activity where the user can choose image to send
-            // The intent object
-            val intent = Intent(applicationContext, PostDetailCommentSendImage::class.java)
+            // The bottom sheet object (post detail send image menu)
+            val bottomSheet = PostDetailSendImageMenu(this, selectedPostObject.getId())
 
-            // Put post id into the intent so that next activity will know which post to work with
-            intent.putExtra("postId", selectedPostObject.getId())
-
-            // Start the activity
-            startActivity(intent)
+            // Show the menu
+            bottomSheet.show(supportFragmentManager, "TAG")
         }
 
         // Call the function to get post detail
@@ -148,7 +149,6 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
         // Call the function to set up socket.io and make everything real time
         setUpSocketIO()
     }
-
 
     // THe function to set up socket.IO
     private fun setUpSocketIO () {
@@ -178,7 +178,7 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
         // Since this will update the view, it MUST run on the UI thread
         runOnUiThread{
             // Update the RecyclerView
-            hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
+            postDetailView.adapter!!.notifyDataSetChanged()
         }
     }
 
@@ -193,7 +193,7 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
             arrayOfComments.add(commentObject)
 
             // Update the RecyclerView
-            hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
+            postDetailView.adapter!!.notifyDataSetChanged()
         }
     }
     //************************* END CALL BACK FUNCTIONS FOR SOCKET.IO *************************
@@ -211,7 +211,8 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
             val photoObject = gs.fromJson<PostPhoto>(jsPhoto, PostPhoto::class.java)
 
             // Call the function to create new notification for the post writer
-            createNotification("commented", commentReceiverUserId, commentWriterId, photoObject.getImageURL(), selectedPostObject.getId())
+            notificationRepository.createNotificationObjectInDatabase("commented", commentReceiverUserId, commentWriterId, photoObject.getImageURL(), selectedPostObject.getId()) { }
+            notificationRepository.sendNotificationToAUser(commentReceiverUserId, "comment", "") { }
             //-------------- Image for the notification --------------
 
             // Emit event to the server and let the server know that new comment has been added
@@ -233,7 +234,7 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
             commentContentToPostEditText.setText("")
 
             // Reload the RecyclerView
-            hbtGramPostDetailView.adapter!!.notifyDataSetChanged()
+            postDetailView.adapter!!.notifyDataSetChanged()
             //-------------- End update the UI --------------
         }
     }
@@ -245,10 +246,10 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
         // Call the function to get detail info of the post
         postViewModel.getPostDetail(postId) {arrayOfImages, arrayOfComments ->
             // Update adapter for the RecyclerView
-            adapter = RecyclerViewAdapterCuckooPostDetail(selectedPostObject, arrayOfImages, arrayOfComments, this@PostDetail, this, this, executorService)
+            adapter = RecyclerViewAdapterCuckooPostDetail(selectedPostObject, arrayOfImages, arrayOfComments, this@PostDetail, this, executorService)
 
             // Add adapter to the RecyclerView
-            hbtGramPostDetailView.adapter = adapter
+            postDetailView.adapter = adapter
 
             // Update array of images
             this.arrayOfImages = arrayOfImages
@@ -282,33 +283,10 @@ class PostDetail : AppCompatActivity(), CreateNotificationInterface {
     }
     //*********************************** END GET AND UPDATE PHOTO LABEL VISIT ***********************************
 
-    //******************************** CREATE NOTIFICATION SEQUENCE ********************************
-    // The function to create new notification
-    override fun createNotification (content: String, forUser: String, fromUser: String, image: String, postId: String) {
-        // Create the create notification service
-        val createNotificationService: CreateNotificationService = RetrofitClientInstance.getRetrofitInstance(this)!!.create(
-            CreateNotificationService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = createNotificationService.createNewNotification(content, forUser, fromUser, image, postId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-
-            }
-        })
-    }
-    //******************************** END CREATE NOTIFICATION SEQUENCE ********************************
-
     //******************************** OPEN COMMENT OPTIONS MENU SEQUENCE ********************************
     fun openCommentOptionsMenu(commentId: String) {
         // The bottom sheet object (comment options menu)
-        val bottomSheet = CommentOptionsMenu(this, commentId)
+        val bottomSheet = CommentOptionsMenu(this, commentId, executorService)
 
         // Show the menu
         bottomSheet.show(supportFragmentManager, "TAG")

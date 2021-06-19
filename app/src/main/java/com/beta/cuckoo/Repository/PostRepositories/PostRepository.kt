@@ -14,6 +14,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.util.concurrent.Executor
+import java.util.stream.Stream
 
 class PostRepository (executor: Executor, context: Context) {
     // The executor to do work in background thread
@@ -333,7 +334,7 @@ class PostRepository (executor: Executor, context: Context) {
         }
     }
 
-    // The function to get post detail of the post with the specified post id
+    // The function to get post detail of the post with the specified post id (return array of comments and array of images)
     fun getPostDetail (postId: String, callback: (arrayOfImages: ArrayList<PostPhoto>, arrayOfComments: ArrayList<PostComment>, status: String) -> Unit) {
         executor.execute{
             // Create the get post detail service
@@ -614,6 +615,31 @@ class PostRepository (executor: Executor, context: Context) {
                     } else {
                         print("Something is not right")
                     }
+                }
+            })
+        }
+    }
+
+    // The function to update post with specified post id
+    fun updatePost (postId: String, postContent: String, callback: (isUpdated: Boolean) -> Unit) {
+        executor.execute {
+            // Create the update post service
+            val updatePostService: UpdatePostService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                UpdatePostService::class.java
+            )
+
+            // Create the call object to perform the call
+            val call: Call<Any> = updatePostService.updatePost(postContent, postId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // Let the view know that post has been updated
+                    callback(true)
+                }
+
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("Something is not right")
                 }
             })
         }

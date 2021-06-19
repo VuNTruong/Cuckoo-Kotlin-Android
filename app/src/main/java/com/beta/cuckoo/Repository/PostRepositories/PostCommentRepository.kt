@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import com.beta.cuckoo.Network.LikesAndComments.CreateNewPostCommentPhotoService
 import com.beta.cuckoo.Network.LikesAndComments.CreateNewPostCommentService
+import com.beta.cuckoo.Network.LikesAndComments.DeleteCommentService
 import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.MainMenu.MainMenu
@@ -111,6 +112,39 @@ class PostCommentRepository (executor: Executor, context: Context) {
                     }
                 })
             }
+        }
+    }
+
+    // The function to delete a comment with specified comment id
+    fun deleteComment (commentId: String, callback: (isDeleted: Boolean) -> Unit) {
+        executor.execute {
+            // Create the delete comment service
+            val deleteCommentService: DeleteCommentService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                DeleteCommentService::class.java
+            )
+
+            // Create the call object to perform the call
+            val call: Call<Any> = deleteCommentService.deleteComment(commentId)
+
+            // Perform the call
+            call.enqueue(object : Callback<Any> {
+                override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                    // If the response body is not null, it means that comment has been removed
+                    if (response.body() != null) {
+                        // Let the view know that comment has been deleted
+                        callback(true)
+                    } else {
+                        // Let the view know that comment has not been deleted
+                        callback(false)
+                    }
+                }
+
+                override fun onFailure(call: Call<Any>, t: Throwable) {
+                    print("These seem to be an error")
+                    // Let the view know that comment has not been deleted
+                    callback(false)
+                }
+            })
         }
     }
 }

@@ -15,6 +15,7 @@ import com.beta.cuckoo.Model.PostComment
 import com.beta.cuckoo.Model.PostPhoto
 import com.beta.cuckoo.Model.User
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.NotificationRepositories.NotificationRepository
 import com.beta.cuckoo.Repository.PostRepositories.PostRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.View.PostDetail.PostDetail
@@ -27,24 +28,24 @@ import java.util.concurrent.ExecutorService
 
 class RecyclerViewAdapterCuckooPostDetail (cuckooPost: CuckooPost, arrayOfImages: ArrayList<PostPhoto>,
                                            arrayOfComments: ArrayList<PostComment>, cuckooPostDetail: PostDetail,
-                                           activity: Activity, createNotificationInterface: CreateNotificationInterface, executorService: ExecutorService) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+                                           activity: Activity, executorService: ExecutorService) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    // The executor service
+    private val executorService = executorService
+
     // The post repository
     private val postRepository: PostRepository = PostRepository(executorService, activity)
 
     // The user info repository
     private val userInfoRepository: UserRepository = UserRepository(executorService, activity)
 
-    // The executor service
-    private val executorService = executorService
+    // The notification repository
+    private val notificationRepository: NotificationRepository = NotificationRepository(executorService, activity)
 
     // The selected HBTGram post object
     private val CuckooPost = cuckooPost
 
     // Activity of the parent activity
     private val CuckooPostDetailActivity = cuckooPostDetail
-
-    // Create notification interface
-    private val createNotificationInterface = createNotificationInterface
 
     // Array of images of the post
     private val arrayOfImages = arrayOfImages
@@ -324,7 +325,8 @@ class RecyclerViewAdapterCuckooPostDetail (cuckooPost: CuckooPost, arrayOfImages
         // Call the function to create new like
         postRepository.createLikeForPost(postId) {likerId ->
             // Call the function to send notification
-            createNotificationInterface.createNotification("liked", likeReceiverId, likerId, "", postId)
+            notificationRepository.createNotificationObjectInDatabase("liked", likeReceiverId, likerId, "", postId) { }
+            notificationRepository.sendNotificationToAUser(likeReceiverId, "like", "") { }
         }
     }
     //*********************************** END CREATE NEW LIKE SEQUENCE ***********************************
@@ -395,36 +397,36 @@ class RecyclerViewAdapterCuckooPostDetail (cuckooPost: CuckooPost, arrayOfImages
         when(viewType) {
             // View type 0 is for the header
             0 -> {
-                view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_header, parent, false)
+                view = LayoutInflater.from(parent.context).inflate(R.layout.post_detail_header, parent, false)
                 return ViewHolderCuckooPostDetailHeader(view)
             }
             // View type 1 is for the post content
             1 -> {
-                view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_post_content, parent, false)
+                view = LayoutInflater.from(parent.context).inflate(R.layout.post_detail_post_content, parent, false)
                 return ViewHolderCuckooPostDetailPostContent(view)
             }
             // View type 2 is for the post photo
             2 -> {
-                view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_post_photo, parent, false)
+                view = LayoutInflater.from(parent.context).inflate(R.layout.post_detail_post_photo, parent, false)
                 return ViewHolderCuckooPostPhotos(view)
             }
             // View type 3 is for the number of comments and likes
             3 -> {
-                view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_num_of_likes_and_comments, parent, false)
+                view = LayoutInflater.from(parent.context).inflate(R.layout.post_detail_num_of_likes_and_comments, parent, false)
                 return ViewHolderNumOfLikesAndComments(view)
             }
             // View type 4 is for the comments
             4 -> {
-                view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_comment, parent, false)
+                view = LayoutInflater.from(parent.context).inflate(R.layout.post_detail_comment, parent, false)
                 return ViewHolderPostComments(view)
             } // view type 5 is for the comments with photo
             5 -> {
-                view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_comment_with_photo, parent, false)
+                view = LayoutInflater.from(parent.context).inflate(R.layout.post_detail_comment_with_photo, parent, false)
                 return ViewHolderPostCommentsWithPhoto(view)
             }
             // View type 6 is for the blank row
             else -> {
-                view = LayoutInflater.from(parent.context).inflate(R.layout.hbt_gram_post_detail_no_comments, parent, false)
+                view = LayoutInflater.from(parent.context).inflate(R.layout.post_detail_no_comments, parent, false)
                 return ViewHolderNoComments(view)
             }
         }

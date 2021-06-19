@@ -49,7 +49,7 @@ class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
     private lateinit var adapter: RecyclerViewAdapterProfileDetail
 
     // User object of the user
-    private var userObject = User("", "", "", "", "", "")
+    private var userObject = User("", "", "", "", "", "", "")
 
     // Array of images
     private var arrayOfImages = ArrayList<PostPhoto>()
@@ -132,11 +132,37 @@ class ProfileDetail : AppCompatActivity(), CreateNotificationInterface {
             // Set the array of images be the one we just got
             arrayOfImages = arrayOfImagesByUser
 
-            // Update the adapter
-            adapter = RecyclerViewAdapterProfileDetail(arrayOfImages, userObject, this@ProfileDetail, currentUser, userRepository, postRepository, messageRepository, followRepository)
+            // Call the function to check and see if user being viewed here set profile to be private or not
+            userRepository.getPrivateProfileStatusOfUser(userObject.getId()) {privateProfile ->
+                // If user profile is private, call the function to check and see if this user follow current user or not
+                if (privateProfile == "Private") {
+                    // Call the function to check and see if this user follow current user or not
+                    followRepository.checkFollowStatusBetweenSpecifiedUserAndCurrentUser(userObject.getId()) {followStatus ->
+                        // If yes, show media content of this user
+                        if (followStatus == "Yes") {
+                            // Update the adapter
+                            adapter = RecyclerViewAdapterProfileDetail(arrayOfImages, userObject, this@ProfileDetail, currentUser, userRepository, postRepository, messageRepository, followRepository, true)
 
-            // Add adapter to the RecyclerView
-            profileDetailView.adapter = adapter
+                            // Add adapter to the RecyclerView
+                            profileDetailView.adapter = adapter
+                        } // Otherwise, don't show the media content
+                        else {
+                            // Update the adapter
+                            adapter = RecyclerViewAdapterProfileDetail(arrayOfImages, userObject, this@ProfileDetail, currentUser, userRepository, postRepository, messageRepository, followRepository, false)
+
+                            // Add adapter to the RecyclerView
+                            profileDetailView.adapter = adapter
+                        }
+                    }
+                } // Otherwise, show media content of this user
+                else {
+                    // Update the adapter
+                    adapter = RecyclerViewAdapterProfileDetail(arrayOfImages, userObject, this@ProfileDetail, currentUser, userRepository, postRepository, messageRepository, followRepository, false)
+
+                    // Add adapter to the RecyclerView
+                    profileDetailView.adapter = adapter
+                }
+            }
         }
     }
     //******************************************* END LOAD INFO OF USER SEQUENCE *******************************************

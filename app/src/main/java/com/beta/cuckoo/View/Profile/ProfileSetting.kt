@@ -30,7 +30,7 @@ class ProfileSetting : AppCompatActivity() {
     private var adapter: RecyclerViewAdapterProfilePage?= null
 
     // User object of the currently logged in user
-    private var currentUserObject = User("", "", "", "", "", "")
+    private var currentUserObject = User("", "", "", "", "", "", "")
 
     // Maps of fields with value
     private var mapOfFields = HashMap<String, Any>()
@@ -101,7 +101,8 @@ class ProfileSetting : AppCompatActivity() {
                 "email" to userObject.getEmail(),
                 "userId" to userObject.getId(),
                 "avatarURL" to userObject.getAvatarURL(),
-                "coverURL" to userObject.getCoverURL()
+                "coverURL" to userObject.getCoverURL(),
+                "bio" to userObject.getBio()
             )
 
             // Update the adapter

@@ -53,10 +53,17 @@ class AudioChatIncomingCall : AppCompatActivity() {
 
                     // Finishing the activity
                     finish()
+                } else if (action == "callAcceptedOnOneDevice") {
+                    // Stop the sound
+                    mp.stop()
+
+                    // Finish the activity
+                    finish()
                 }
             }
         }
         registerReceiver(broadcastReceiver, IntentFilter("finish"))
+        registerReceiver(broadcastReceiver, IntentFilter("callAcceptedOnOneDevice"))
 
         // Get chat room id from previous activity
         chatRoomId = intent.getStringExtra("chatRoomId") as String
@@ -84,26 +91,33 @@ class AudioChatIncomingCall : AppCompatActivity() {
 
         // Set on click listener for the answer button
         acceptCallButtonAudioCall.setOnClickListener {
-            // Intent object
-            val intent = Intent(applicationContext, AudioChat::class.java)
+            // Call the function which will send notification to the currently logged in user himself or herself to let other devices
+            // used by currently logged in user know that call has been accepted on current device and shut off ringing sounds on every
+            // other devices
+            userRepository.getInfoOfCurrentUser { userObject ->
+                notificationRepository.sendNotificationToAUser(userObject.getId(), "callAcceptedOnOneDevice", "callAcceptedOnOneDevice") {
+                    // Intent object
+                    val intent = Intent(applicationContext, AudioChat::class.java)
 
-            // Pass chat room id to the video chat activity
-            intent.putExtra("chatRoomId", chatRoomId)
+                    // Pass chat room id to the video chat activity
+                    intent.putExtra("chatRoomId", chatRoomId)
 
-            // Pass caller user id to the next activity
-            intent.putExtra("callReceiver", callerUserId)
+                    // Pass caller user id to the next activity
+                    intent.putExtra("callReceiver", callerUserId)
 
-            // Start the video chat activity
-            startActivity(intent)
+                    // Start the video chat activity
+                    startActivity(intent)
 
-            // Stop the cuckoo sound
-            stopCuckooSound()
+                    // Stop the cuckoo sound
+                    stopCuckooSound()
 
-            // Unregister the broadcast receiver
-            unregisterReceiver(broadcastReceiver)
+                    // Unregister the broadcast receiver
+                    unregisterReceiver(broadcastReceiver)
 
-            // Finish this activity
-            this.finish()
+                    // Finish this activity
+                    this.finish()
+                }
+            }
         }
 
         // Set on click listener for the decline button

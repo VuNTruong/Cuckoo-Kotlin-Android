@@ -143,7 +143,30 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
         }
     }
 
-    // ViewHolder for the profile setting item
+    // ViewHolder for the edit bio row
+    inner class ViewHolderEditBio internal constructor(itemView: View) :
+        RecyclerView.ViewHolder(itemView) {
+        // Components from the layout
+        private val editBioEditText: EditText = itemView.findViewById(R.id.editTextEditBio)
+        private val submitEditBioButton: ImageView = itemView.findViewById(R.id.submitUpdateBioButton)
+
+        // The function to set up edit bio row
+        fun setUpEditBio (bioContent: String) {
+            // Load bio content into the text view
+            editBioEditText.setText(bioContent)
+
+            // Set on click listener for the submit button
+            submitEditBioButton.setOnClickListener {
+                // Update the bio inside the map of user info
+                mapOfFields["bio"] = editBioEditText.text.toString()
+
+                // Call the function to update user info
+                updateCurrentUserInfo()
+            }
+        }
+    }
+
+    // ViewHolder for the location switch
     inner class ViewHolderUpdateLocationEnable internal constructor(itemView: View) :
         RecyclerView.ViewHolder(itemView) {
         // Components from the layout
@@ -161,7 +184,7 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
 
             // Set switch listener for the switch so that the switch can listen to changes
             locationEnableSwitch.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { _, isChecked ->
-                // If the switch is turned on, call the function to create a trust between the 2 users
+                // If the switch is turned on, call the function to enable user location
                 if (isChecked) {
                     // Enable location
                     locationRepository.updateLocationEnableStatusOfCurrentUser("Enabled") {isUpdated ->
@@ -170,13 +193,57 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
                             locationEnableSwitch.text = "On"
                         }
                     }
-                } // If the switch is turned off, call the function to remove a trust between the 2 users
+                } // If the switch is turned off, call the function to disable user location
                 else {
                     // Disable location
                     locationRepository.updateLocationEnableStatusOfCurrentUser("Disabled") {isUpdated ->
                         // If location is disabled, change status of the switch to be "Off"
                         if (isUpdated) {
                             locationEnableSwitch.text = "Off"
+                        }
+                    }
+                }
+            })
+        }
+    }
+
+    // ViewHolder for the update profile private status row
+    inner class ViewHolderUpdateProfilePrivateStatus internal constructor(itemView: View) :
+        RecyclerView.ViewHolder(itemView) {
+        // Components from the layout
+        private val privateProfileSwitch: Switch = itemView.findViewById(R.id.enablePrivateProfileSwitch)
+
+        // The function to set up private profile status switch
+        fun setUpPrivateProfileStatusSwitch () {
+            // Call the function to get private profile status of the currently logged in user
+            userRepository.getPrivateProfileStatusOfCurrentUser { privateProfile ->
+                if (privateProfile == "Open") {
+                    privateProfileSwitch.isChecked = false
+                    privateProfileSwitch.text = "Open"
+                } else {
+                    privateProfileSwitch.isChecked = true
+                    privateProfileSwitch.text = "Private"
+                }
+            }
+
+            // Set switch listener for the switch so that the switch can listen for changes
+            privateProfileSwitch.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { _, isChecked ->
+                // If the switch is turned on, call the function to change user private profile status to "Private"
+                if (isChecked) {
+                    // Enable private profile
+                    userRepository.updatePrivateProfileStatusOfCurrentUser("Private") {isUpdated ->
+                        // If private profile is enabled, change status of the switch to "Private"
+                        if (isUpdated) {
+                            privateProfileSwitch.text = "Private"
+                        }
+                    }
+                } // If the switch is turned off, call the function to change user private profile status to "Open"
+                else {
+                    // Disable private profile
+                    userRepository.updatePrivateProfileStatusOfCurrentUser("Open") {isUpdated ->
+                        // If private profile is disabled, change status of the switch to "Open"
+                        if (isUpdated) {
+                            privateProfileSwitch.text = "Open"
                         }
                     }
                 }
@@ -217,18 +284,32 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
                 // Return the view holder
                 ViewHolderProfileSettingItem(view)
             } // View type 2 is for the location update switch
-            else -> {
+            2 -> {
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.profile_page_item_update_bio, parent, false)
+
+                // Return the view holder
+                ViewHolderEditBio(view)
+            } // View type 3 is for the location switch
+            3 -> {
                 view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.profile_page_item_update_location_enable, parent, false)
 
                 // Return the view holder
                 ViewHolderUpdateLocationEnable(view)
+            } // View type 4 is for the private profile switch
+            else -> {
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.profile_page_item_go_private, parent, false)
+
+                // Return the view holder
+                ViewHolderUpdateProfilePrivateStatus(view)
             }
         }
     }
 
     override fun getItemCount(): Int {
-        return 5
+        return 7
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -244,12 +325,22 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
             2 -> {
                 // Third row will show the email
                 (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Email", userObject.getEmail(), R.drawable.ic_email_black_24dp, "email")
-            } 3 -> {
-                // Third row will show the password
+            }
+            3 -> {
+                // Fourth row will show the password
                 (holder as ViewHolderProfileSettingItem).setUpProfileSettingItem("Password", "***********", R.drawable.ic_baseline_lock_24, "password")
-            } else -> {
-                // Last row will be the enable location switch
+            }
+            4 -> {
+                // Fifth row will show the bio
+                (holder as ViewHolderEditBio).setUpEditBio(userObject.getBio())
+            }
+            5 -> {
+                // Sixth row will be the private enable location switch
                 (holder as ViewHolderUpdateLocationEnable).setUpLocationEnableSwitch()
+            }
+            else -> {
+                // Last row will be the private profile switch
+                (holder as ViewHolderUpdateProfilePrivateStatus).setUpPrivateProfileStatusSwitch()
             }
         }
     }
@@ -262,10 +353,16 @@ class RecyclerViewAdapterProfilePage (userObject: User, mapOfFields: HashMap<Str
             } // From 1 to 3 will be basic info
             in 1..3 -> {
                 1
-            }
-            // Last row will be the update location enable switch
-            else -> {
+            } // 4 will be the bio edit
+            4 -> {
                 2
+            }
+            // 5 will be the update location enable switch
+            5 -> {
+                3
+            } // Last row will be the private profile switch
+            else -> {
+                4
             }
         }
     }

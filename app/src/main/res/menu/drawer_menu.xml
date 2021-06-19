@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:title="HBTGram">
+    <item android:title="Social">
         <menu>
             <item android:id="@+id/nav_dashboard"
                 android:icon="@drawable/ic_dashboard_black_24dp"
-                android:title="Home page"/>
+                android:title="News feed"/>
+
+            <item android:id="@+id/nav_list_of_posts_around"
+                android:icon="@drawable/ic_search_black_24dp"
+                android:title="Posts around"/>
 
             <item android:id="@+id/nav_chat"
                 android:icon="@drawable/ic_chat_black_24dp"
@@ -14,53 +18,45 @@
                 android:icon="@drawable/ic_create_black_24dp"
                 android:title="Create"/>
 
-            <item android:id="@+id/nav_profile"
-                android:icon="@drawable/ic_settings_black_24dp"
-                android:title="Profile settings"/>
-
-            <item android:id="@+id/nav_recommend_album"
-                android:icon="@drawable/ic_person_pin_black_24dp"
-                android:title="Explore"/>
-
             <item android:id="@+id/nav_notifications"
                 android:icon="@drawable/ic_notifications_black_24dp"
                 android:title="Notifications"/>
-
-            <item android:id="@+id/nav_signout"
-                android:icon="@drawable/ic_close_black_24dp"
-                android:title="Sign out"/>
         </menu>
     </item>
 
-    <item android:title="Make friends">
-        <menu>
-            <item android:id="@+id/nav_personal_profile_page"
-                android:icon="@drawable/ic_person_pin_black_24dp"
-                android:title="My personal profile page"/>
-
-            <item android:id="@+id/nav_user_stats"
-                android:icon="@drawable/ic_featured_play_list_black_24dp"
-                android:title="Activity summary"/>
-        </menu>
-    </item>
-
-    <item android:title="What's around">
+    <item android:title="Explore">
         <menu>
             <item android:id="@+id/nav_list_of_users_around"
                 android:icon="@drawable/ic_search_black_24dp"
                 android:title="Who's around"/>
 
-            <item android:id="@+id/nav_list_of_posts_around"
-                android:icon="@drawable/ic_search_black_24dp"
-                android:title="What's going on around"/>
+            <item android:id="@+id/nav_recommend_album"
+                android:icon="@drawable/ic_person_pin_black_24dp"
+                android:title="Explore"/>
+
+            <item android:id="@+id/nav_update_location"
+                android:icon="@drawable/ic_edit_location_black_24dp"
+                android:title="Locations"/>
         </menu>
     </item>
 
-    <item android:title="Locations">
+    <item android:title="Account">
         <menu>
-            <item android:id="@+id/nav_update_location"
-                android:icon="@drawable/ic_edit_location_black_24dp"
-                android:title="Locations (Beta)"/>
+            <item android:id="@+id/nav_personal_profile_page"
+                android:icon="@drawable/ic_person_pin_black_24dp"
+                android:title="My personal profile page"/>
+
+            <item android:id="@+id/nav_profile"
+                android:icon="@drawable/ic_settings_black_24dp"
+                android:title="Account settings"/>
+
+<!--            <item android:id="@+id/nav_user_stats"-->
+<!--                android:icon="@drawable/ic_featured_play_list_black_24dp"-->
+<!--                android:title="Activity"/>-->
+
+            <item android:id="@+id/nav_signout"
+                android:icon="@drawable/ic_close_black_24dp"
+                android:title="Sign out"/>
         </menu>
     </item>
 </menu>

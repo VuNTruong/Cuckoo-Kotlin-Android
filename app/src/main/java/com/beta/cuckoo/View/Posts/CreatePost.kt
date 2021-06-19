@@ -5,17 +5,23 @@ import android.content.Intent
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.MediaStore
+import android.util.Log
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.PostRepositories.CreatePostRepository
 import com.beta.cuckoo.View.Adapters.RecyclerViewAdapterPostPhoto
+import com.theartofdev.edmodo.cropper.CropImage
+import com.theartofdev.edmodo.cropper.CropImageView
 import kotlinx.android.synthetic.main.activity_create_post.*
-import kotlinx.android.synthetic.main.activity_notification.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class CreatePost : AppCompatActivity() {
+    private val GALLERY_REQUEST_CODE = 1234
+    private val TAG: String = "AppDebug"
+
     // Executor service to perform works in the background
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
 
@@ -63,7 +69,8 @@ class CreatePost : AppCompatActivity() {
         // Add on click listener for the choose photo button
         choosePhotoButton.setOnClickListener {
             // Call the function to open the file choose
-            fileChooser()
+            //fileChooser()
+            pickFromGallery()
         }
 
         // Set on click listener for the create post button
@@ -77,33 +84,36 @@ class CreatePost : AppCompatActivity() {
     /*
     In this sequence, we will do 2 things
     1. Let user choose image from file
-    2. Load image into the list of chosen images
+    2. Let the user crop it
      */
-
-    // The function to open file chooser to get the image
-    private fun fileChooser() {
-        // Create the new intent in order to come to the file chooser
-        val intent = Intent()
-
-        // Set the intent to just pick the image
-        intent.type = "image/*"
-        intent.action = Intent.ACTION_GET_CONTENT
-
-        // Star the activity to get the image
-        startActivityForResult(intent, 0)
-    }
 
     // The function to load newly picked image into the array of selected images
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        // Add the selected image's Uri into the array of selected images
-        if (resultCode == Activity.RESULT_OK && data != null && data.data != null) {
-            selectedImages.add(data.data!!)
-        }
+        when (requestCode) {
 
-        // Reload the RecyclerView
-        photoOfPostToCreate.adapter!!.notifyDataSetChanged()
+            GALLERY_REQUEST_CODE -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    data?.data?.let { uri ->
+                        launchImageCrop(uri)
+                    }
+                }
+                else{
+                    Log.e(TAG, "Image selection error: Couldn't select that image from memory." )
+                }
+            }
+
+            CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE -> {
+                val result = CropImage.getActivityResult(data)
+                if (resultCode == Activity.RESULT_OK) {
+                    setImage(result.uri)
+                }
+                else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                    Log.e(TAG, "Crop error: ${result.getError()}" )
+                }
+            }
+        }
     }
 
     // We also have a function here which will help removing image from list of chosen images in the list
@@ -115,6 +125,7 @@ class CreatePost : AppCompatActivity() {
         // Update the RecyclerView
         photoOfPostToCreate.adapter!!.notifyDataSetChanged()
     }
+
     //******************************* END CHOOSE IMAGE SEQUENCE *******************************
 
     //******************************* CREATE POST SEQUENCE *******************************
@@ -131,5 +142,31 @@ class CreatePost : AppCompatActivity() {
     private fun createPost (postContent: String, numOfImages: Int) {
         // Call the function to start creating post
         createPostRepository.createNewPost(postContent, numOfImages, selectedImages)
+    }
+
+    // The function to add image to array of selected images and update list of selected images
+    private fun setImage(uri: Uri){
+        selectedImages.add(uri)
+        // Update the RecyclerView
+        photoOfPostToCreate.adapter!!.notifyDataSetChanged()
+    }
+
+    // The function to launch image crop
+    private fun launchImageCrop(uri: Uri){
+        CropImage.activity(uri)
+            .setGuidelines(CropImageView.Guidelines.ON)
+            .setAspectRatio(3000, 2000)
+            .setCropShape(CropImageView.CropShape.RECTANGLE) // default is rectangle
+            .start(this)
+    }
+
+    // The function to take user to the activity where user can pick an image
+    private fun pickFromGallery() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        intent.type = "image/*"
+        val mimeTypes = arrayOf("image/jpeg", "image/png", "image/jpg")
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        startActivityForResult(intent, GALLERY_REQUEST_CODE)
     }
 }

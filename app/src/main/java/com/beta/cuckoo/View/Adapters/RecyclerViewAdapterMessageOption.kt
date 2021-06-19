@@ -1,6 +1,8 @@
 package com.beta.cuckoo.View.Adapters
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.app.ProgressDialog
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
@@ -8,18 +10,22 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
+import com.beta.cuckoo.Interfaces.ChatMessageOptionsInterface
 import com.beta.cuckoo.Model.Message
 import com.beta.cuckoo.Model.MessagePhoto
 import com.beta.cuckoo.R
+import com.beta.cuckoo.Repository.MessageRepositories.MessageRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserBlockRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
 import com.beta.cuckoo.Repository.UserRepositories.UserTrustRepository
 import com.beta.cuckoo.View.AudioChat.AudioChat
+import com.beta.cuckoo.View.Menus.TrustModeLearnMoreMenu
 import com.beta.cuckoo.View.Profile.ProfileDetail
 import com.beta.cuckoo.View.VideoChat.VideoChat
 import com.beta.cuckoo.View.ZoomImage
 import com.bumptech.glide.Glide
 import com.google.gson.Gson
+import org.jetbrains.anko.find
 
 
 class RecyclerViewAdapterMessageOption(
@@ -29,6 +35,8 @@ class RecyclerViewAdapterMessageOption(
     userRepository: UserRepository,
     userBlockRepository: UserBlockRepository,
     userTrustRepository: UserTrustRepository,
+    messageRepository: MessageRepository,
+    chatMessageOptionsInterface: ChatMessageOptionsInterface,
     arrayOfMessagePhotos: ArrayList<MessagePhoto>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // User id of the message receiver
@@ -55,6 +63,12 @@ class RecyclerViewAdapterMessageOption(
     // User trust repository
     private val userTrustRepository = userTrustRepository
 
+    // Message repository
+    private val messageRepository = messageRepository
+
+    // Chat message options interface (this will be used to call the function to open learn more menu)
+    private val chatMessageOptionsInterface = chatMessageOptionsInterface
+
     //*********************************** VIEW HOLDERS FOR THE RECYCLER VIEW ***********************************
     // ViewHolder for the message option menu header
     inner class ViewHolderMessageOptionMenuHeader internal constructor(itemView: View) :
@@ -63,6 +77,7 @@ class RecyclerViewAdapterMessageOption(
         private val messageReceiverAvatar : ImageView = itemView.findViewById(R.id.messageReceiverAvatarMessageOption)
         private val messageReceiverFullName : TextView = itemView.findViewById(R.id.messageReceiverFullNameMessageOption)
         private val trustModeSwitch : Switch = itemView.findViewById(R.id.turnOnTrustModeSwitch)
+        private val learnMoreButton: TextView = itemView.findViewById(R.id.learnMoreButton)
         private val profileButton : ConstraintLayout = itemView.findViewById(R.id.profileButtonMessageOptions)
         private val videoCallButton : ConstraintLayout = itemView.findViewById(R.id.videoCallButtonMessageOption)
         private val audioCallButton : ConstraintLayout = itemView.findViewById(R.id.audioCallButtonMessageOption)
@@ -85,39 +100,18 @@ class RecyclerViewAdapterMessageOption(
                 trustModeSwitch.isChecked = isTrusted
             }
 
-            /*
-            // Ask the user to make sure that user really wants to delete post
-            // build alert dialog
-            val dialogBuilder = AlertDialog.Builder(context)
-            dialogBuilder.setMessage("Are you sure that you want to turn on trust mode?")
-                // User say yes
-                .setPositiveButton("Yes") { _, _ ->
-                    // Create a trust
-                    userTrustRepository.createATrustBetweenCurrentUserAndOtherUser(userId) {isCreated ->
-                        // If trust is created, change text of the switch to be on
-                        if (isCreated) {
-                            trustModeSwitch.text = "On"
-                        }
-                    }
-                }
-                // User say no
-                .setNegativeButton("Hang on!") { _, _ ->
-                    // Bring the switch back to uncheck
-                    trustModeSwitch.isChecked = false
-                    isDone = true
-                }
-
-            val alert = dialogBuilder.create()
-            alert.setTitle("Turn on trust mode")
-            alert.show()
-             */
+            // Set on click listener for the learn more button
+            learnMoreButton.setOnClickListener{
+                // Call the function to open learn more menu
+                chatMessageOptionsInterface.openLearnMore()
+            }
 
             // Set switch listener for the switch so that the switch can listen to changes
-            trustModeSwitch.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { _, isChecked ->
+            trustModeSwitch.setOnCheckedChangeListener { _, isChecked ->
                 // If the switch is turned on, call the function to create a trust between the 2 users
                 if (isChecked) {
                     // Create a trust
-                    userTrustRepository.createATrustBetweenCurrentUserAndOtherUser(userId) {isCreated ->
+                    userTrustRepository.createATrustBetweenCurrentUserAndOtherUser(userId) { isCreated ->
                         // If trust is created, change text of the switch to be on
                         if (isCreated) {
                             trustModeSwitch.text = "On"
@@ -125,14 +119,14 @@ class RecyclerViewAdapterMessageOption(
                     }
                 } // If the switch is turned off, call the function to remove a trust between the 2 users
                 else {
-                    userTrustRepository.deleteATrustBetweenCurrentUserAndOtherUser(userId) {isDeleted ->
+                    userTrustRepository.deleteATrustBetweenCurrentUserAndOtherUser(userId) { isDeleted ->
                         // If trust is removed, change text of the switch to be off
                         if (isDeleted) {
                             trustModeSwitch.text = "Off"
                         }
                     }
                 }
-            })
+            }
 
             // Set up on click listener for the profile button
             profileButton.setOnClickListener {
@@ -352,7 +346,23 @@ class RecyclerViewAdapterMessageOption(
             (holder as ViewHolderMessageOptionMoreOptions).setUpMenuOptionRow(
                 "Delete conversation",
                 R.drawable.ic_baseline_delete_24,
-                View.OnClickListener { })
+                View.OnClickListener {
+                    // Ask the user to make sure that user really wants to delete message room
+                    // build alert dialog
+                    val dialogBuilder = AlertDialog.Builder(context)
+                    dialogBuilder.setMessage("Are you sure that you want delete this conversation? All messages and media content will be deleted as well")
+                        // User say yes
+                        .setPositiveButton("Yes") { _, _ ->
+                            // Call the function to start deleting conversation
+                            deleteConversation(chatRoomId)
+                        }
+                        // User say no
+                        .setNegativeButton("Hang on!") { _, _ -> }
+
+                    val alert = dialogBuilder.create()
+                    alert.setTitle("Delete conversation")
+                    alert.show()
+                })
         }
         // Next row will be the block button
         else if (position == 2) {
@@ -500,4 +510,45 @@ class RecyclerViewAdapterMessageOption(
             }
         }
     }
+
+    //*************************** DELETE CONVERSATION ***************************
+    // The function to delete conversation
+    fun deleteConversation (chatRoomId: String) {
+        // Show the waiting indicator
+        val progress = ProgressDialog(context)
+        progress.setTitle("Processing...")
+        progress.setMessage("Hang on while we are deleting conversation...")
+        progress.setCancelable(false) // disable dismiss by tapping outside of the dialog
+
+        // Show the progress bar
+        progress.show()
+
+        // Call the function to delete the message room
+        messageRepository.deleteChatRoom(chatRoomId) {isDeleted ->
+            if (isDeleted) {
+                // Dismiss the waiting dialog
+                progress.dismiss()
+
+                // build alert dialog
+                val dialogBuilder = AlertDialog.Builder(context)
+
+                // set message of alert dialog
+                dialogBuilder.setMessage("Post has been deleted")
+                    // if the dialog is cancelable
+                    .setCancelable(false)
+                    // positive button text and action
+                    .setPositiveButton("OK") { _, _ -> }
+
+                // create dialog box
+                val alert = dialogBuilder.create()
+                // set title for alert dialog box
+                alert.setTitle("Success!")
+                // show alert dialog
+                alert.show()
+            } else {
+                Toast.makeText(context, "Something is not right, please try again", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    //*************************** END DELETE CONVERSATION ***************************
 }

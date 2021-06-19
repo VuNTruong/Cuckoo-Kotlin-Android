@@ -29,6 +29,7 @@ import com.beta.cuckoo.View.Profile.ProfileDetail
 import com.beta.cuckoo.View.Profile.ProfileSetting
 import com.beta.cuckoo.View.UserInfoView.ActivitySummary
 import com.beta.cuckoo.View.WelcomeView.WelcomeActivity
+import com.bumptech.glide.Glide
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -37,6 +38,7 @@ import com.google.gson.Gson
 import io.socket.client.IO
 import io.socket.client.Socket
 import kotlinx.android.synthetic.main.activity_main_menu.*
+import kotlinx.android.synthetic.main.nav_header.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -240,6 +242,7 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                 // Override the pending animation
                 overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
             }
+            /*
             R.id.nav_user_stats -> {
                 // Go to the activity where user can chat
                 val intent = Intent(applicationContext, ActivitySummary::class.java)
@@ -248,6 +251,7 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                 // Override the pending animation
                 overridePendingTransition(R.animator.slide_in_right, R.animator.slide_out_left)
             }
+             */
             R.id.nav_recommend_album -> {
                 // Go to the activity where user can chat
                 val intent = Intent(applicationContext, PostRecommend::class.java)
@@ -303,7 +307,6 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
                 notificationRepository.deleteNotificationSocket(userObject.getId(), token) {
                     // Sign the user out with FirebaseAuth
                     mAuth.signOut()
-                    //FirebaseAuth.getInstance().signOut()
 
                     // Go to the main page activity
                     val intent = Intent(applicationContext, WelcomeActivity::class.java)
@@ -320,20 +323,6 @@ class MainMenu : AppCompatActivity(), NavigationView.OnNavigationItemSelectedLis
     fun getCurrentUserInfo() {
         // Call the function to get info of the currently logged in user
         userRepository.getInfoOfCurrentUser { userObject ->
-            /*
-                    // Load full name into the TextView
-                    userFullNameDrawerMenu.text = userObject.getFullName()
-
-                    // Load email into the TextView
-                    userEmailDrawerMenu.text = userObject.getEmail()
-
-                    // Load avatar into the ImageView
-                    Glide.with(applicationContext)
-                        .load(userObject.getAvatarURL())
-                        .into(userAvatarDrawerMenu)
-
-                     */
-
             // Update current user object for this activity
             currentUserObject = userObject
 

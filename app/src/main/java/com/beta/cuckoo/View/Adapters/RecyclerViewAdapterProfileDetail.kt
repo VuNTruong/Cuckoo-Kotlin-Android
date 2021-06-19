@@ -27,7 +27,7 @@ import com.bumptech.glide.Glide
 import com.google.gson.Gson
 
 class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, userObject: User, activity: ProfileDetail, currentUser: Boolean,
-                                        userRepository: UserRepository, postRepository: PostRepository, messageRepository: MessageRepository, followRepository: FollowRepository) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+                                        userRepository: UserRepository, postRepository: PostRepository, messageRepository: MessageRepository, followRepository: FollowRepository, isPrivateProfile: Boolean) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     // Array of photos created by the user
     private val arrayOfPhotos = arrayOfPhotos
 
@@ -52,6 +52,9 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
     // Follow repository
     private val followRepository = followRepository
 
+    // Private profile status
+    private val isPrivateProfile = isPrivateProfile
+
     //*********************************** VIEW HOLDERS FOR THE RECYCLER VIEW ***********************************
     // ViewHolder for the profile detail page header
     inner class ViewHolderProfileDetailHeader internal constructor(itemView: View) :
@@ -72,34 +75,43 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
             // Load full name into the TextView
             userFullName.text = userObject.getFullName()
 
+            // Load user bio into the TextView
+            bio.text = userObject.getBio()
+
             // Set on click listener for the num of followers view
             numOfFollowersView.setOnClickListener {
-                // Take user to the activity where the user can see list of followers of the user
-                // The intent object
-                val intent = Intent(activity, UserShow::class.java)
+                // If profile is not private, show list of followers
+                if (!isPrivateProfile) {
+                    // Take user to the activity where the user can see list of followers of the user
+                    // The intent object
+                    val intent = Intent(activity, UserShow::class.java)
 
-                // Set post id to that activity and tell it to show list of likes of the post
-                intent.putExtra("whatToDo", "getListOfFollowers")
-                intent.putExtra("postId", "")
-                intent.putExtra("userId", userObject.getId())
+                    // Set post id to that activity and tell it to show list of likes of the post
+                    intent.putExtra("whatToDo", "getListOfFollowers")
+                    intent.putExtra("postId", "")
+                    intent.putExtra("userId", userObject.getId())
 
-                // Start the activity
-                activity.startActivity(intent)
+                    // Start the activity
+                    activity.startActivity(intent)
+                }
             }
 
             // Set on click listener for the num of followings view
             numOfFollowingsView.setOnClickListener {
-                // Take user to the activity where the user can see list of followings of the user
-                // The intent object
-                val intent = Intent(activity, UserShow::class.java)
+                // If profile is not private, show list of following
+                if (!isPrivateProfile) {
+                    // Take user to the activity where the user can see list of followings of the user
+                    // The intent object
+                    val intent = Intent(activity, UserShow::class.java)
 
-                // Set post id to that activity and tell it to show list of likes of the post
-                intent.putExtra("whatToDo", "getListOfFollowings")
-                intent.putExtra("postId", "")
-                intent.putExtra("userId", userObject.getId())
+                    // Set post id to that activity and tell it to show list of likes of the post
+                    intent.putExtra("whatToDo", "getListOfFollowings")
+                    intent.putExtra("postId", "")
+                    intent.putExtra("userId", userObject.getId())
 
-                // Start the activity
-                activity.startActivity(intent)
+                    // Start the activity
+                    activity.startActivity(intent)
+                }
             }
 
             // Load avatar of the user into the ImageView
@@ -120,9 +132,6 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
 
             // Call the function to get number of posts of the user
             getNumOfPosts(userObject.getId(), numOfPosts)
-
-            // Call the function to get bio of the user
-            getBio(userObject.getId(), bio)
         }
     }
 
@@ -222,24 +231,22 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
             }
         }
     }
+
+    // ViewHolder for the private profile row
+    inner class ViewHolderPrivateProfile internal constructor(itemView: View) :
+        RecyclerView.ViewHolder(itemView) {
+        // The function to set up the private profile row
+        fun setUpPrivateProfileRow () { }
+    }
     //*********************************** END VIEW HOLDERS FOR THE RECYCLER VIEW ***********************************
 
     //*********************************** GET USER INFO SEQUENCE ***********************************
     /*
     In this sequence, we will get these info
-    1. User bio
-    2. Number of followers
-    3. Number of followings
-    4. Number of posts
+    1. Number of followers
+    2. Number of followings
+    3. Number of posts
      */
-    // The function to get user info based on id
-    fun getBio(userId: String, userBioTextView: TextView) {
-        // Call the function to get user bio
-        userRepository.getBioOfUserWithId(userId) {userBio ->
-            // Load user info into the TextView
-            userBioTextView.text = userBio
-        }
-    }
 
     // The function to get number of followers of the user
     fun getNumOfFollowers (userId: String, numOfFollowerTextView: TextView) {
@@ -387,8 +394,16 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
                 // Return the view holder
                 ViewHolderFollowMessageButton(view)
             }
+            3 -> {
+                // View type 3 is for the private profile row
+                view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.profile_detail_private_profile, parent, false)
+
+                // Return the view holder
+                ViewHolderPrivateProfile(view)
+            }
             else -> {
-                // view type 3 is for the user album
+                // view type 4 is for the user album
                 view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.profile_detail_photo_show, parent, false)
 
@@ -409,8 +424,14 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
             (arrayOfPhotos.size / 4) + 1
         }
 
-        // Number of rows needed for this activity will be 2 + number of rows needed for the user album
-        return numOfRowsForUserAlbum + 2
+        // If profile is not private, show the album
+        return if (!isPrivateProfile) {
+            // Number of rows needed for this activity will be 2 + number of rows needed for the user album
+            numOfRowsForUserAlbum + 2
+        } // Otherwise, let the user know that the profile is private
+        else {
+            3
+        }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -434,6 +455,10 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
             else {
                 (holder as ViewHolderFollowMessageButton).setUpFollowMessageButton(userObject)
             }
+        }
+        // For the next row, if profile is private, let user know that profile is private
+        else if (position == 2 && isPrivateProfile) {
+            (holder as ViewHolderPrivateProfile).setUpPrivateProfileRow()
         }
         // The rest will show the user album
         else {
@@ -517,9 +542,13 @@ class RecyclerViewAdapterProfileDetail (arrayOfPhotos: ArrayList<PostPhoto>, use
             else {
                 2
             }
-        } // The rest will show the user album
-        else {
+        } // For the next row, if profile is private, let user know that profile is private
+        else if (position == 2 && isPrivateProfile) {
             3
+        }
+        // The rest will show the user album
+        else {
+            4
         }
     }
 }

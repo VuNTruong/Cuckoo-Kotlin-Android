@@ -9,6 +9,7 @@ import com.beta.cuckoo.Model.UserProfileVisit
 import com.beta.cuckoo.Network.LikesAndComments.GetUserLikeInteractionStatusService
 import com.beta.cuckoo.Network.UserStats.*
 import com.beta.cuckoo.Repository.UserRepositories.UserRepository
+import com.mapbox.mapboxsdk.style.layers.Property
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -253,6 +254,44 @@ class UserStatsRepository (executor: Executor, context: Context) {
                         }
                     })
                 }
+            }
+        }
+    }
+
+    // The function to update overall account stats for currently logged in user
+    fun updateAccountStats () {
+        executor.execute {
+            // Call the function to get info of the currently logged in user
+            userRepository.getInfoOfCurrentUser { userObject ->
+                // Create services to perform the calls
+                val updateLikeStatusService: UpdateUserLikeInteractionService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    UpdateUserLikeInteractionService::class.java
+                )
+                val updateCommentStatusService: UpdateUserCommentInteractionService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    UpdateUserCommentInteractionService::class.java
+                )
+                val updateUserInteractionService: UpdateUserInteractionService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
+                    UpdateUserInteractionService::class.java
+                )
+
+                // Create the call objects to perform the call
+                val callUpdateUserInteraction: Call<Any> = updateUserInteractionService.updateUserInteraction(userObject.getId())
+                val callUpdateUserLikeInteraction: Call<Any> = updateLikeStatusService.updateUserLikeInteraction(userObject.getId())
+                val callUpdateUserCommentInteraction: Call<Any> = updateCommentStatusService.updateUserCommentInteraction(userObject.getId())
+
+                // Perform calls to update user's overall interaction, like interaction, comment interaction
+                callUpdateUserInteraction.enqueue(object : Callback<Any> {
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) { }
+                    override fun onFailure(call: Call<Any>, t: Throwable) { print("Something is not right") }
+                })
+                callUpdateUserLikeInteraction.enqueue(object : Callback<Any> {
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) { }
+                    override fun onFailure(call: Call<Any>, t: Throwable) { print("Something is not right") }
+                })
+                callUpdateUserCommentInteraction.enqueue(object : Callback<Any> {
+                    override fun onResponse(call: Call<Any>, response: Response<Any>) { }
+                    override fun onFailure(call: Call<Any>, t: Throwable) { print("Something is not right") }
+                })
             }
         }
     }

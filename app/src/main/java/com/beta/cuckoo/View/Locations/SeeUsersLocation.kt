@@ -2,20 +2,25 @@ package com.beta.cuckoo.View.Locations
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.beta.cuckoo.Network.User.GetCurrentlyLoggedInUserInfoService
-import com.beta.cuckoo.Network.Follows.GetFollowingService
-import com.beta.cuckoo.Network.User.GetUserInfoBasedOnIdService
-import com.beta.cuckoo.Network.RetrofitClientInstance
 import com.beta.cuckoo.R
 import com.beta.cuckoo.Repository.LocationRepositories.LocationRepository
 import com.beta.cuckoo.Repository.UserRepositories.FollowRepository
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.mapbox.android.core.permissions.PermissionsListener
 import com.mapbox.android.core.permissions.PermissionsManager
 import com.mapbox.mapboxsdk.Mapbox
+import com.mapbox.mapboxsdk.annotations.IconFactory
 import com.mapbox.mapboxsdk.annotations.MarkerOptions
 import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions
@@ -25,9 +30,10 @@ import com.mapbox.mapboxsdk.location.modes.RenderMode
 import com.mapbox.mapboxsdk.maps.MapboxMap
 import com.mapbox.mapboxsdk.maps.Style
 import kotlinx.android.synthetic.main.activity_see_friends_location.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -96,7 +102,7 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
      */
 
     // The function to get info of the current user
-    private fun getInfoOfCurrentUserAndFriendsLocation (mapbox: MapboxMap) {
+    private fun getInfoOfCurrentUserAndFriendsLocation(mapbox: MapboxMap) {
         // Call the function to get list of 2 ways follow of the currently logged in user
         followRepository.getListOf2WaysFollowOfCurrentUser { arrayOfUserId ->
             // Loop through the list of 2 ways follow of current user to get list of user id and pin them on the map
@@ -108,23 +114,24 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
     }
 
     // The function to get info of a user based on id
-    private fun loadUserInfoBasedOnId (userId: String, mapbox: MapboxMap) {
+    private fun loadUserInfoBasedOnId(userId: String, mapbox: MapboxMap) {
         // Call the function to get location info of the user with specified user id and pin that user on the map
-        locationRepository.getLocationInfoOfUserBasedOnId(userId) {userFullName, locationDescription, location ->
+        locationRepository.getLocationInfoOfUserBasedOnId(userId) { userFullName, locationDescription, location ->
             // Call the function to pin the user on the map
             pinUser(location, "${userFullName}: $locationDescription", mapbox)
         }
     }
 
     // The function to pin the users
-    private fun pinUser (location: LatLng, title: String, mapbox: MapboxMap) {
+    private fun pinUser(location: LatLng, title: String, mapbox: MapboxMap) {
         val locationToPin = location
 
         // Add pin at the user location
         mapbox.addMarker(
             MarkerOptions()
                 .position(location)
-                .title(title))
+                .title(title)
+        )
     }
     //**************************************** END LOAD LIST OF FRIENDS AND LOCATION SEQUENCE ****************************************
 
@@ -141,7 +148,11 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
         // Do something here later :))
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
         permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
@@ -165,7 +176,10 @@ class SeeUsersLocation : AppCompatActivity(), PermissionsListener {
                 .accuracyColor(ContextCompat.getColor(this, R.color.mapbox_blue))
                 .build()
 
-            val locationComponentActivationOptions = LocationComponentActivationOptions.builder(this, loadedMapStyle)
+            val locationComponentActivationOptions = LocationComponentActivationOptions.builder(
+                this,
+                loadedMapStyle
+            )
                 .locationComponentOptions(customLocationComponentOptions)
                 .build()
 

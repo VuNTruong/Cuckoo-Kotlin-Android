@@ -156,7 +156,7 @@ class RecyclerViewAdapterRecommendAlbum (arrayOfPhotos: ArrayList<PostPhoto>, ac
             } else -> {
                 // View type 2 is for the load more row
                 view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.hbt_gram_post_item_load_more, parent, false)
+                    .inflate(R.layout.post_item_load_more, parent, false)
 
                 // Return the view holder
                 ViewHolderRecommendAlbumLoadMoreRow(view)
