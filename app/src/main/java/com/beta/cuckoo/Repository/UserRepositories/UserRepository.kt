@@ -25,9 +25,6 @@ class UserRepository (executor: Executor, context: Context) {
     // Context of the parent activity
     private val context = context
 
-    // Instance of FirebaseAuth
-    private val mAuth = FirebaseAuth.getInstance()
-
     // Create the GSON object
     val gs = Gson()
 
@@ -117,73 +114,6 @@ class UserRepository (executor: Executor, context: Context) {
         }
     }
 
-    // The function to get user of user based on specified user id
-    fun getBioOfUserWithId (userId: String, callback: (userBio: String) -> Unit) {
-        // Create the get user info service
-        val getUserInfoService: GetUserInfoBasedOnIdService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
-            GetUserInfoBasedOnIdService::class.java)
-
-        // Create the call object in order to perform the call
-        val call: Call<Any> = getUserInfoService.getUserInfoBasedOnId(userId)
-
-        // Perform the call
-        call.enqueue(object: Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is not empty it means that there is data
-                if (response.body() != null) {
-                    // Body of the request
-                    val responseBody = response.body() as Map<String, Any>
-
-                    // Get data from the response body
-                    // Get obtain user data from that
-                    val data = (((responseBody["data"] as Map<String, Any>)["documents"]) as List<Map<String, Any>>)[0]
-
-                    // Load bio of the user
-                    val userBio = data["description"] as String
-
-                    // Return user bio via callback function
-                    callback(userBio)
-                } else {
-                    print("Something is not right")
-                }
-            }
-        })
-    }
-
-    // The function to validate login token of the current user
-    fun checkToken (callback: (isValid: Boolean) -> Unit) {
-        executor.execute {
-            // Create the validate token service
-            val validateTokenService: ValidateTokenPostService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
-                ValidateTokenPostService::class.java)
-
-            // Create the call object in order to perform the call
-            val call: Call<Any> = validateTokenService.validate()
-
-            // Perform the call
-            call.enqueue(object: Callback<Any> {
-                override fun onFailure(call: Call<Any>, t: Throwable) {
-                    print("Boom")
-                }
-
-                override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                    // If the response body is not empty it means that the token is valid
-                    if (response.body() != null) {
-                        // Let the view model know that token is valid via callback function
-                        callback(true)
-                    } else {
-                        // Let the view model know that token is not valid via callback function
-                        callback(false)
-                    }
-                }
-            })
-        }
-    }
-
     // The function to log a user in
     fun login (email: String, password: String, callback: (loginSuccess: Boolean) -> Unit) {
         executor.execute {
@@ -252,43 +182,6 @@ class UserRepository (executor: Executor, context: Context) {
                 }
             })
         }
-    }
-
-    // The function to sign out
-    fun signOut (callback: () -> Unit) {
-        // Sign the current user out
-        mAuth.signOut()
-
-        // Let the view know that sign out is done via callback function
-        callback()
-        /*
-        // Create the post service
-        val postService: LogoutPostDataService = RetrofitClientInstance.getRetrofitInstance(context)!!
-            .create(LogoutPostDataService::class.java)
-
-        // The call object which will then be used to perform the API call
-        val call: Call<Any> = postService.logout()
-
-        // Perform the API call
-        call.enqueue(object : Callback<Any> {
-            override fun onFailure(call: Call<Any>, t: Throwable) {
-                // Report the error if something is not right
-                print("Boom")
-            }
-
-            override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                // If the response body is null, it means that the user may didn't enter the correct email or password
-                if (response.body() == null) {
-                    // Show the user that the login was not successful
-                    Toast.makeText(context, "Something is not right", Toast.LENGTH_SHORT)
-                        .show()
-                } else {
-                    // Let the view know that sign out is done via callback function
-                    callback()
-                }
-            }
-        })
-         */
     }
 
     // The function to get last updated location of the currently logged in user

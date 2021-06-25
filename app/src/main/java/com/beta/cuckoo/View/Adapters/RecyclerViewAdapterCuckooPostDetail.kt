@@ -41,7 +41,7 @@ class RecyclerViewAdapterCuckooPostDetail (cuckooPost: CuckooPost, arrayOfImages
     // The notification repository
     private val notificationRepository: NotificationRepository = NotificationRepository(executorService, activity)
 
-    // The selected HBTGram post object
+    // The selected post object
     private val CuckooPost = cuckooPost
 
     // Activity of the parent activity

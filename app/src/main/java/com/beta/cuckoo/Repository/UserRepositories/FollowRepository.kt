@@ -170,56 +170,6 @@ class FollowRepository (executor: Executor, context: Context) {
         }
     }
 
-    // The function to get list of followings of the currently logged in user
-    fun getLisOfFollowingsOfCurrentUser (callback: (arrayOfUserId: ArrayList<String>) -> Unit) {
-        executor.execute {
-            // Call the function to get info of the currently logged in user
-            userRepository.getInfoOfCurrentUser { userObject ->
-                executor.execute {
-                    // Create the service for getting number of followings
-                    val getArrayOfFollowingService: GetFollowingService = RetrofitClientInstance.getRetrofitInstance(context)!!.create(
-                        GetFollowingService::class.java)
-
-                    // Create the call object in order to perform the call
-                    val call: Call<Any> = getArrayOfFollowingService.getFollowings(userObject.getId())
-
-                    // Perform the call
-                    call.enqueue(object : Callback<Any> {
-                        override fun onFailure(call: Call<Any>, t: Throwable) {
-                            print("There seem to be an error ${t.stackTrace}")
-                        }
-
-                        override fun onResponse(call: Call<Any>, response: Response<Any>) {
-                            // If the response body is not empty it means that there is data
-                            if (response.body() != null) {
-                                // Array of user id of followings
-                                val arrayOfFollowingsUserId = ArrayList<String>()
-
-                                // Body of the request
-                                val responseBody = response.body() as Map<String, Any>
-
-                                // Get data of the response
-                                val data = responseBody["data"] as Map<String, Any>
-
-                                // Get list of followings
-                                val listOfFollowings = data["documents"] as ArrayList<Map<String, Any>>
-
-                                // Loop through that list of followings, get follower info based on their id
-                                for (following in listOfFollowings) {
-                                    // Add user id of following to the array of following user id
-                                    arrayOfFollowingsUserId.add(following["following"] as String)
-                                }
-
-                                // Return array of user ids of followings via callback function
-                                callback(arrayOfFollowingsUserId)
-                            }
-                        }
-                    })
-                }
-            }
-        }
-    }
-
     // The function to get list of 2 ways follow of currently logged in user
     fun getListOf2WaysFollowOfCurrentUser (callback: (arrayOfUserId: ArrayList<String>) -> Unit) {
         executor.execute {

@@ -16,6 +16,7 @@ import com.beta.cuckoo.View.Chat.SearchUserToChatWith
 import com.beta.cuckoo.View.Locations.UpdateLocation
 import com.beta.cuckoo.View.MainMenu.MainMenu
 import com.beta.cuckoo.View.VideoChat.VideoChatIncomingCall
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.google.gson.Gson
@@ -23,6 +24,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class FirebaseMessagingService () : FirebaseMessagingService() {
+    // Instance of the FirebaseAuth
+    private val mAuth = FirebaseAuth.getInstance()
+
     // gson converter
     private val gson = Gson()
 
@@ -128,7 +132,7 @@ class FirebaseMessagingService () : FirebaseMessagingService() {
                 else -> {
                     // Also if you intend on generating your own notifications as a result of a received FCM
                     // message, here is where that should be initiated. See sendNotification method below.
-                    //sendNotification("Cloud message received")
+                    sendNotification("Cloud message received")
                 }
             }
 
@@ -172,10 +176,13 @@ class FirebaseMessagingService () : FirebaseMessagingService() {
         // Create the user repository
         val userRepository = UserRepository(executorService, applicationContext)
 
-        // Call the function to get info of the currently logged in user
-        userRepository.getInfoOfCurrentUser { userObject ->
-            // Call the function to update notification socket
-            notificationRepository.updateNotificationSocket(userObject.getId(), token!!) { }
+        // Check to see if there is a current user object or not
+        if (mAuth.currentUser != null) {
+            // Call the function to get info of the currently logged in user
+            userRepository.getInfoOfCurrentUser { userObject ->
+                // Call the function to update notification socket
+                notificationRepository.updateNotificationSocket(userObject.getId(), token!!) { }
+            }
         }
     }
 

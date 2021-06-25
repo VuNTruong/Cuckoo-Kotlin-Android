@@ -17,14 +17,8 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class LoginActivity : AppCompatActivity() {
-    // Executor service to perform works in the background
-    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
-
     // Instance of the FirebaseAuth
     private val mAuth = FirebaseAuth.getInstance()
-
-    // The user repository
-    private lateinit var userRepository: UserRepository
 
     override fun onBackPressed() {
         super.onBackPressed()
@@ -42,9 +36,6 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
-
-        // Initiate the user repository
-        userRepository = UserRepository(executorService, applicationContext)
 
         // Hide the action bar
         supportActionBar!!.hide()
@@ -109,36 +100,5 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(applicationContext, "Password or email is not right", Toast.LENGTH_SHORT).show()
                 }
             }
-
-        /*
-        // Call the function to start the login operation
-        userRepository.login(email, password) {loginSuccess ->
-            // If login is not successful, show alert to the user
-            if (!loginSuccess) {
-                // Show the user that the login was not successful
-                Toast.makeText(applicationContext, "Password or email is not right", Toast.LENGTH_SHORT).show()
-            } else {
-                // Call the function to sign the user in using FirebaseAuth
-                SignInWithFirebaseTask().execute()
-
-                // Go to the mail page activity
-                val intent = Intent(applicationContext, MainMenu::class.java)
-                startActivity(intent)
-
-                // Finish this activity
-                this@LoginActivity.finish()
-            }
-        }
-         */
-    }
-
-    // The AsyncTask to sign user in with FirebaseAuth and provide FirebaseAuth token in order to have access to the storage
-    inner class SignInWithFirebaseTask : AsyncTask<Void, Void, Void>() {
-        override fun doInBackground(vararg params: Void?): Void? {
-            // Sign in with Firebase
-            mAuth.signInWithEmailAndPassword("allowedusers@email.com", "AllowedUser")
-
-            return null
-        }
     }
 }

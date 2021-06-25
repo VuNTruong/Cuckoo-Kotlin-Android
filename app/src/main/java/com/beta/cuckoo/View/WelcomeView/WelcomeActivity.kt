@@ -15,12 +15,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class WelcomeActivity : AppCompatActivity() {
-    // Executor service to perform works in the background
-    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
-
-    // The user repository
-    private lateinit var userRepository: UserRepository
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -30,9 +24,6 @@ class WelcomeActivity : AppCompatActivity() {
 
         // Do the fade in and fade out transition to make it look better
         overridePendingTransition(R.animator.fade_in, R.animator.fade_out)
-
-        // Initiate the user repository
-        userRepository = UserRepository(executorService, applicationContext)
 
         // Set on click listener for the login button
         loginButton.setOnClickListener {

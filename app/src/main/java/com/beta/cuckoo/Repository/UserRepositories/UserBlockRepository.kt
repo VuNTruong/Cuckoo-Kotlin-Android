@@ -19,7 +19,7 @@ class UserBlockRepository (executor: Executor, context: Context) {
     // Context of the parent activity
     private val context = context
 
-    // User respository
+    // User repository
     private val userRepository = UserRepository(executor, context)
 
     // Create the GSON object
