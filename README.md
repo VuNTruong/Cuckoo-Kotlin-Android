@@ -32,3 +32,9 @@ This is the Android version of the Cuckoo social network <br>
 6. Image recognitions (used when the app need to predict user's search trend): Firebase Machine Learning
 7. API operations: Retrofit
 8. Notifications: Firebase Cloud Messaging
+
+# Testing out the app
+If you want to check out the app, download the app here https://play.google.com/store/apps/details?id=com.beta.myhbt_api 
+When testing out the app, if you don't want to create an account, login with this one
+Email: ng@email.com
+Password: 123456789
